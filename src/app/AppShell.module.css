@@ -99,31 +99,6 @@
   gap: var(--space-7);
 }
 
-/*
- * The canvas widens in steps with the viewport. Individual text blocks keep
- * their own max-widths, so this buys room for the layout — the two choices,
- * the ruled headings, the signal table — without ever lengthening a line of
- * prose past what is comfortable to read.
- */
-@media (min-width: 64rem) {
-  .main,
-  .headerInner,
-  .footerInner {
-    max-width: 62rem;
-  }
-}
-
-@media (min-width: 90rem) {
-  .main,
-  .headerInner,
-  .footerInner {
-    max-width: 74rem;
-  }
-
-  .main {
-    padding-top: var(--space-8);
-  }
-}
 
 .footer {
   border-top: 1px solid var(--rule);
@@ -184,4 +159,34 @@
   padding: var(--space-2) var(--space-4);
   font-size: var(--t-sm);
   font-weight: 500;
+}
+
+/*
+ * The canvas widens in steps with the viewport. Individual text blocks keep
+ * their own max-widths, so this buys room for the layout — the two choices,
+ * the ruled headings, the signal table — without ever lengthening a line of
+ * prose past what is comfortable to read.
+ *
+ * Kept at the end of the file deliberately. A media query carries no extra
+ * specificity, so when this sat above `.footerInner`'s own rule that later
+ * declaration won and the footer stayed narrow while the page around it grew.
+ */
+@media (min-width: 64rem) {
+  .main,
+  .headerInner,
+  .footerInner {
+    max-width: 62rem;
+  }
+}
+
+@media (min-width: 90rem) {
+  .main,
+  .headerInner,
+  .footerInner {
+    max-width: 74rem;
+  }
+
+  .main {
+    padding-top: var(--space-8);
+  }
 }
