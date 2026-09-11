@@ -18,10 +18,33 @@ function markClass(state: SignalState): string {
   }
 }
 
-function describeState(state: SignalState, now: Instant, timeZone: string): string {
+/**
+ * When most live rows were read at the same minute, the minute belongs under
+ * the table once rather than on every row. Only a row that differs carries its
+ * own time — which is exactly the row worth noticing.
+ */
+function commonLiveMinute(signals: SignalReport[]): Instant | null {
+  const minutes = signals
+    .filter((signal) => signal.state.kind === 'live')
+    .map((signal) => Math.floor((signal.state as { observedAt: Instant }).observedAt / 60_000));
+  if (minutes.length < 3) return null;
+  const counts = new Map<number, number>();
+  for (const minute of minutes) counts.set(minute, (counts.get(minute) ?? 0) + 1);
+  const [best, count] = [...counts].sort((a, b) => b[1] - a[1])[0]!;
+  return count >= Math.ceil(minutes.length / 2) ? best * 60_000 : null;
+}
+
+function describeState(
+  state: SignalState,
+  now: Instant,
+  timeZone: string,
+  commonLive: Instant | null,
+): string {
   switch (state.kind) {
     case 'live':
-      return `Live · ${formatClock(state.observedAt, timeZone)}`;
+      return commonLive !== null && Math.floor(state.observedAt / 60_000) === Math.floor(commonLive / 60_000)
+        ? 'Live'
+        : `Live · ${formatClock(state.observedAt, timeZone)}`;
     case 'stale':
       return `Stale · ${formatRelative(state.observedAt, now)}`;
     case 'user-supplied':
@@ -71,6 +94,8 @@ export function SignalTable({
    */
   details?: Partial<Record<SignalId, SignalDetail>>;
 }): React.JSX.Element {
+  const commonLive = commonLiveMinute(signals);
+
   return (
     <div>
       <ul className={styles.list}>
@@ -82,10 +107,14 @@ export function SignalTable({
               {signal.summary}
               <Detail detail={details[signal.id]} label={signal.label} />
             </span>
-            <span className={styles.state}>{describeState(signal.state, now, timeZone)}</span>
+            <span className={styles.state}>{describeState(signal.state, now, timeZone, commonLive)}</span>
           </li>
         ))}
       </ul>
+
+      {commonLive !== null ? (
+        <p className={styles.asOf}>Live data as of {formatClock(commonLive, timeZone)}.</p>
+      ) : null}
 
       <p className={styles.footnote}>
         Overall confidence is <strong>{confidence.level}</strong>, derived from these rows. It is a

@@ -56,13 +56,18 @@
   gap: var(--space-4);
 }
 
-/* Section headings are set as rules with a label, like a printed schedule. */
+/*
+ * Section headings are set as rules with a label, like a printed schedule.
+ * A step above the rows in size and colour, so six sections do not read as one
+ * flat wall — and wider letter-spacing than body text, but not so tight a size
+ * that the spacing works against reading.
+ */
 .sectionTitle {
-  font-size: var(--t-sm);
-  font-weight: 620;
-  letter-spacing: 0.1em;
+  font-size: var(--t-body);
+  font-weight: 650;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--ink-2);
+  color: var(--ink);
   padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--rule-strong);
 }

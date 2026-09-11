@@ -1,26 +1,24 @@
 /*
  * The stages between a flight existing and a passenger being collectable.
  * Only some are observable, and the difference is marked rather than blurred.
+ *
+ * A column, not a row of dots: six uppercase labels wrapped across a line read
+ * as decoration, while a list reads as progress and says where you are now.
  */
 .list {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1) 0;
-  align-items: center;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .stage {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-size: var(--t-label);
-  font-weight: 600;
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
+  gap: var(--space-3);
+  font-size: var(--t-sm);
   /* Stages still to come. --ink-3, not --ink-4: these are words, and --ink-4
    * is for marks only. The hollow tick carries "not yet", not the colour. */
   color: var(--ink-3);
-  padding-right: var(--space-3);
 }
 
 .stagePast {
@@ -28,14 +26,17 @@
   color: var(--ink-2);
 }
 
+/* Where the passenger is now: the one line worth finding at a glance. */
 .stageCurrent {
   composes: stage;
   color: var(--signal-2);
+  font-weight: 650;
 }
 
 .tick {
-  width: 0.45rem;
-  height: 0.45rem;
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
   border-radius: 50%;
   border: 1.5px solid currentColor;
 }

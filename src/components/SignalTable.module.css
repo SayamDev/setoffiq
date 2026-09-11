@@ -153,6 +153,14 @@
   color: var(--ink);
 }
 
+/* One line for the minute most rows share; a row that differs says its own. */
+.asOf {
+  margin-top: var(--space-3);
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
 .moreNote {
   color: var(--ink-3);
 }
