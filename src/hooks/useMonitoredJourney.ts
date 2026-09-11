@@ -156,12 +156,12 @@ export function useMonitoredJourney(
             if (shown) updated = appendEvent(updated, 'notified', 'You were notified of this change.', now);
           }
         } else {
-          updated = appendEvent(
-            updated,
-            'checked',
-            `Checked — nothing meaningful changed. Departure stays at ${formatClock(plan.recommendation.recommendedDeparture, airport.timeZone)}.`,
-            now,
-          );
+          /*
+           * Nothing changed, so nothing is recorded. Logging every check
+           * filled the activity list with dozens of identical lines and
+           * buried the entries that matter. "Last checked" and the line under
+           * the buttons already say a check happened.
+           */
           outcome = `Checked at ${stamp} — nothing changed. Departure stays at ${formatClock(plan.recommendation.recommendedDeparture, airport.timeZone)}.`;
         }
       }

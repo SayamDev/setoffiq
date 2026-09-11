@@ -453,6 +453,8 @@ export interface RecommendationVersion {
 
 export type JourneyEventKind =
   | 'created'
+  /** No longer written: a check that changed nothing is not an event. Kept so
+   *  journeys saved before that can still be read. */
   | 'checked'
   | 'flight-updated'
   | 'recommendation-changed'

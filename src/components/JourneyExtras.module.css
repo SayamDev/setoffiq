@@ -164,3 +164,10 @@
   max-width: 44ch;
   font-size: var(--t-sm);
 }
+
+/* The log is a glance, not an archive: what is not shown is still counted. */
+.logMore {
+  margin-top: var(--space-3);
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+}
