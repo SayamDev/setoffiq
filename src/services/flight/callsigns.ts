@@ -80,3 +80,23 @@ export function candidateCallsigns(flightNumber: string): string[] {
 export function knownAirlinePrefixes(): string[] {
   return Object.keys(IATA_TO_ICAO).sort();
 }
+
+/** ICAO callsign prefix back to the IATA code a ticket would show. */
+const ICAO_TO_IATA: Record<string, string> = Object.fromEntries(
+  Object.entries(IATA_TO_ICAO).map(([iata, icao]) => [icao, iata]),
+);
+
+/**
+ * Turn a broadcast callsign back into something resembling a flight number.
+ *
+ * Returns null when there is no honest mapping — Ryanair and easyJet broadcast
+ * alphanumeric callsigns unrelated to the number on a ticket, and inventing one
+ * would be worse than showing the callsign as-is.
+ */
+export function callsignToFlightNumber(callsign: string): string | null {
+  const value = normaliseFlightNumber(callsign);
+  const match = /^([A-Z]{3})(\d{1,4})$/.exec(value);
+  if (!match) return null;
+  const iata = ICAO_TO_IATA[match[1]!];
+  return iata ? `${iata}${match[2]}` : null;
+}

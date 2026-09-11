@@ -13,6 +13,7 @@ import type {
 import { geocodePostcode, isValidPostcodeShape } from '../services/routing';
 import { normaliseFlightNumber } from '../services/flight';
 import { Button, Field, ui } from './ui';
+import { InboundPicker } from './InboundPicker';
 import styles from './JourneyForm.module.css';
 
 interface FormState {
@@ -198,7 +199,14 @@ export function JourneyForm({
       <Field
         id={`${baseId}-flight`}
         label="Flight number (optional)"
-        hint="Used to look for the aircraft in the air. SetoffIQ has no access to airline schedules, so leaving this blank simply means the scheduled time you entered is used as-is."
+        hint={
+          kind === 'pickup'
+            ? 'Used to look for the aircraft in the air, which lets SetoffIQ estimate landing from its actual position. SetoffIQ has no access to airline schedules, so leaving this blank simply means the scheduled time you entered is used as-is.'
+            : // Nothing is looked up for a drop-off — the departure time on the
+              // ticket is the whole input — so the field is labelled for what it
+              // actually does rather than implying a lookup that never happens.
+              'Only used to label this journey in your saved list. A drop-off is planned entirely from the departure time above.'
+        }
       >
         <input
           id={`${baseId}-flight`}
@@ -212,6 +220,13 @@ export function JourneyForm({
           onChange={(event) => update('flightNumber', event.target.value)}
         />
       </Field>
+
+      {kind === 'pickup' ? (
+        <InboundPicker
+          airport={airport}
+          onPick={(flightNumber) => update('flightNumber', flightNumber)}
+        />
+      ) : null}
 
       <Field
         id={`${baseId}-postcode`}

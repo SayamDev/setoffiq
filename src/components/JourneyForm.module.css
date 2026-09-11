@@ -2,10 +2,17 @@
  * The form is set as a sequence of ruled field groups rather than a boxed
  * panel, so it belongs to the same timetable language as everything else.
  */
+/*
+ * A form has a usable width, not the page's width. On a wide screen the
+ * canvas is 62rem, and a text input stretched across all of it is both ugly
+ * and harder to use — the eye loses the relationship between the label and
+ * the field it belongs to.
+ */
 .form {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
+  max-width: 38rem;
 }
 
 .grid {
@@ -136,6 +143,7 @@
 }
 
 .errorSummary {
+  max-width: 38rem;
   border-left: 3px solid var(--red);
   background: var(--red-wash);
   color: var(--red);
