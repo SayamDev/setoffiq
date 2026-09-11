@@ -20,6 +20,19 @@ function model(): string {
 }
 
 /**
+ * Whether this build should ever look for a local model at all.
+ *
+ * Only a development build, or one built with VITE_OLLAMA_URL, does. The
+ * published site must not: a public page reaching into a visitor's loopback
+ * address is a request for local-network permission that Chrome surfaces to
+ * the visitor, for a model that Ollama's default origin policy would refuse to
+ * serve to github.io anyway. Evaluated per call so tests can vary the build.
+ */
+export function localModelConfigured(): boolean {
+  return Boolean(import.meta.env.DEV || import.meta.env.VITE_OLLAMA_URL);
+}
+
+/**
  * Optional local explanation via Ollama.
  *
  * This is a development convenience, never a requirement: the public site has
@@ -32,6 +45,7 @@ export const ollamaProvider: AIProvider = {
   label: 'Local model (Ollama)',
 
   async isAvailable(signal): Promise<boolean> {
+    if (!localModelConfigured()) return false;
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 1_500);

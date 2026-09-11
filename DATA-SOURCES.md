@@ -372,7 +372,11 @@ postcode — one request, on submit, then cached — and says why in the form.
 - **Free-use conditions:** Open-source, local. No hosted service is involved and
   no data leaves the machine.
 - **Application usage:** Off by default. The published site has no model behind
-  it. When enabled, the model receives only durations, times and windows — never
+  it, and never contacts `localhost` to look for one: only a development build,
+  or one built with `VITE_OLLAMA_URL`, checks whether a local model is running.
+  A public page probing a visitor's loopback address prompts for local-network
+  permission in Chrome, and Ollama's default origin policy would refuse
+  `github.io` regardless. When enabled, the model receives only durations, times and windows — never
   an address, postcode or coordinate — and cannot change any of them.
 - **Fallback:** the rule-based explanation, labelled honestly as such.
 
