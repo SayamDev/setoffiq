@@ -152,6 +152,68 @@ describe('parsing the closures feed', () => {
   });
 });
 
+describe('what the live feed actually contains', () => {
+  function record(comment: string) {
+    const end = new Date(NOW + 3_600_000).toISOString();
+    return {
+      D2Payload: {
+        situation: [
+          {
+            idG: '1',
+            situationRecord: [
+              {
+                sitRoadOrCarriagewayOrLaneManagement: {
+                  idG: 'a',
+                  validity: {
+                    validityStatus: 'active',
+                    validityTimeSpecification: { overallEndTime: end },
+                  },
+                  generalPublicComment: [{ comment }],
+                  locationReference: {
+                    locLinearLocation: {
+                      gmlLineString: { locGmlLineString: { posList: '53.36 -2.28' } },
+                    },
+                    locSingleRoadLinearLocation: {
+                      linearWithinLinearElement: [
+                        { linearElement: { locLinearElementByCode: { roadName: 'M6' } } },
+                      ],
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    };
+  }
+
+  const unplanned = { ...OPTIONS, closureType: 'unplanned' as const };
+
+  it('turns a raw enum in the comment field back into words', () => {
+    // Seen in production: the publisher put `laneClosures` where the human
+    // comment belongs, and it reached the interface verbatim.
+    const [entry] = parseClosures(record('laneClosures'), unplanned);
+    expect(entry.description).toBe('Lane closures');
+  });
+
+  it('does not treat a lane or hard-shoulder closure as a road closure', () => {
+    // A lane closed is not a road closed. Scoring them alike made a routine M6
+    // lane restriction weigh as heavily as a shut motorway.
+    expect(parseClosures(record('laneClosures'), unplanned)[0].category).toBe('roadworks');
+    expect(parseClosures(record('M62 hard shoulder closure'), unplanned)[0].category).toBe(
+      'roadworks',
+    );
+    expect(parseClosures(record('M60 slip road closure'), unplanned)[0].category).toBe('roadworks');
+  });
+
+  it('still recognises a genuine carriageway closure', () => {
+    expect(parseClosures(record('M6 northbound carriageway closed'), unplanned)[0].category).toBe(
+      'closure',
+    );
+  });
+});
+
 describe('staleness is judged per source', () => {
   it('does not call an hourly aerodrome observation stale after forty minutes', async () => {
     const { buildSignalReports } = await import('../../domain/engine/signalReports');

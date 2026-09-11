@@ -93,23 +93,61 @@ function roadNameOf(location) {
   return match ? match[1] : null;
 }
 
+/**
+ * Some records carry a raw enum where the human comment should be — the live
+ * feed has produced `laneClosures` as a description. Passing that through shows
+ * a driver a fragment of someone's schema, so it is turned back into words.
+ */
+function humanise(text) {
+  if (/\s/.test(text)) return text;
+  const spaced = text.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase().trim();
+  return spaced ? spaced.charAt(0).toUpperCase() + spaced.slice(1) : text;
+}
+
 function descriptionOf(body, location) {
   const comment = body?.generalPublicComment?.[0]?.comment;
   if (typeof comment === 'string' && comment.trim()) {
     // Comments are multi-line; the first line is the useful summary.
-    return comment.trim().split('\n')[0].trim();
+    return humanise(comment.trim().split('\n')[0].trim());
   }
   const described = location?.locLinearLocation?.supplementaryPositionalDescription?.locationDescription;
   return typeof described === 'string' && described.trim() ? described.trim() : null;
 }
 
-function categoryOf(body, closureType) {
+/**
+ * A lane closed is not a road closed.
+ *
+ * The unplanned feed reports lane and hard-shoulder closures alongside full
+ * carriageway closures. Treating them all as closures made a routine M6 lane
+ * restriction weigh as heavily as a shut motorway, and dragged confidence down
+ * with it.
+ */
+function categoryOf(body, closureType, description) {
   const cause = body?.cause?.causeType ?? '';
   const source = body?.source?.sourceIdentification ?? '';
-  const text = `${cause} ${source}`.toLowerCase();
+  const type = body?.roadOrCarriagewayOrLaneManagementType?.value ?? '';
+  const text = `${cause} ${source} ${type} ${description}`.toLowerCase();
+
   if (text.includes('accident') || text.includes('incident')) return 'incident';
+
+  // Partial restrictions are reported but are not a road closure.
+  if (
+    text.includes('lane closure') ||
+    text.includes('laneclosures') ||
+    text.includes('hard shoulder') ||
+    text.includes('hardshoulder') ||
+    text.includes('slip road')
+  ) {
+    return 'roadworks';
+  }
+
   if (text.includes('maintenance') || text.includes('roadwork')) return 'roadworks';
-  // The request already told us which kind we asked for.
+
+  // Only a genuine carriageway or road closure counts as one.
+  if (text.includes('carriageway closed') || text.includes('road closed') || text.includes('closed')) {
+    return closureType === 'unplanned' ? 'closure' : 'roadworks';
+  }
+
   return closureType === 'unplanned' ? 'closure' : 'roadworks';
 }
 
@@ -166,7 +204,7 @@ export function parseClosures(payload, options) {
         results.push({
           id: String(body.idG ?? situation.idG ?? `${results.length}`),
           road,
-          category: categoryOf(body, closureType),
+          category: categoryOf(body, closureType, description),
           description,
           distanceFromAirportKm: Math.round(distanceFromAirportKm),
           startedAt,
