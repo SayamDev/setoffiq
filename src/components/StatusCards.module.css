@@ -1,7 +1,31 @@
+/*
+ * Two panels side by side, separated by a rule rather than boxed individually.
+ */
 .grid {
   display: grid;
-  gap: var(--space-4);
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  border-top: 1px solid var(--rule);
+}
+
+.panel {
+  padding: var(--space-5) 0;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* A vertical rule between columns, only when they actually sit side by side. */
+@media (min-width: 34rem) {
+  .grid > .panel:nth-child(even) {
+    padding-left: var(--space-5);
+    border-left: 1px solid var(--rule);
+  }
+
+  .grid > .panel:nth-child(odd) {
+    padding-right: var(--space-5);
+  }
 }
 
 .head {
@@ -9,42 +33,58 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-2);
 }
 
 .title {
-  font-size: var(--text-sm);
-  font-weight: 620;
-  letter-spacing: 0.05em;
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
-  color: var(--ink-500);
-  margin: 0;
+  color: var(--ink-3);
 }
 
 .primary {
-  font-size: var(--text-xl);
-  font-weight: 620;
+  font-family: var(--font-mono);
+  font-size: var(--t-2xl);
+  font-weight: 600;
+  letter-spacing: -0.035em;
   font-variant-numeric: tabular-nums;
-  margin: 0 0 var(--space-1);
+  line-height: 1.1;
+}
+
+.primaryText {
+  composes: primary;
+  font-family: var(--font-sans);
+  font-size: var(--t-xl);
+  letter-spacing: -0.022em;
 }
 
 .secondary {
-  color: var(--ink-500);
-  font-size: var(--text-sm);
-  margin: 0 0 var(--space-3);
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+  max-width: 46ch;
 }
 
+/* Instrument readout: mono, tabular, separated by thin rules. */
+/*
+ * Instrument readout. Separated by spacing rather than rules: a wrapped row
+ * would otherwise start with a stray divider.
+ */
 .metrics {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2) var(--space-4);
-  font-size: var(--text-sm);
-  color: var(--ink-700);
-  margin: 0 0 var(--space-3);
+  font-size: var(--t-xs);
+  color: var(--ink-2);
+  margin: var(--space-3) 0 var(--space-2);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .metric {
-  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .testBanner {

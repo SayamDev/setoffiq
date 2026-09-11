@@ -1,82 +1,135 @@
+/*
+ * An editorial opening: a masthead-scale wordmark, a rule, then the single
+ * question. No hero card, no feature grid of boxes.
+ */
 .hero {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--rule-strong);
 }
 
 .title {
-  font-size: var(--text-3xl);
-  letter-spacing: -0.025em;
+  font-size: var(--t-3xl);
+  font-weight: 650;
+  letter-spacing: -0.042em;
 }
 
 .tagline {
-  font-size: var(--text-lg);
-  color: var(--ink-700);
-  max-width: 34ch;
+  font-size: var(--t-xl);
+  font-weight: 400;
+  color: var(--ink-2);
+  letter-spacing: -0.022em;
+  max-width: 22ch;
+  text-wrap: balance;
 }
 
 .lede {
-  color: var(--ink-500);
-  max-width: 52ch;
+  color: var(--ink-3);
+  max-width: 54ch;
+  margin-top: var(--space-2);
 }
 
 .question {
-  font-size: var(--text-xl);
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
   margin-bottom: var(--space-4);
 }
 
+/* Two choices, separated by a rule rather than floated as cards. */
 .choices {
   display: grid;
-  gap: var(--space-4);
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 0;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
 }
 
 .choice {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
   gap: var(--space-2);
-  padding: var(--space-5);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
+  padding: var(--space-5) 0;
+  border-top: 1px solid var(--rule);
   text-decoration: none;
   color: inherit;
-  box-shadow: var(--shadow-card);
+  transition-property: background-color;
+  transition-duration: var(--dur-out);
+  transition-timing-function: var(--ease);
 }
 
 .choice:hover {
-  border-color: var(--accent-700);
   color: inherit;
-  box-shadow: var(--shadow-raised);
+}
+
+@media (min-width: 38rem) {
+  .choices > .choice:nth-child(even) {
+    padding-left: var(--space-5);
+    border-left: 1px solid var(--rule);
+  }
+
+  .choices > .choice:nth-child(odd) {
+    padding-right: var(--space-5);
+  }
 }
 
 .choiceTitle {
-  font-size: var(--text-lg);
-  font-weight: 640;
+  font-size: var(--t-xl);
+  font-weight: 600;
+  letter-spacing: -0.028em;
+  text-wrap: balance;
 }
 
 .choiceBody {
-  color: var(--ink-500);
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+  max-width: 36ch;
 }
 
 .choiceGo {
+  color: var(--signal-2);
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
   margin-top: var(--space-2);
-  color: var(--accent-700);
-  font-weight: 580;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
+.arrow {
+  transition-property: transform;
+  transition-duration: var(--dur-out);
+  transition-timing-function: var(--ease);
+}
+
+.choice:hover .arrow {
+  transform: translateX(3px);
+}
+
+/* Three short claims, set as a ruled strip rather than three more boxes. */
 .points {
   display: grid;
-  gap: var(--space-4);
-  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--space-5);
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  border-top: 1px solid var(--rule-strong);
+  padding-top: var(--space-5);
 }
 
 .pointTitle {
-  font-weight: 620;
-  margin-bottom: var(--space-1);
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink);
+  margin-bottom: var(--space-2);
 }
 
 .pointBody {
-  color: var(--ink-500);
-  font-size: var(--text-sm);
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+  max-width: 40ch;
 }

@@ -1,18 +1,22 @@
 import { formatClock, formatClockRange, formatDate, formatMinuteRange } from '../domain/time';
-import type { AirportProfile, Instant, Recommendation } from '../domain/types';
+import type { AdvisoryKind, AirportProfile, Instant, Recommendation } from '../domain/types';
 import { ConfidenceBadge } from './ConfidenceBadge';
 import styles from './RecommendationCard.module.css';
 
-const HERO_CLASS: Record<string, string> = {
-  'leave-now': styles.heroAccent!,
-  'running-late': styles.heroWarn!,
+/** The signal bar restates the advisory, which is always also written out. */
+const SIGNAL_CLASS: Record<AdvisoryKind, string> = {
+  'leave-now': styles.signalGo!,
+  wait: styles.signalWait!,
+  plan: styles.signalWait!,
+  'running-late': styles.signalLate!,
+  blocked: styles.signalLate!,
 };
 
 /**
  * The screen the whole product exists for.
  *
- * Reading order is fixed and deliberate: the departure time, then what it is
- * built around, then how much to trust it. Nothing is buried in a chart.
+ * Reading order is fixed and deliberate: the departure time, what to do about
+ * it, then the three numbers that qualify it, then how much to trust it.
  */
 export function RecommendationCard({
   recommendation,
@@ -26,23 +30,34 @@ export function RecommendationCard({
   children?: React.ReactNode;
 }): React.JSX.Element {
   const zone = airport.timeZone;
-  const heroClass = HERO_CLASS[recommendation.advisory.kind] ?? styles.hero!;
-  const sameDay =
-    formatDate(recommendation.recommendedDeparture, zone) === formatDate(now, zone);
+  const sameDay = formatDate(recommendation.recommendedDeparture, zone) === formatDate(now, zone);
 
   return (
     <section className={styles.card} aria-labelledby="recommendation-heading">
-      <div className={heroClass}>
+      <div className={SIGNAL_CLASS[recommendation.advisory.kind]} aria-hidden="true" />
+
+      <div className={styles.head}>
         <p className={styles.eyebrow} id="recommendation-heading">
           Recommended departure
         </p>
-        <p className={styles.time}>{formatClock(recommendation.recommendedDeparture, zone)}</p>
-        <p className={styles.day}>
-          {sameDay ? 'Today' : formatDate(recommendation.recommendedDeparture, zone)} ·{' '}
-          {airport.name} time
-        </p>
-        <p className={styles.advisoryHeadline}>{recommendation.advisory.headline}</p>
-        <p className={styles.advisoryDetail}>{recommendation.advisory.detail}</p>
+        <div className={styles.confidence}>
+          <ConfidenceBadge confidence={recommendation.confidence} />
+        </div>
+      </div>
+
+      <div className={styles.body}>
+        <div className={styles.timeBlock}>
+          <p className={styles.time}>{formatClock(recommendation.recommendedDeparture, zone)}</p>
+          <p className={styles.day}>
+            {sameDay ? 'Today' : formatDate(recommendation.recommendedDeparture, zone)} ·{' '}
+            {airport.iataCode} time
+          </p>
+        </div>
+
+        <div className={styles.advice}>
+          <p className={styles.adviceHeadline}>{recommendation.advisory.headline}</p>
+          <p className={styles.adviceDetail}>{recommendation.advisory.detail}</p>
+        </div>
       </div>
 
       <dl className={styles.details}>
@@ -72,13 +87,6 @@ export function RecommendationCard({
         <div>
           <dt className={styles.term}>Journey</dt>
           <dd className={styles.value}>{formatMinuteRange(recommendation.journey)}</dd>
-        </div>
-
-        <div>
-          <dt className={styles.term}>Confidence</dt>
-          <dd className={styles.valueText}>
-            <ConfidenceBadge confidence={recommendation.confidence} />
-          </dd>
         </div>
       </dl>
 

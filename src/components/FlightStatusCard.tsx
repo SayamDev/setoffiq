@@ -1,7 +1,7 @@
 import { formatClock } from '../domain/time';
 import type { FlightStatus, Instant, Observed } from '../domain/types';
 import { DataFreshnessLabel } from './DataFreshnessLabel';
-import { Badge, Callout, Card } from './ui';
+import { Badge, Callout } from './ui';
 import styles from './StatusCards.module.css';
 
 const PHASE_WORDING: Record<FlightStatus['phase'], { label: string; tone: 'neutral' | 'good' | 'warn' | 'alert' }> = {
@@ -32,16 +32,16 @@ export function FlightStatusCard({
 }): React.JSX.Element {
   if (flight.state === 'unavailable' || !flight.value) {
     return (
-      <Card>
+      <div className={styles.panel}>
         <div className={styles.head}>
           <p className={styles.title}>Flight</p>
         </div>
-        <p className={styles.primary}>Temporarily unavailable</p>
+        <p className={styles.primaryText}>Temporarily unavailable</p>
         <p className={styles.secondary}>
           {flight.message ?? "We couldn't check for live flight information."} Your recommendation
           is based on the scheduled time you entered.
         </p>
-      </Card>
+      </div>
     );
   }
 
@@ -52,7 +52,7 @@ export function FlightStatusCard({
   const simulated = source === 'scenario';
 
   return (
-    <Card>
+    <div className={styles.panel}>
       {isTestData ? (
         <div className={styles.testBanner}>
           <Badge tone="warn">Test data — not live</Badge>
@@ -64,7 +64,7 @@ export function FlightStatusCard({
         <Badge tone={phase.tone}>{phase.label}</Badge>
       </div>
 
-      <p className={styles.primary}>
+      <p className={status.estimatedArrival ? styles.primary : styles.primaryText}>
         {status.estimatedArrival ? formatClock(status.estimatedArrival, timeZone) : 'No estimate'}
       </p>
       <p className={styles.secondary}>
@@ -104,6 +104,6 @@ export function FlightStatusCard({
       {!live && flight.message ? <p className={styles.secondary}>{flight.message}</p> : null}
 
       <DataFreshnessLabel observedAt={flight.observedAt} now={now} timeZone={timeZone} />
-    </Card>
+    </div>
   );
 }

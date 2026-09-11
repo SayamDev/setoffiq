@@ -4,31 +4,32 @@
   flex-direction: column;
 }
 
+/*
+ * A masthead, not a chrome bar: a hairline under it and nothing else. It does
+ * not stick, because on a page whose whole point is one large number, a bar
+ * following you down the screen is just noise.
+ */
 .header {
-  border-bottom: 1px solid var(--line);
-  background: var(--surface);
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper);
 }
 
 .headerInner {
-  max-width: var(--page-max);
+  max-width: var(--measure);
   margin: 0 auto;
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-4);
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   gap: var(--space-4);
 }
 
 .brand {
-  display: inline-block;
   text-decoration: none;
   color: inherit;
-  font-weight: 680;
-  font-size: var(--text-lg);
-  letter-spacing: -0.02em;
+  font-size: var(--t-lg);
+  font-weight: 650;
+  letter-spacing: -0.035em;
 }
 
 .brand:hover {
@@ -36,79 +37,122 @@
 }
 
 .brandMark {
-  color: var(--accent-700);
+  color: var(--signal-2);
 }
 
 .nav {
   display: flex;
-  gap: var(--space-1);
+  gap: var(--space-4);
 }
 
 .navLink {
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
+  position: relative;
+  padding: var(--space-2) 0;
   text-decoration: none;
-  color: var(--ink-700);
-  font-size: var(--text-sm);
-  font-weight: 560;
+  color: var(--ink-3);
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  transition-property: color;
+  transition-duration: var(--dur-out);
+  transition-timing-function: var(--ease);
+}
+
+/* A 44px hit area without a 44px-tall link. */
+.navLink::before {
+  content: '';
+  position: absolute;
+  inset: -0.7rem -0.5rem;
 }
 
 .navLink:hover {
-  background: var(--surface-sunken);
-  color: var(--ink-900);
+  color: var(--ink);
 }
 
 .navLinkActive {
   composes: navLink;
-  background: var(--accent-100);
-  color: var(--accent-900);
+  color: var(--ink);
+}
+
+/* The current page is marked with a rule, not just a colour. */
+.navLinkActive::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--signal);
 }
 
 .main {
   flex: 1;
   width: 100%;
-  max-width: var(--page-max);
+  max-width: var(--measure);
   margin: 0 auto;
-  padding: var(--space-6) var(--space-4) var(--space-8);
+  padding: var(--space-7) var(--space-4) var(--space-8);
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-7);
 }
 
 .footer {
-  border-top: 1px solid var(--line);
-  background: var(--surface);
+  border-top: 1px solid var(--rule);
 }
 
 .footerInner {
-  max-width: var(--page-max);
+  max-width: var(--measure);
   margin: 0 auto;
-  padding: var(--space-5) var(--space-4);
+  padding: var(--space-6) var(--space-4) var(--space-7);
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  font-size: var(--text-sm);
-  color: var(--ink-500);
+  gap: var(--space-5);
+  font-size: var(--t-sm);
+  color: var(--ink-3);
 }
 
 .footerLinks {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
+  gap: var(--space-2) var(--space-5);
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+
+.footerLinks a {
+  color: var(--ink-3);
+  text-decoration: none;
+}
+
+.footerLinks a:hover {
+  color: var(--ink);
 }
 
 .attribution {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+  border-top: 1px solid var(--rule);
+  padding-top: var(--space-4);
+}
+
+.disclaimer {
+  max-width: 68ch;
+  font-size: var(--t-xs);
+  color: var(--ink-3);
 }
 
 .offline {
-  background: var(--warn-100);
-  border-bottom: 1px solid var(--warn-500);
-  color: var(--warn-700);
+  background: var(--amber-wash);
+  border-bottom: 1px solid var(--amber-2);
+  color: var(--amber);
   text-align: center;
   padding: var(--space-2) var(--space-4);
-  font-size: var(--text-sm);
-  font-weight: 560;
+  font-size: var(--t-sm);
+  font-weight: 500;
 }

@@ -181,26 +181,22 @@ export function JourneyPage({
             <h2 className={styles.sectionTitle} id="timeline-heading">
               Timeline
             </h2>
-            <Card>
-              <JourneyTimeline recommendation={recommendation} timeZone={zone} now={now} />
-            </Card>
+            <JourneyTimeline recommendation={recommendation} timeZone={zone} now={now} />
           </section>
 
           <section className={styles.section} aria-labelledby="why-heading">
             <h2 className={styles.sectionTitle} id="why-heading">
               Why this time?
             </h2>
-            <Card>
-              <ReasoningPanel recommendation={recommendation} />
-            </Card>
-            <Card quiet>
+            <ReasoningPanel recommendation={recommendation} />
+            <div className={styles.generated}>
               <ExplanationPanel
                 plan={monitor.plan}
                 recommendation={recommendation}
                 airport={airport}
                 useLocalModel={settings.useLocalModel}
               />
-            </Card>
+            </div>
           </section>
         </>
       ) : null}
@@ -209,9 +205,7 @@ export function JourneyPage({
         <h2 className={styles.sectionTitle} id="activity-heading">
           Activity
         </h2>
-        <Card>
-          <ActivityLog events={journey.events} timeZone={zone} />
-        </Card>
+        <ActivityLog events={journey.events} timeZone={zone} />
       </section>
     </>
   );

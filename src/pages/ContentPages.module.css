@@ -2,41 +2,70 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  max-width: 62ch;
+  max-width: 66ch;
+  color: var(--ink-2);
 }
 
 .prose h2 {
-  margin-top: var(--space-4);
+  margin-top: var(--space-5);
+  color: var(--ink);
+  font-size: var(--t-lg);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--rule);
 }
 
 .prose h3 {
   margin-top: var(--space-3);
+  color: var(--ink);
 }
 
 .prose ul li {
-  list-style: disc;
-  margin-left: var(--space-5);
+  list-style: none;
+  padding-left: var(--space-4);
+  position: relative;
   margin-bottom: var(--space-2);
+}
+
+/* A dash rather than a bullet — quieter, and it sits on the text baseline. */
+.prose ul li::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  color: var(--ink-4);
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--text-sm);
+  font-size: var(--t-sm);
 }
 
 .table th,
 .table td {
   text-align: left;
   vertical-align: top;
-  padding: var(--space-3);
-  border-bottom: 1px solid var(--line);
+  padding: var(--space-3) var(--space-4) var(--space-3) 0;
+  border-bottom: 1px solid var(--rule);
 }
 
-.table th {
-  color: var(--ink-500);
-  font-weight: 620;
+.table thead th {
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  border-bottom-color: var(--rule-strong);
   white-space: nowrap;
+}
+
+.table tbody th {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.table td {
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
 }
 
 .scroller {

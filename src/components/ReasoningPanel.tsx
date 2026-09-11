@@ -41,11 +41,11 @@ export function ReasoningPanel({
       </dl>
 
       <div className={styles.confidenceReasons}>
-        <h3>How confident is this?</h3>
+        <h3 className={styles.confidenceHeading}>How confident is this?</h3>
         {recommendation.confidence.reasons.map((reason) => (
           <p className={styles.reason} key={reason.label}>
             <span className={styles.reasonMark} aria-hidden="true">
-              {reason.impact === 'positive' ? '✓' : '–'}
+              {reason.impact === 'positive' ? '+' : '−'}
             </span>
             <span>
               <strong>{reason.label}.</strong> {reason.detail}
@@ -54,7 +54,7 @@ export function ReasoningPanel({
         ))}
         <p className={styles.reason}>
           <span className={styles.reasonMark} aria-hidden="true">
-            ⓘ
+            ·
           </span>
           <span>
             Confidence is a SetoffIQ heuristic that reflects how much current

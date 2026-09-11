@@ -1,7 +1,7 @@
 import { formatClock } from '../domain/time';
 import type { Instant, Observed, WeatherSnapshot } from '../domain/types';
 import { DataFreshnessLabel } from './DataFreshnessLabel';
-import { Badge, Card } from './ui';
+import { Badge } from './ui';
 import styles from './StatusCards.module.css';
 
 const SEVERITY_TONE = { clear: 'good', moderate: 'warn', poor: 'alert' } as const;
@@ -22,29 +22,29 @@ export function WeatherCard({
 }): React.JSX.Element {
   if (weather.state === 'unavailable' || !weather.value) {
     return (
-      <Card>
+      <div className={styles.panel}>
         <div className={styles.head}>
           <p className={styles.title}>Weather</p>
         </div>
-        <p className={styles.primary}>Unavailable</p>
+        <p className={styles.primaryText}>Unavailable</p>
         <p className={styles.secondary}>
           {weather.message ?? "We couldn't check conditions."} Your journey estimate does not
           include a weather allowance.
         </p>
-      </Card>
+      </div>
     );
   }
 
   const snapshot = weather.value;
 
   return (
-    <Card>
+    <div className={styles.panel}>
       <div className={styles.head}>
         <p className={styles.title}>Weather at the airport</p>
         <Badge tone={SEVERITY_TONE[snapshot.severity]}>{SEVERITY_WORDING[snapshot.severity]}</Badge>
       </div>
 
-      <p className={styles.primary}>{snapshot.description}</p>
+      <p className={styles.primaryText}>{snapshot.description}</p>
       <p className={styles.secondary}>Around {formatClock(snapshot.validFor, timeZone)}</p>
 
       <p className={styles.metrics}>
@@ -59,6 +59,6 @@ export function WeatherCard({
       </p>
 
       <DataFreshnessLabel observedAt={weather.fetchedAt} now={now} timeZone={timeZone} label="Checked" />
-    </Card>
+    </div>
   );
 }

@@ -6,16 +6,18 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Antialiasing at the root, so nothing inherits the heavier default. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   margin: 0;
   background: var(--paper);
-  color: var(--ink-900);
-  font-family: var(--font-body);
-  font-size: var(--text-base);
-  line-height: 1.55;
-  -webkit-font-smoothing: antialiased;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--t-body);
+  line-height: 1.6;
 }
 
 h1,
@@ -34,22 +36,31 @@ h1,
 h2,
 h3,
 h4 {
-  line-height: 1.2;
-  font-weight: 620;
-  letter-spacing: -0.012em;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  /* Short headings should not leave one word stranded on its own line. */
   text-wrap: balance;
 }
 
 h1 {
-  font-size: var(--text-2xl);
+  font-size: var(--t-2xl);
 }
 
 h2 {
-  font-size: var(--text-xl);
+  font-size: var(--t-xl);
 }
 
 h3 {
-  font-size: var(--text-lg);
+  font-size: var(--t-lg);
+}
+
+/* Descriptions and captions read better with pretty; long prose does not. */
+p,
+li,
+dd,
+figcaption {
+  text-wrap: pretty;
 }
 
 ul,
@@ -63,18 +74,34 @@ li {
 }
 
 a {
-  color: var(--accent-700);
-  text-underline-offset: 0.15em;
+  color: var(--signal-2);
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+  transition-property: color;
+  transition-duration: var(--dur-out);
+  transition-timing-function: var(--ease);
 }
 
 a:hover {
-  color: var(--accent-500);
+  color: var(--signal);
 }
 
 img,
 svg {
   max-width: 100%;
   display: block;
+}
+
+/* Keep image edges from dissolving into the surface behind them. */
+img {
+  outline: 1px solid rgb(0 0 0 / 10%);
+  outline-offset: -1px;
+}
+
+@media (prefers-color-scheme: dark) {
+  img {
+    outline-color: rgb(255 255 255 / 10%);
+  }
 }
 
 button,
@@ -86,19 +113,23 @@ textarea {
 }
 
 /*
- * A visible, high-contrast focus ring on everything keyboard-reachable. It is
- * never removed, only styled, because losing it makes the app unusable without
- * a mouse.
+ * A visible, high-contrast focus ring on everything keyboard-reachable. Never
+ * removed, only styled — losing it makes the app unusable without a mouse.
  */
 :focus-visible {
-  outline: 2px solid var(--accent-500);
+  outline: 2px solid var(--signal);
   outline-offset: 2px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--r-1);
 }
 
 ::selection {
-  background: var(--accent-100);
-  color: var(--accent-900);
+  background: var(--signal);
+  color: var(--on-signal);
+}
+
+/* Every updating number is tabular, so digits never shift under each other. */
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
 
 .visually-hidden {
@@ -120,10 +151,12 @@ textarea {
   z-index: 20;
   padding: var(--space-2) var(--space-4);
   background: var(--surface);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-2);
   transform: translateY(-250%);
-  transition: transform 120ms ease;
+  transition-property: transform;
+  transition-duration: var(--dur-out);
+  transition-timing-function: var(--ease);
 }
 
 .skip-link:focus-visible {

@@ -2,19 +2,33 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--rule-strong);
 }
 
 .title {
-  font-size: var(--text-2xl);
+  font-size: var(--t-2xl);
+  letter-spacing: -0.032em;
 }
 
 .subtitle {
-  color: var(--ink-500);
-  max-width: 46ch;
+  color: var(--ink-3);
+  max-width: 52ch;
+  font-size: var(--t-sm);
 }
 
 .back {
-  font-size: var(--text-sm);
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--ink-3);
+  margin-bottom: var(--space-1);
+}
+
+.back:hover {
+  color: var(--ink);
 }
 
 .loading {
@@ -24,7 +38,8 @@
 }
 
 .loadingCopy {
-  color: var(--ink-500);
+  color: var(--ink-3);
+  font-size: var(--t-sm);
 }
 
 .section {
@@ -33,25 +48,56 @@
   gap: var(--space-4);
 }
 
+/* Section headings are set as rules with a label, like a printed schedule. */
 .sectionTitle {
-  font-size: var(--text-xl);
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--rule-strong);
 }
 
 .actions {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
 .notes {
-  font-size: var(--text-sm);
-  color: var(--ink-500);
+  font-size: var(--t-sm);
+  color: var(--ink-3);
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
+  border-top: 1px solid var(--rule);
+  padding-top: var(--space-4);
 }
 
 .note {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1.1rem 1fr;
   gap: var(--space-2);
+  max-width: 66ch;
+}
+
+.noteMark {
+  color: var(--ink-4);
+}
+
+/*
+ * Generated prose, marked out from the app's own writing by a rule so it is
+ * always obvious which words were assembled rather than authored.
+ */
+.generated {
+  border-left: 2px solid var(--rule-strong);
+  padding-left: var(--space-4);
+  color: var(--ink-2);
+  max-width: 66ch;
+}
+
+.formPanel {
+  display: flex;
+  flex-direction: column;
 }

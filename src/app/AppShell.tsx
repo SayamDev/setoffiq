@@ -84,7 +84,7 @@ export function AppShell({ route, children }: { route: Route; children: ReactNod
             <span>{POSTCODES_ATTRIBUTION}</span>
           </div>
 
-          <p>
+          <p className={styles.disclaimer}>
             SetoffIQ is an independent travel-planning application and is not affiliated with any
             airline or airport. Estimates are for planning only — follow official airport and
             airline guidance.

@@ -80,9 +80,7 @@ export function PlanPage({
       </header>
 
       {input === null ? (
-        <Card>
-          <JourneyForm kind={kind} airport={airport} now={now} onSubmit={setInput} />
-        </Card>
+        <JourneyForm kind={kind} airport={airport} now={now} onSubmit={setInput} />
       ) : null}
 
       {status === 'loading' ? (
@@ -141,30 +139,26 @@ export function PlanPage({
               <h2 className={styles.sectionTitle} id="why-heading">
                 What is driving this recommendation?
               </h2>
-              <Card>
-                <ReasoningPanel recommendation={plan.recommendation} />
-              </Card>
-              <Card quiet>
+              <ReasoningPanel recommendation={plan.recommendation} />
+              <div className={styles.generated}>
                 <ExplanationPanel
                   plan={plan}
                   recommendation={plan.recommendation}
                   airport={airport}
                   useLocalModel={useLocalModel}
                 />
-              </Card>
+              </div>
             </section>
 
             <section className={styles.section} aria-labelledby="timeline-heading">
               <h2 className={styles.sectionTitle} id="timeline-heading">
                 Your timeline
               </h2>
-              <Card>
-                <JourneyTimeline
-                  recommendation={plan.recommendation}
-                  timeZone={airport.timeZone}
-                  now={now}
-                />
-              </Card>
+              <JourneyTimeline
+                recommendation={plan.recommendation}
+                timeZone={airport.timeZone}
+                now={now}
+              />
             </section>
 
             <section className={styles.section} aria-labelledby="sources-heading">
@@ -184,18 +178,24 @@ export function PlanPage({
               <div className={styles.notes}>
                 {plan.route.state !== 'ok' && plan.route.message ? (
                   <p className={styles.note}>
-                    <span aria-hidden="true">⚠</span>
+                    <span className={styles.noteMark} aria-hidden="true">
+                      !
+                    </span>
                     <span>{plan.route.message}</span>
                   </p>
                 ) : null}
                 {airport.notes.map((note) => (
                   <p className={styles.note} key={note}>
-                    <span aria-hidden="true">ⓘ</span>
+                    <span className={styles.noteMark} aria-hidden="true">
+                      —
+                    </span>
                     <span>{note}</span>
                   </p>
                 ))}
                 <p className={styles.note}>
-                  <span aria-hidden="true">ⓘ</span>
+                  <span className={styles.noteMark} aria-hidden="true">
+                    —
+                  </span>
                   <span>
                     Airport parking and drop-off zones are charged by the airport. SetoffIQ does not
                     show prices because it has no reliable current source for them — check{' '}
@@ -206,7 +206,9 @@ export function PlanPage({
                   </span>
                 </p>
                 <p className={styles.note}>
-                  <span aria-hidden="true">ⓘ</span>
+                  <span className={styles.noteMark} aria-hidden="true">
+                    —
+                  </span>
                   <span>
                     Calculated at {formatClock(plan.computedAt, airport.timeZone)}, {airport.name}{' '}
                     time.

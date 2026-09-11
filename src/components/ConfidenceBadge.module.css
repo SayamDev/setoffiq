@@ -5,12 +5,30 @@
   flex-wrap: wrap;
 }
 
-.dots {
-  letter-spacing: 0.05em;
-  font-size: 0.7em;
+/*
+ * Three ticks, filled to the confidence level. Colour is never the only cue:
+ * the level is written out beside it and the marks differ in shape.
+ */
+.marks {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.mark {
+  width: 9px;
+  height: 3px;
+  background: currentColor;
+  opacity: 0.25;
+}
+
+.markOn {
+  composes: mark;
+  opacity: 1;
 }
 
 .summary {
-  font-size: var(--text-sm);
-  color: var(--ink-500);
+  font-size: var(--t-sm);
+  color: var(--ink-3);
+  max-width: 52ch;
 }

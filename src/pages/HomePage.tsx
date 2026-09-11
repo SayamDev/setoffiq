@@ -1,15 +1,14 @@
 import { hrefFor } from '../app/router';
-import { Card } from '../components/ui';
 import styles from './HomePage.module.css';
 
 const POINTS = [
   {
-    title: 'Built on a real calculation',
+    title: 'A real calculation',
     body: 'A deterministic engine works back from the flight to a departure time. The explanation comes after the maths, never instead of it.',
   },
   {
     title: 'Honest about what it knows',
-    body: 'Live aircraft positions where they exist, your own booking where they do not, and a clear label on every assumption.',
+    body: 'Live aircraft positions where they exist, your own booking where they do not, and a label on every assumption.',
   },
   {
     title: 'Yours, on your device',
@@ -39,7 +38,12 @@ export function HomePage(): React.JSX.Element {
             <span className={styles.choiceBody}>
               Know when to leave so you are not sitting in a car park waiting for a bag to arrive.
             </span>
-            <span className={styles.choiceGo}>Plan a pickup →</span>
+            <span className={styles.choiceGo}>
+              Plan a pickup
+              <span className={styles.arrow} aria-hidden="true">
+                →
+              </span>
+            </span>
           </a>
 
           <a className={styles.choice} href={hrefFor({ name: 'plan', kind: 'dropoff' })}>
@@ -47,21 +51,24 @@ export function HomePage(): React.JSX.Element {
             <span className={styles.choiceBody}>
               Know when to leave home to reach the airport with a sensible buffer before the flight.
             </span>
-            <span className={styles.choiceGo}>Plan a drop-off →</span>
+            <span className={styles.choiceGo}>
+              Plan a drop-off
+              <span className={styles.arrow} aria-hidden="true">
+                →
+              </span>
+            </span>
           </a>
         </div>
       </section>
 
-      <Card>
-        <div className={styles.points}>
-          {POINTS.map((point) => (
-            <div key={point.title}>
-              <p className={styles.pointTitle}>{point.title}</p>
-              <p className={styles.pointBody}>{point.body}</p>
-            </div>
-          ))}
-        </div>
-      </Card>
+      <section className={styles.points}>
+        {POINTS.map((point) => (
+          <div key={point.title}>
+            <p className={styles.pointTitle}>{point.title}</p>
+            <p className={styles.pointBody}>{point.body}</p>
+          </div>
+        ))}
+      </section>
     </>
   );
 }

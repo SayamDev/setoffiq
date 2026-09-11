@@ -47,7 +47,9 @@ export function SavedJourneyCard({
       </span>
       {version ? (
         <span className={styles.journeyMeta}>
-          <span>Leave at {formatClock(version.departure, timeZone)}</span>
+          <span className={styles.journeyDeparture}>
+            Leave {formatClock(version.departure, timeZone)}
+          </span>
           <span>{version.confidence} confidence</span>
         </span>
       ) : null}

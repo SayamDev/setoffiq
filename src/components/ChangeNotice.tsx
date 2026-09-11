@@ -32,7 +32,7 @@ export function ChangeNotice({
         </span>
         <span className={styles.now}>{formatClock(nextDeparture, timeZone)}</span>
       </p>
-      <p>{reason}</p>
+      <p className={styles.changeReason}>{reason}</p>
       <p>
         <Button variant="secondary" onClick={onDismiss}>
           Got it
