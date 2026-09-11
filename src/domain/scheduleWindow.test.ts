@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { earliestSelectableDate, validateScheduledTime } from './scheduleWindow';
+import { earliestSelectableDate, validateScheduledTime, impliedDate } from './scheduleWindow';
 import { HOUR_MS } from './time';
 import { manTime } from '../test/factories';
 
@@ -52,5 +52,31 @@ describe('which times are worth planning around', () => {
       earliestSelectableDate('pickup', justAfterMidnight, zone) <
         earliestSelectableDate('dropoff', justAfterMidnight, zone),
     ).toBe(true);
+  });
+});
+
+describe('the date a bare time most likely means', () => {
+  // 19:00 BST on Friday 11 September 2026.
+  const at1900 = Date.UTC(2026, 8, 11, 18, 0);
+  const zone = 'Europe/London';
+
+  it('takes an arrival at 01:05 typed at 19:00 as tomorrow morning', () => {
+    expect(impliedDate('pickup', '01:05', at1900, zone)).toEqual({ date: '2026-09-12', tomorrow: true });
+  });
+
+  it('keeps a pickup that landed an hour ago on today', () => {
+    expect(impliedDate('pickup', '18:00', at1900, zone)).toEqual({ date: '2026-09-11', tomorrow: false });
+  });
+
+  it('keeps anything later today on today', () => {
+    expect(impliedDate('pickup', '23:40', at1900, zone)).toEqual({ date: '2026-09-11', tomorrow: false });
+  });
+
+  it('moves a departure that has already gone to tomorrow', () => {
+    expect(impliedDate('dropoff', '18:30', at1900, zone)).toEqual({ date: '2026-09-12', tomorrow: true });
+  });
+
+  it('leaves an unreadable time alone', () => {
+    expect(impliedDate('pickup', '', at1900, zone)).toEqual({ date: '2026-09-11', tomorrow: false });
   });
 });

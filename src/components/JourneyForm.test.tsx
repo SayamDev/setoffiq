@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MANCHESTER } from '../domain/airports';
 import { writeCache } from '../services/cache';
@@ -59,5 +59,28 @@ describe('planning a pickup from an aircraft in the air', () => {
     await user.click(screen.getByLabelText('Scheduled arrival time'));
     expect(showPicker).toHaveBeenCalledTimes(2);
     Reflect.deleteProperty(HTMLInputElement.prototype, 'showPicker');
+  });
+});
+
+describe('a time with no date chosen', () => {
+  it('is taken as tomorrow once it has already passed today, and says so', () => {
+    const at1900 = Date.UTC(2026, 8, 11, 18, 0);
+    render(<JourneyForm kind="pickup" airport={MANCHESTER} now={at1900} onSubmit={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText('Scheduled arrival time'), { target: { value: '01:05' } });
+
+    expect(screen.getByLabelText('Date')).toHaveValue('2026-09-12');
+    expect(screen.getByText(/Taken as tomorrow, Sat 12 Sept, because 01:05 today has already passed/)).toBeInTheDocument();
+  });
+
+  it('never second-guesses a date someone chose', () => {
+    const at1900 = Date.UTC(2026, 8, 11, 18, 0);
+    render(<JourneyForm kind="pickup" airport={MANCHESTER} now={at1900} onSubmit={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-09-14' } });
+    fireEvent.change(screen.getByLabelText('Scheduled arrival time'), { target: { value: '01:05' } });
+
+    expect(screen.getByLabelText('Date')).toHaveValue('2026-09-14');
+    expect(screen.queryByText(/Taken as tomorrow/)).not.toBeInTheDocument();
   });
 });

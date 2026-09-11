@@ -1,4 +1,4 @@
-import { HOUR_MS } from './time';
+import { HOUR_MS, parseLocalDateTime, todayInZone } from './time';
 import type { Instant, JourneyKind } from './types';
 
 /**
@@ -69,3 +69,35 @@ export function earliestSelectableDate(kind: JourneyKind, now: Instant, timeZone
     day: '2-digit',
   }).format(new Date(earliest));
 }
+
+/**
+ * How long ago a time on today's date can be before it more likely means
+ * tomorrow. A pickup keeps a two-hour window — a passenger who landed an hour
+ * ago is a real question — while a departure that has passed has simply gone.
+ */
+export const TOMORROW_AFTER_MINUTES: Record<JourneyKind, number> = {
+  pickup: 120,
+  dropoff: SCHEDULE_LIMITS.departureGraceMinutes,
+};
+
+/**
+ * The date a bare time most likely means, when nobody has chosen a date.
+ *
+ * At 19:00, "01:05" is tomorrow morning's flight, not one that landed eighteen
+ * hours ago. Only used while the date is still the form's default: a date
+ * someone picked is never second-guessed.
+ */
+export function impliedDate(
+  kind: JourneyKind,
+  time: string,
+  now: Instant,
+  timeZone: string,
+): { date: string; tomorrow: boolean } {
+  const today = todayInZone(now, timeZone);
+  const onToday = parseLocalDateTime(today, time, timeZone);
+  if (onToday === null || onToday >= now - TOMORROW_AFTER_MINUTES[kind] * 60_000) {
+    return { date: today, tomorrow: false };
+  }
+  return { date: todayInZone(now + 24 * HOUR_MS, timeZone), tomorrow: true };
+}
+

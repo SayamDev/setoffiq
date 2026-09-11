@@ -1,7 +1,7 @@
 import { useId, useRef, useState } from 'react';
 import { DEFAULT_AIRPORT } from '../domain/airports';
-import { formatClock, parseLocalDateTime, todayInZone } from '../domain/time';
-import { earliestSelectableDate, validateScheduledTime } from '../domain/scheduleWindow';
+import { formatClock, formatDate, parseLocalDateTime, todayInZone } from '../domain/time';
+import { earliestSelectableDate, impliedDate, validateScheduledTime } from '../domain/scheduleWindow';
 import type {
   AirportProfile,
   DropoffMode,
@@ -48,6 +48,10 @@ export function JourneyForm({
   const [errors, setErrors] = useState<Errors>({});
   /** Whether the date and time came from a picked aircraft rather than a booking. */
   const [whenFromAircraft, setWhenFromAircraft] = useState(false);
+  /** Whether someone chose the date, rather than leaving the default. */
+  const [dateChosen, setDateChosen] = useState(false);
+  /** Whether a time already past today was taken to mean tomorrow. */
+  const [takenAsTomorrow, setTakenAsTomorrow] = useState(false);
   const [state, setState] = useState<FormState>({
     flightNumber: '',
     date: todayInZone(now, airport.timeZone),
@@ -74,6 +78,8 @@ export function JourneyForm({
       update('date', todayInZone(aircraft.estimatedArrival, airport.timeZone));
       update('time', formatClock(aircraft.estimatedArrival, airport.timeZone));
       setWhenFromAircraft(true);
+      setDateChosen(true);
+      setTakenAsTomorrow(false);
     }
     if (aircraft.fromCountry) {
       update('passengerRoute', aircraft.fromCountry === 'GB' ? 'domestic' : 'international');
@@ -199,6 +205,8 @@ export function JourneyForm({
               onChange={(event) => {
                 update('date', event.target.value);
                 setWhenFromAircraft(false);
+                setDateChosen(true);
+                setTakenAsTomorrow(false);
               }}
               onClick={openPicker}
               aria-describedby={`${baseId}-when-note`}
@@ -213,8 +221,16 @@ export function JourneyForm({
               type="time"
               value={state.time}
               onChange={(event) => {
-                update('time', event.target.value);
+                const time = event.target.value;
+                update('time', time);
                 setWhenFromAircraft(false);
+                // A time already gone today, with the date left at its default,
+                // almost always means tomorrow: 01:05 typed at 19:00.
+                if (!dateChosen) {
+                  const implied = impliedDate(kind, time, now, airport.timeZone);
+                  update('date', implied.date);
+                  setTakenAsTomorrow(implied.tomorrow);
+                }
               }}
               onClick={openPicker}
               aria-describedby={`${baseId}-when-note`}
@@ -227,7 +243,9 @@ export function JourneyForm({
         <p className={ui.hint} id={`${baseId}-when-note`}>
           {whenFromAircraft
             ? "Filled in from the aircraft's position. Change them if the booking says otherwise."
-            : 'The date and time on your booking.'}
+            : takenAsTomorrow
+              ? `Taken as tomorrow, ${formatDate(parseLocalDateTime(state.date, state.time, airport.timeZone) ?? now, airport.timeZone)}, because ${state.time} today has already passed. Change the date if you meant another day.`
+              : 'The date and time on your booking.'}
         </p>
       </div>
 
