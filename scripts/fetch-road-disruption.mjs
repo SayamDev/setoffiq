@@ -55,8 +55,13 @@ function pause(ms, signal) {
 }
 
 const KEY = process.env.NATIONAL_HIGHWAYS_KEY ?? '';
+/*
+ * `||`, not `??`. An unset GitHub Actions variable arrives as an empty string
+ * rather than undefined, which `??` happily accepts — producing `new URL('')`
+ * and a bare "Invalid URL" that says nothing about the cause.
+ */
 const BASE =
-  process.env.ROAD_DISRUPTION_URL ?? 'https://api.data.nationalhighways.co.uk/roads/v2.0/closures';
+  process.env.ROAD_DISRUPTION_URL || 'https://api.data.nationalhighways.co.uk/roads/v2.0/closures';
 
 /**
  * Required verbatim by clause 20(a) of the licence, typographic apostrophe and

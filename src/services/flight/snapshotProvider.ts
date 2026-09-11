@@ -21,7 +21,8 @@ const CACHE_TTL_MINUTES = 4;
 
 function snapshotUrl(): string {
   // Vite rewrites BASE_URL for the GitHub Pages sub-path at build time.
-  const base = import.meta.env.BASE_URL ?? '/';
+  // `||` not `??`: an empty base would silently produce a relative URL.
+  const base = import.meta.env.BASE_URL || '/';
   return `${base}${SNAPSHOT_PATH}`.replace(/([^:]\/)\/+/g, '$1');
 }
 

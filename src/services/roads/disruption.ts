@@ -14,7 +14,8 @@ const CACHE_TTL_MINUTES = 10;
 const RELEVANT_RADIUS_KM = 40;
 
 function snapshotUrl(): string {
-  const base = import.meta.env.BASE_URL ?? '/';
+  // `||` not `??`: an empty base would silently produce a relative URL.
+  const base = import.meta.env.BASE_URL || '/';
   return `${base}${SNAPSHOT_PATH}`.replace(/([^:]\/)\/+/g, '$1');
 }
 

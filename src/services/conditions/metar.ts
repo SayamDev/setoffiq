@@ -24,7 +24,8 @@ export interface ConditionsSnapshot {
 }
 
 function snapshotUrl(): string {
-  const base = import.meta.env.BASE_URL ?? '/';
+  // `||` not `??`: an empty base would silently produce a relative URL.
+  const base = import.meta.env.BASE_URL || '/';
   return `${base}${SNAPSHOT_PATH}`.replace(/([^:]\/)\/+/g, '$1');
 }
 
