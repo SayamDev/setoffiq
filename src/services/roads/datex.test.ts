@@ -151,3 +151,36 @@ describe('parsing the closures feed', () => {
     expect(ids.size).toBe(1);
   });
 });
+
+describe('staleness is judged per source', () => {
+  it('does not call an hourly aerodrome observation stale after forty minutes', async () => {
+    const { buildSignalReports } = await import('../../domain/engine/signalReports');
+    const { MANCHESTER } = await import('../../domain/airports');
+    const factories = await import('../../test/factories');
+
+    const now = factories.manTime(18, 0);
+    const fortyMinutesAgo = now - 40 * 60_000;
+
+    const reports = buildSignalReports(
+      {
+        now,
+        journeyKind: 'pickup',
+        airport: MANCHESTER,
+        passengerRoute: 'international',
+        distanceKm: 30,
+        flight: factories.flight({}),
+        route: factories.okRoute(42),
+        weather: factories.weather('clear', now),
+        airportConditions: factories.conditions('VFR', fortyMinutesAgo),
+        roadDisruption: factories.noRoadDisruption,
+      },
+      { range: { minMinutes: 42, maxMinutes: 51 }, baseMinutes: 42, routed: true, uncertaintyReasons: [] },
+      { minMinutes: 24, maxMinutes: 67 },
+    );
+
+    // METARs are issued hourly. Judging one by the aircraft-position threshold
+    // marked perfectly current data as stale and pushed confidence to low.
+    const conditions = reports.find((report) => report.id === 'airport-conditions');
+    expect(conditions?.state.kind).toBe('live');
+  });
+});

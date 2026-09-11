@@ -5,10 +5,32 @@ import type { MinuteRange } from '../types';
 import type { JourneyEngineInput } from './inputs';
 import type { JourneyEstimate } from './journeyWindow';
 
-function ageState(observedAt: number | null, now: number): SignalState {
+/**
+ * What counts as stale depends entirely on how often the source publishes.
+ * An aircraft position is minutes old or it is useless; an aerodrome
+ * observation is issued roughly hourly, so a forty-minute-old METAR is simply
+ * the current one. Applying the aircraft threshold to everything marked normal
+ * data as stale and dragged confidence down for no reason.
+ */
+const STALE_AFTER_MINUTES = {
+  /** Positions are sampled continuously; the snapshot job sets the cadence. */
+  flight: FLIGHT_SNAPSHOT_STALE_AFTER_MINUTES,
+  /** METARs are issued hourly, half-hourly when conditions change. */
+  airportConditions: 120,
+  /** Hourly forecast buckets. */
+  weather: 120,
+  /** The snapshot job runs every fifteen minutes. */
+  road: 60,
+} as const;
+
+function ageState(
+  observedAt: number | null,
+  now: number,
+  staleAfterMinutes: number,
+): SignalState {
   if (observedAt === null) return { kind: 'assumed' };
   const ageMinutes = -minutesBetween(now, observedAt);
-  return ageMinutes > FLIGHT_SNAPSHOT_STALE_AFTER_MINUTES
+  return ageMinutes > staleAfterMinutes
     ? { kind: 'stale', observedAt, ageMinutes }
     : { kind: 'live', observedAt };
 }
@@ -49,7 +71,7 @@ export function buildSignalReports(
     reports.push({
       id: 'flight',
       label: 'Flight',
-      state: ageState(input.flight.observedAt, input.now),
+      state: ageState(input.flight.observedAt, input.now, STALE_AFTER_MINUTES.flight),
       summary: `Aircraft seen ${flight.position.distanceToAirportKm} km out; arrival estimated from its position.`,
       impact: 'none',
     });
@@ -89,7 +111,11 @@ export function buildSignalReports(
     reports.push({
       id: 'airport-conditions',
       label: 'Airport conditions',
-      state: ageState(input.airportConditions?.observedAt ?? null, input.now),
+      state: ageState(
+        input.airportConditions?.observedAt ?? null,
+        input.now,
+        STALE_AFTER_MINUTES.airportConditions,
+      ),
       summary: poor
         ? `${conditions.summary}. Low-visibility conditions can slow the rate arrivals are landed.`
         : conditions.summary,
@@ -111,7 +137,7 @@ export function buildSignalReports(
     reports.push({
       id: 'journey-weather',
       label: 'Weather',
-      state: ageState(input.weather.observedAt, input.now),
+      state: ageState(input.weather.observedAt, input.now, STALE_AFTER_MINUTES.weather),
       summary:
         weather.severity === 'clear'
           ? `${weather.description}. Not adding to the journey estimate.`
