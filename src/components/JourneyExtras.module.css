@@ -1,0 +1,128 @@
+.change {
+  border: 1px solid var(--warn-500);
+  border-left-width: 4px;
+  background: var(--warn-100);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+}
+
+.changeTitle {
+  font-size: var(--text-lg);
+  font-weight: 640;
+  margin-bottom: var(--space-3);
+}
+
+.changeTimes {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  font-family: var(--font-time);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: var(--space-3);
+}
+
+.was {
+  font-size: var(--text-lg);
+  color: var(--warn-700);
+  text-decoration: line-through;
+}
+
+.arrow {
+  color: var(--warn-700);
+}
+
+.now {
+  font-size: var(--text-2xl);
+  font-weight: 640;
+}
+
+.journeyCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  text-decoration: none;
+  color: inherit;
+}
+
+.journeyCard:hover {
+  border-color: var(--ink-400);
+  color: inherit;
+}
+
+.journeyHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.journeyLabel {
+  font-size: var(--text-lg);
+  font-weight: 620;
+}
+
+.journeyMeta {
+  display: flex;
+  gap: var(--space-2) var(--space-4);
+  flex-wrap: wrap;
+  font-size: var(--text-sm);
+  color: var(--ink-500);
+  font-variant-numeric: tabular-nums;
+}
+
+.log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.logRow {
+  display: grid;
+  grid-template-columns: 4rem 1fr;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.logRow:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.logTime {
+  font-family: var(--font-time);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-500);
+}
+
+.logMessage {
+  color: var(--ink-700);
+}
+
+.empty {
+  text-align: center;
+  padding: var(--space-7) var(--space-5);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.emptyTitle {
+  font-size: var(--text-lg);
+  font-weight: 620;
+}
+
+.emptyBody {
+  color: var(--ink-500);
+  max-width: 34ch;
+}
