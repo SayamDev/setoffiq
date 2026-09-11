@@ -35,7 +35,7 @@ export function ReasoningPanel({
               <span>{factor.value}</span>
               <span className={basisClass(factor.basis)}>{BASIS_LABEL[factor.basis]}</span>
             </dd>
-            <p className={styles.detail}>{factor.detail}</p>
+            <dd className={styles.detail}>{factor.detail}</dd>
           </div>
         ))}
       </dl>

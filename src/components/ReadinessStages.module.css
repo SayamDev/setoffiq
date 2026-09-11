@@ -17,13 +17,15 @@
   font-weight: 600;
   letter-spacing: var(--track-label);
   text-transform: uppercase;
-  color: var(--ink-4);
+  /* Stages still to come. --ink-3, not --ink-4: these are words, and --ink-4
+   * is for marks only. The hollow tick carries "not yet", not the colour. */
+  color: var(--ink-3);
   padding-right: var(--space-3);
 }
 
 .stagePast {
   composes: stage;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 .stageCurrent {

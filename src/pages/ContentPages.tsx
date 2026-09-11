@@ -122,7 +122,12 @@ export function EstimatesPage(): React.JSX.Element {
             These are SetoffIQ's assumptions for {MANCHESTER.name}. The airport does not publish
             per-passenger processing times, so nothing here is an airport statistic.
           </p>
-          <div className={styles.scroller}>
+          <div
+            className={styles.scroller}
+            role="region"
+            aria-label="Getting out of the airport"
+            tabIndex={0}
+          >
             <table className={styles.table}>
               <thead>
                 <tr>
@@ -214,7 +219,7 @@ export function DataSourcesPage(): React.JSX.Element {
       </header>
 
       <Card>
-        <div className={styles.scroller}>
+        <div className={styles.scroller} role="region" aria-label="Data sources" tabIndex={0}>
           <table className={styles.table}>
             <thead>
               <tr>
