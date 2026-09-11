@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SetoffIQ — Know when to set off</title>
+    <meta
+      name="description"
+      content="A free airport pickup and drop-off planner that helps you decide when to leave using flight, journey and weather information."
+    />
+    <meta name="theme-color" content="#0b5c4e" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0c1119" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+
+    <meta property="og:title" content="SetoffIQ — Know when to set off" />
+    <meta
+      property="og:description"
+      content="Plan airport pickups and drop-offs using current flight information, journey estimates and weather conditions."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+
+    <!--
+      A restrictive content security policy. Only the four public data services
+      the app actually uses are reachable, plus localhost for the optional local
+      model. Nothing may frame the page and no plugins may load.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.open-meteo.com https://api.postcodes.io https://routing.openstreetmap.de https://router.project-osrm.org http://localhost:11434 http://127.0.0.1:11434; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'"
+    />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <p style="font-family: system-ui; padding: 2rem; max-width: 40rem; margin: 0 auto">
+        SetoffIQ needs JavaScript, because the whole recommendation is calculated in your browser
+        rather than on a server.
+      </p>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
