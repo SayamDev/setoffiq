@@ -1,0 +1,17 @@
+{
+  "name": "SetoffIQ",
+  "short_name": "SetoffIQ",
+  "description": "Know when to set off. Know when to wait. A free airport pickup and drop-off planner.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f6f5f2",
+  "theme_color": "#0b5c4e",
+  "categories": ["travel", "utilities"],
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

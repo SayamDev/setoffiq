@@ -1,0 +1,44 @@
+.prose {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 62ch;
+}
+
+.prose h2 {
+  margin-top: var(--space-4);
+}
+
+.prose h3 {
+  margin-top: var(--space-3);
+}
+
+.prose ul li {
+  list-style: disc;
+  margin-left: var(--space-5);
+  margin-bottom: var(--space-2);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.table th,
+.table td {
+  text-align: left;
+  vertical-align: top;
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.table th {
+  color: var(--ink-500);
+  font-weight: 620;
+  white-space: nowrap;
+}
+
+.scroller {
+  overflow-x: auto;
+}
