@@ -110,9 +110,44 @@
   flex-direction: column;
 }
 
-/* Holds the result so it can take focus when it arrives; it must not draw a
- * focus ring of its own, because the user did not tab to it. */
+/*
+ * Holds the result so it can take focus when it arrives. It must carry the
+ * page's own stacking, or the sections inside it lose the spacing the main
+ * column gives its children — and it must not draw a focus ring, because the
+ * user did not tab here.
+ */
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+
 .result:focus {
   outline: none;
+}
+
+.result:empty {
+  display: none;
+}
+
+/*
+ * The prose explanation, offered rather than imposed: the figures and their
+ * reasoning are in the rows above, and this says the same thing continuously
+ * for anyone who prefers to read it that way.
+ */
+.prose {
+  border-top: 1px solid var(--rule);
+  padding-top: var(--space-3);
+}
+
+.proseSummary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+  min-height: 44px;
+  font-size: var(--t-sm);
+  color: var(--signal);
+  cursor: pointer;
 }
 

@@ -5,21 +5,18 @@ import { navigate } from '../app/router';
 import { ActivityLog } from '../components/ActivityLog';
 import { ChangeNotice } from '../components/ChangeNotice';
 import { ExplanationPanel } from '../components/ExplanationPanel';
-import { FlightStatusCard } from '../components/FlightStatusCard';
 import { JourneyTimeline } from '../components/JourneyTimeline';
 import { RecommendationCard } from '../components/RecommendationCard';
 import { ScenarioSwitcher } from '../components/ScenarioSwitcher';
-import { ReasoningPanel } from '../components/ReasoningPanel';
 import { SignalTable } from '../components/SignalTable';
+import { signalDetails } from '../components/signalDetails';
 import { ReadinessStages } from '../components/ReadinessStages';
-import { WeatherCard } from '../components/WeatherCard';
 import { Badge, Button, Callout, Card, Skeleton, ui } from '../components/ui';
 import { useMonitoredJourney } from '../hooks/useMonitoredJourney';
 import { useNow } from '../hooks/useNow';
 import { setMonitoring } from '../storage/journeys';
 import type { Settings } from '../storage/settings';
 import styles from './PlanPage.module.css';
-import cardStyles from '../components/StatusCards.module.css';
 
 const MONITORING_LABEL = {
   active: 'Monitoring',
@@ -164,21 +161,6 @@ export function JourneyPage({
             </p>
           </RecommendationCard>
 
-          <section className={styles.section} aria-labelledby="live-heading">
-            <h2 className={styles.sectionTitle} id="live-heading">
-              Live information
-            </h2>
-            <div className={cardStyles.grid}>
-              <FlightStatusCard
-                flight={monitor.plan.flight}
-                timeZone={zone}
-                now={now}
-                isTestData={Boolean(journey.input.scenarioId)}
-              />
-              <WeatherCard weather={monitor.plan.weather} timeZone={zone} now={now} />
-            </div>
-          </section>
-
           <section className={styles.section} aria-labelledby="timeline-heading">
             <h2 className={styles.sectionTitle} id="timeline-heading">
               Timeline
@@ -195,12 +177,24 @@ export function JourneyPage({
               confidence={recommendation.confidence}
               now={now}
               timeZone={zone}
+              details={signalDetails(monitor.plan)}
               attributions={
                 monitor.plan?.roadDisruption.attribution
                   ? [monitor.plan.roadDisruption.attribution]
                   : []
               }
             />
+<details className={styles.prose}>
+              <summary className={styles.proseSummary}>Read this as a paragraph</summary>
+              <div className={styles.generated}>
+                <ExplanationPanel
+                  plan={monitor.plan}
+                  recommendation={recommendation}
+                  airport={airport}
+                  useLocalModel={settings.useLocalModel}
+                />
+              </div>
+            </details>
           </section>
 
           {recommendation.kind === 'pickup' ? (
@@ -212,20 +206,6 @@ export function JourneyPage({
             </section>
           ) : null}
 
-          <section className={styles.section} aria-labelledby="why-heading">
-            <h2 className={styles.sectionTitle} id="why-heading">
-              Why this time?
-            </h2>
-            <ReasoningPanel recommendation={recommendation} />
-            <div className={styles.generated}>
-              <ExplanationPanel
-                plan={monitor.plan}
-                recommendation={recommendation}
-                airport={airport}
-                useLocalModel={settings.useLocalModel}
-              />
-            </div>
-          </section>
         </>
       ) : null}
 

@@ -2,16 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { DEFAULT_AIRPORT } from '../domain/airports';
 import { formatClock, formatDate } from '../domain/time';
 import type { JourneyInput, JourneyKind } from '../domain/types';
+import { signalDetails } from '../components/signalDetails';
 import { navigate } from '../app/router';
 import { ExplanationPanel } from '../components/ExplanationPanel';
-import { FlightStatusCard } from '../components/FlightStatusCard';
 import { JourneyForm } from '../components/JourneyForm';
 import { JourneyTimeline } from '../components/JourneyTimeline';
 import { RecommendationCard } from '../components/RecommendationCard';
-import { ReasoningPanel } from '../components/ReasoningPanel';
 import { SignalTable } from '../components/SignalTable';
 import { ReadinessStages } from '../components/ReadinessStages';
-import { WeatherCard } from '../components/WeatherCard';
 import { Button, Callout, Card, Skeleton, ui } from '../components/ui';
 import { useJourneyPlan } from '../hooks/useJourneyPlan';
 import { useNow } from '../hooks/useNow';
@@ -19,7 +17,6 @@ import { createJourney } from '../storage/journeys';
 import { toVersion } from '../domain/engine';
 import type { SavedJourney } from '../domain/types';
 import styles from './PlanPage.module.css';
-import cardStyles from '../components/StatusCards.module.css';
 
 const LOADING_COPY = [
   'Checking for the aircraft…',
@@ -80,6 +77,8 @@ export function PlanPage({
     onSaveJourney(journey);
     navigate({ name: 'journey', id: journey.id });
   };
+
+  const details = plan && plan.recommendation.kind !== 'unavailable' ? signalDetails(plan) : {};
 
   return (
     <>
@@ -164,10 +163,22 @@ export function PlanPage({
                 confidence={plan.recommendation.confidence}
                 now={now}
                 timeZone={airport.timeZone}
+                details={details}
                 attributions={
                   plan.roadDisruption.attribution ? [plan.roadDisruption.attribution] : []
                 }
               />
+  <details className={styles.prose}>
+                  <summary className={styles.proseSummary}>Read this as a paragraph</summary>
+                  <div className={styles.generated}>
+                    <ExplanationPanel
+                      plan={plan}
+                      recommendation={plan.recommendation}
+                      airport={airport}
+                      useLocalModel={useLocalModel}
+                    />
+                  </div>
+                </details>
             </section>
 
             {plan.recommendation.kind === 'pickup' ? (
@@ -178,21 +189,6 @@ export function PlanPage({
                 <ReadinessStages progress={plan.recommendation.progress} />
               </section>
             ) : null}
-
-            <section className={styles.section} aria-labelledby="why-heading">
-              <h2 className={styles.sectionTitle} id="why-heading">
-                What is driving this recommendation?
-              </h2>
-              <ReasoningPanel recommendation={plan.recommendation} />
-              <div className={styles.generated}>
-                <ExplanationPanel
-                  plan={plan}
-                  recommendation={plan.recommendation}
-                  airport={airport}
-                  useLocalModel={useLocalModel}
-                />
-              </div>
-            </section>
 
             <section className={styles.section} aria-labelledby="timeline-heading">
               <h2 className={styles.sectionTitle} id="timeline-heading">
@@ -207,18 +203,8 @@ export function PlanPage({
 
             <section className={styles.section} aria-labelledby="sources-heading">
               <h2 className={styles.sectionTitle} id="sources-heading">
-                What SetoffIQ checked
+                Worth knowing
               </h2>
-              <div className={cardStyles.grid}>
-                <FlightStatusCard
-                  flight={plan.flight}
-                  timeZone={airport.timeZone}
-                  now={now}
-                  isTestData={Boolean(input?.scenarioId)}
-                />
-                <WeatherCard weather={plan.weather} timeZone={airport.timeZone} now={now} />
-              </div>
-
               <div className={styles.notes}>
                 {plan.route.state !== 'ok' && plan.route.message ? (
                   <p className={styles.note}>
