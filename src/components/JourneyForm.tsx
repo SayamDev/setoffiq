@@ -1,6 +1,7 @@
 import { useId, useRef, useState } from 'react';
 import { DEFAULT_AIRPORT } from '../domain/airports';
 import { parseLocalDateTime, todayInZone } from '../domain/time';
+import { earliestSelectableDate, validateScheduledTime } from '../domain/scheduleWindow';
 import type {
   AirportProfile,
   DropoffMode,
@@ -66,8 +67,14 @@ export function JourneyForm({
     const next: Errors = {};
     if (!state.date) next.date = 'Choose the date of the flight.';
     if (!state.time) next.time = `Enter the ${kind === 'pickup' ? 'arrival' : 'departure'} time from the booking.`;
-    if (state.date && state.time && parseLocalDateTime(state.date, state.time, airport.timeZone) === null) {
-      next.time = 'That date and time could not be read.';
+    if (state.date && state.time) {
+      const scheduledTime = parseLocalDateTime(state.date, state.time, airport.timeZone);
+      if (scheduledTime === null) {
+        next.time = 'That date and time could not be read.';
+      } else {
+        const problem = validateScheduledTime(kind, scheduledTime, now);
+        if (problem) next.time = problem.message;
+      }
     }
     if (!state.postcode.trim()) {
       next.postcode = 'Enter the UK postcode you are setting off from.';
@@ -165,6 +172,7 @@ export function JourneyForm({
             className={errors.date ? ui.controlInvalid : ui.control}
             type="date"
             value={state.date}
+            min={earliestSelectableDate(kind, now, airport.timeZone)}
             onChange={(event) => update('date', event.target.value)}
             required
           />
