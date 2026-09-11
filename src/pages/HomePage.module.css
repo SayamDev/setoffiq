@@ -1,0 +1,82 @@
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.title {
+  font-size: var(--text-3xl);
+  letter-spacing: -0.025em;
+}
+
+.tagline {
+  font-size: var(--text-lg);
+  color: var(--ink-700);
+  max-width: 34ch;
+}
+
+.lede {
+  color: var(--ink-500);
+  max-width: 52ch;
+}
+
+.question {
+  font-size: var(--text-xl);
+  margin-bottom: var(--space-4);
+}
+
+.choices {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+}
+
+.choice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  text-decoration: none;
+  color: inherit;
+  box-shadow: var(--shadow-card);
+}
+
+.choice:hover {
+  border-color: var(--accent-700);
+  color: inherit;
+  box-shadow: var(--shadow-raised);
+}
+
+.choiceTitle {
+  font-size: var(--text-lg);
+  font-weight: 640;
+}
+
+.choiceBody {
+  color: var(--ink-500);
+}
+
+.choiceGo {
+  margin-top: var(--space-2);
+  color: var(--accent-700);
+  font-weight: 580;
+}
+
+.points {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+}
+
+.pointTitle {
+  font-weight: 620;
+  margin-bottom: var(--space-1);
+}
+
+.pointBody {
+  color: var(--ink-500);
+  font-size: var(--text-sm);
+}

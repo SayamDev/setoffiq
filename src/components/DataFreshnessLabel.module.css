@@ -1,0 +1,16 @@
+.label {
+  font-size: var(--text-sm);
+  color: var(--ink-500);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+
+.labelStale {
+  composes: label;
+  color: var(--warn-700);
+  font-weight: 560;
+}
+
+.relative {
+  color: var(--ink-400);
+}

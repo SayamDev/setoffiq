@@ -1,0 +1,16 @@
+.wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.dots {
+  letter-spacing: 0.05em;
+  font-size: 0.7em;
+}
+
+.summary {
+  font-size: var(--text-sm);
+  color: var(--ink-500);
+}

@@ -1,0 +1,86 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.item {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) 1fr;
+  gap: var(--space-2) var(--space-4);
+  align-items: baseline;
+}
+
+@media (max-width: 33rem) {
+  .item {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+}
+
+.label {
+  font-weight: 580;
+}
+
+.value {
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.detail {
+  grid-column: 1 / -1;
+  font-size: var(--text-sm);
+  color: var(--ink-500);
+  margin: 0;
+}
+
+.basis {
+  font-size: var(--text-xs);
+  font-weight: 620;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  color: var(--ink-500);
+  white-space: nowrap;
+}
+
+.basisLive {
+  composes: basis;
+  color: var(--accent-900);
+  border-color: var(--accent-500);
+  background: var(--accent-100);
+}
+
+.basisUnavailable {
+  composes: basis;
+  color: var(--warn-700);
+  border-color: var(--warn-500);
+  background: var(--warn-100);
+}
+
+.confidenceReasons {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.reason {
+  display: flex;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--ink-700);
+}
+
+.reasonMark {
+  flex: none;
+  width: 1.1rem;
+  text-align: center;
+}
