@@ -40,7 +40,10 @@ export function ScheduledList({
               </span>
               <span className={styles.detail}>{formatClock(flight.scheduled, zone)}</span>
               <span className={styles.detail}>
-                {flight.status !== 'cancelled' && expected ? `exp ${formatClock(bestTime(flight), zone)}` : ''}
+                {/* Landed says its own time; cancelled has none to expect. */}
+                {flight.status !== 'cancelled' && flight.status !== 'landed' && expected
+                  ? `exp ${formatClock(bestTime(flight), zone)}`
+                  : ''}
               </span>
             </button>
           </li>
