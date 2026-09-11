@@ -1,4 +1,5 @@
 import { hrefFor } from '../app/router';
+import { Wordmark } from '../components/Wordmark';
 import styles from './HomePage.module.css';
 
 const POINTS = [
@@ -20,7 +21,9 @@ export function HomePage(): React.JSX.Element {
   return (
     <>
       <section className={styles.hero}>
-        <h1 className={styles.title}>SetoffIQ</h1>
+        <h1 className={styles.title}>
+          <Wordmark />
+        </h1>
         <p className={styles.tagline}>Know when to set off. Know when to wait.</p>
         <p className={styles.lede}>
           Plan airport pickups and drop-offs using available flight, journey and weather

@@ -36,15 +36,6 @@
   color: inherit;
 }
 
-/*
- * The same green the app icon is painted with, so the wordmark and the icon
- * read as one mark. In dark mode the token lightens for legibility rather than
- * holding a colour that would disappear against the page.
- */
-.brandMark {
-  color: var(--signal);
-}
-
 .headerControls {
   display: flex;
   align-items: baseline;
@@ -106,6 +97,19 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-7);
+}
+
+/* Wider canvas on a large screen. Individual text blocks keep their own
+ * max-widths, so this adds room rather than long unreadable lines. */
+@media (min-width: 64rem) {
+  .main {
+    max-width: 62rem;
+  }
+
+  .headerInner,
+  .footerInner {
+    max-width: 62rem;
+  }
 }
 
 .footer {

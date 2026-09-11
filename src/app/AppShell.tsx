@@ -5,6 +5,7 @@ import { OSRM_ATTRIBUTION, POSTCODES_ATTRIBUTION } from '../services/routing';
 import { OPENSKY_ATTRIBUTION } from '../services/flight';
 import { AWC_ATTRIBUTION } from '../services/conditions';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { Wordmark } from '../components/Wordmark';
 import type { ThemeChoice } from '../storage/settings';
 import { hrefFor, type Route } from './router';
 import styles from './AppShell.module.css';
@@ -51,7 +52,7 @@ export function AppShell({
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <a className={styles.brand} href={hrefFor({ name: 'home' })}>
-            Setoff<span className={styles.brandMark}>IQ</span>
+            <Wordmark />
           </a>
           <div className={styles.headerControls}>
             <nav className={styles.nav} aria-label="Main">

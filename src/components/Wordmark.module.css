@@ -1,0 +1,11 @@
+.wordmark {
+  letter-spacing: -0.035em;
+  /* The name is one word; never let it break across the IQ. */
+  white-space: nowrap;
+}
+
+/* The same green the app icon is painted with, so the mark and the icon read
+ * as one thing. In dark mode the token lightens for legibility. */
+.mark {
+  color: var(--signal);
+}
