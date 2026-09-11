@@ -1,4 +1,10 @@
-import type { AirportProfile, DepartureBuffer, ProcessingProfile, PassengerRoute } from '../types';
+import type {
+  AirportProfile,
+  DepartureBuffer,
+  GeoPoint,
+  PassengerRoute,
+  ProcessingProfile,
+} from '../types';
 import { MANCHESTER } from './man';
 
 /**
@@ -32,3 +38,24 @@ export function departureBufferFor(
 }
 
 export { MANCHESTER };
+
+/**
+ * Where to route a car for this journey.
+ *
+ * Terminal-specific when the traveller told us which one, and the airport's
+ * general terminal approach otherwise. Never the aerodrome reference point.
+ */
+export function routingDestination(
+  airport: AirportProfile,
+  terminalCode: string | null,
+): GeoPoint {
+  const terminal = terminalCode
+    ? airport.terminals.find((candidate) => candidate.code === terminalCode)
+    : null;
+  const point = terminal?.routingPoint ?? airport.routingPoint;
+  return {
+    latitude: point.latitude,
+    longitude: point.longitude,
+    label: terminal ? `${airport.name} ${terminal.name}` : airport.name,
+  };
+}

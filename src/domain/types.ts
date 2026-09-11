@@ -64,6 +64,13 @@ export interface Observed<T> {
 export interface Terminal {
   code: string;
   name: string;
+  /**
+   * Where a car actually arrives for this terminal. Distinct from the
+   * airport's own coordinates, which are the aerodrome reference point in the
+   * middle of the airfield — routing to that snaps to whichever service road
+   * is nearest and can add miles through a cargo area.
+   */
+  routingPoint: { latitude: number; longitude: number };
 }
 
 export interface PickupOption {
@@ -122,8 +129,11 @@ export interface AirportProfile {
   name: string;
   country: string;
   timeZone: string;
+  /** Aerodrome reference point. Used for aircraft distance, never for routing. */
   latitude: number;
   longitude: number;
+  /** Where to route to when no terminal has been chosen. */
+  routingPoint: { latitude: number; longitude: number };
   terminals: Terminal[];
   pickupOptions: PickupOption[];
   dropoffOptions: DropoffOption[];

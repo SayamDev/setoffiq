@@ -16,12 +16,24 @@ export const MANCHESTER: AirportProfile = {
   name: 'Manchester Airport',
   country: 'United Kingdom',
   timeZone: 'Europe/London',
+  // Aerodrome reference point, for measuring how far out an aircraft is.
   latitude: 53.3537,
   longitude: -2.275,
+  /*
+   * Where cars actually arrive. Routing to the reference point above sends a
+   * driver down Toronto Avenue in the cargo centre — 20.2 miles and 44 minutes
+   * from Oldham, against 16.7 miles and 24 minutes to the terminal approach.
+   * Each of these was checked by routing to it and confirming the final roads
+   * are the terminal approach rather than a service road.
+   */
+  routingPoint: { latitude: 53.365, longitude: -2.2727 },
   terminals: [
-    { code: 'T1', name: 'Terminal 1' },
-    { code: 'T2', name: 'Terminal 2' },
-    { code: 'T3', name: 'Terminal 3' },
+    // ends on Terminal Road North
+    { code: 'T1', name: 'Terminal 1', routingPoint: { latitude: 53.365, longitude: -2.2727 } },
+    // ends on Runger Lane
+    { code: 'T2', name: 'Terminal 2', routingPoint: { latitude: 53.3628, longitude: -2.28 } },
+    // ends on Domestic Approach
+    { code: 'T3', name: 'Terminal 3', routingPoint: { latitude: 53.3592, longitude: -2.2726 } },
   ],
   pickupOptions: [
     {

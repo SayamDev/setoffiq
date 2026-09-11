@@ -1,4 +1,4 @@
-import { DEFAULT_AIRPORT, findAirport } from '../domain/airports';
+import { DEFAULT_AIRPORT, findAirport, routingDestination } from '../domain/airports';
 import { calculateDropoffRecommendation, calculatePickupRecommendation } from '../domain/engine';
 import type { ProviderInput } from '../domain/engine';
 import type {
@@ -56,7 +56,9 @@ export async function planJourney(
   options: { forceRefresh?: boolean } = {},
 ): Promise<JourneyPlan> {
   const airport = findAirport(input.airportIata) ?? DEFAULT_AIRPORT;
-  const destination = {
+  // Routing goes to the terminal approach; weather is measured at the airport.
+  const destination = routingDestination(airport, input.terminalCode);
+  const airportPoint = {
     latitude: airport.latitude,
     longitude: airport.longitude,
     label: airport.name,
@@ -88,7 +90,7 @@ export async function planJourney(
   const [flight, route, weather, airportConditions, roadDisruption] = await Promise.all([
     flightPromise,
     osrmRoutingProvider.calculateRoute({ origin: input.origin, destination }, signal),
-    openMeteoProvider.getWeather(destination, input.scheduledTime, signal),
+    openMeteoProvider.getWeather(airportPoint, input.scheduledTime, signal),
     metarConditionsProvider.getConditions(airport, signal),
     roadDisruptionProvider.getDisruption(airport, signal),
   ]);
