@@ -16,7 +16,7 @@
  *   airports/schema-01/<A>/<AB>.csv
  *     Code,Name,ICAO,IATA,Location,CountryISO2,Latitude,Longitude,AltitudeFeet
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 /** Split a CSV line, honouring quoted fields ("Name, with comma"). */
@@ -111,3 +111,28 @@ export function createRouteLookup(standingDataDir) {
     },
   };
 }
+
+/**
+ * Airports by IATA code — "LHR" to Heathrow, London, GB — from the same
+ * standing data. Schedules name airports by IATA; routes by ICAO.
+ */
+export function createIataLookup(standingDataDir) {
+  const airportsDir = standingDataDir ? join(standingDataDir, 'airports', 'schema-01') : null;
+  const byIata = new Map();
+  if (airportsDir && existsSync(airportsDir)) {
+    for (const entry of readdirSync(airportsDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const dir = join(airportsDir, entry.name);
+      for (const file of readdirSync(dir).filter((name) => name.endsWith('.csv'))) {
+        for (const row of readCsv(join(dir, file))) {
+          const iata = row[3];
+          if (iata && !byIata.has(iata)) {
+            byIata.set(iata, { icao: row[2] || row[0], iata, city: row[4] || null, name: row[1] || null, country: row[5] || null });
+          }
+        }
+      }
+    }
+  }
+  return (iata) => (iata ? (byIata.get(iata) ?? null) : null);
+}
+

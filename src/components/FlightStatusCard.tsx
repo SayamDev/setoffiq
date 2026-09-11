@@ -70,9 +70,11 @@ export function FlightStatusCard({
       <p className={styles.secondary}>
         {live
           ? 'Estimated arrival on stand, from the aircraft position'
-          : simulated
-            ? 'Simulated arrival from a test scenario — not live information'
-            : 'Scheduled arrival, as you entered it'}
+          : source === 'airline-schedule'
+            ? "Estimated arrival from the airline schedule — the aircraft isn't in range yet"
+            : simulated
+              ? 'Simulated arrival from a test scenario — not live information'
+              : 'Scheduled arrival, as you entered it'}
       </p>
 
       {status.position ? (

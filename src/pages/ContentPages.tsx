@@ -259,6 +259,26 @@ export function DataSourcesPage(): React.JSX.Element {
               </tr>
               <tr>
                 <th scope="row">
+                  <a href="https://airlabs.co/" rel="noreferrer noopener">
+                    AirLabs
+                  </a>
+                </th>
+                <td>
+                  Manchester's arrivals and departures for the next ten hours, with delays and
+                  cancellations.
+                </td>
+                <td>
+                  Free plan with no payment details, under a key used only by the scheduled job.
+                  About 1,000 requests a month, so it is refreshed every four and a half hours and
+                  its status can be that old.
+                </td>
+                <td>
+                  The lists fall back to flights SetoffIQ has seen on recent days, and monitoring to
+                  live positions.
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">
                   <a href="https://aviationweather.gov/data/api/" rel="noreferrer noopener">
                     NOAA Aviation Weather Center
                   </a>

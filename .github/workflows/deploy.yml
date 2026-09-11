@@ -66,7 +66,9 @@ jobs:
       # from the most recent.
       - uses: actions/cache@v4
         with:
-          path: .cache/history
+          path: |
+            .cache/history
+            .cache/schedule
           key: arrival-history-${{ github.run_id }}
           restore-keys: arrival-history-
 
@@ -80,6 +82,19 @@ jobs:
           STANDING_DATA_DIR: .cache/standing-data
           HISTORY_CACHE_FILE: .cache/history/EGCC-history.json
         run: node scripts/fetch-flight-snapshot.mjs
+
+      # Manchester's schedule from AirLabs, keyed. The key is a repository
+      # secret used only here; without it nothing is published and the app
+      # falls back to live positions and its own record. Refreshed at most
+      # every 4.5 hours and within a monthly budget under the free plan's
+      # 1,000 requests — see scripts/fetch-schedule.mjs.
+      - name: Refresh flight schedule
+        continue-on-error: true
+        env:
+          AIRLABS_KEY: ${{ secrets.AIRLABS_KEY }}
+          STANDING_DATA_DIR: .cache/standing-data
+          SCHEDULE_CACHE_FILE: .cache/schedule/EGCC-schedule.json
+        run: node scripts/fetch-schedule.mjs
 
       # Aerodrome observation. Free and keyless, but the Aviation Weather
       # Center sends no CORS header, so it is fetched here rather than in the

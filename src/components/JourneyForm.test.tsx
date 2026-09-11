@@ -131,3 +131,63 @@ describe('planning a drop-off from a flight that usually leaves soon', () => {
   });
 });
 
+
+describe('choosing from the airline schedule', () => {
+  afterEach(() => clearAll());
+
+  const clock = (ms: number) =>
+    new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ms));
+
+  function seedSchedule(now: number) {
+    const base = { callsign: null, airline: null, actual: null, terminal: null, aliases: [] as string[] };
+    writeCache(
+      'flight-snapshot:EGCC',
+      { generatedAt: new Date(now).toISOString(), airportIcao: 'EGCC', source: 't', attribution: 't', radiusKm: 463, aircraft: [] } as FlightSnapshot,
+      now,
+    );
+    writeCache(
+      'flight-schedule:EGCC',
+      {
+        generatedAt: new Date(now).toISOString(),
+        attribution: 'Flight schedules from AirLabs (airlabs.co)',
+        arrivals: [
+          { ...base, flight: 'FR3006', callsign: 'RYR3006', otherEnd: { icao: 'LEIB', iata: 'IBZ', city: 'Ibiza', country: 'ES' }, scheduled: now + 2 * 3_600_000, estimated: null, status: 'cancelled', delayMinutes: null },
+          { ...base, flight: 'EK19', callsign: 'UAE19', otherEnd: { icao: 'OMDB', iata: 'DXB', city: 'Dubai', country: 'AE' }, scheduled: now + 3 * 3_600_000, estimated: now + 3 * 3_600_000 + 25 * 60_000, status: 'active', delayMinutes: 25 },
+        ],
+        departures: [
+          { ...base, flight: 'LS811', callsign: 'EXS811', otherEnd: { icao: 'LEAL', iata: 'ALC', city: 'Alicante', country: 'ES' }, scheduled: now + 4 * 3_600_000, estimated: null, status: 'scheduled', delayMinutes: null },
+        ],
+      },
+      now,
+    );
+  }
+
+  it('lists arrivals with their state, and a pick fills in the booking time', async () => {
+    const now = Date.now();
+    seedSchedule(now);
+    const user = userEvent.setup();
+    render(<JourneyForm kind="pickup" airport={MANCHESTER} now={now} onSubmit={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: /Collecting from a flight landing soon/ }));
+    expect(await screen.findByRole('button', { name: /FR3006.*Ryanair.*from Ibiza.*Cancelled/s })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /EK19.*Emirates.*from Dubai.*Delayed ~25 min/s }));
+
+    expect(screen.getByLabelText('Flight number (optional)')).toHaveValue('EK19');
+    expect(screen.getByLabelText('Scheduled arrival time')).toHaveValue(clock(now + 3 * 3_600_000));
+    expect(screen.getByRole('status')).toHaveTextContent(/running about 25 minutes late/);
+    expect(screen.getByText(/Filled in from the airline schedule/)).toBeInTheDocument();
+  });
+
+  it('fills a drop-off with the scheduled departure itself — the gate time, no allowance', async () => {
+    const now = Date.now();
+    seedSchedule(now);
+    const user = userEvent.setup();
+    render(<JourneyForm kind="dropoff" airport={MANCHESTER} now={now} onSubmit={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: /Dropping off for a flight leaving soon/ }));
+    await user.click(await screen.findByRole('button', { name: /LS811.*Jet2.*to Alicante/s }));
+
+    expect(screen.getByLabelText('Scheduled departure time')).toHaveValue(clock(now + 4 * 3_600_000));
+    expect(screen.getByRole('radio', { name: /International/ })).toBeChecked();
+  });
+});

@@ -16,6 +16,7 @@ import { fetchJson } from '../http';
 import { haversineKm } from '../geo';
 import { estimateArrivalFromPosition, notArrivingReason, type NotArrivingReason } from './arrivalEstimate';
 import { candidateCallsigns, normaliseFlightNumber } from './callsigns';
+import { findScheduled, loadSchedule, type ScheduledFlight } from './schedule';
 import type { FlightSnapshot, SnapshotAircraft } from './snapshotTypes';
 
 export const FLIGHT_DATA_ATTRIBUTION = 'Aircraft data from adsb.lol (ODbL 1.0)';
@@ -37,6 +38,10 @@ function findAircraft(snapshot: FlightSnapshot, flightNumber: string): SnapshotA
   return (
     snapshot.aircraft.find((aircraft) => wanted.has(aircraft.callsign.trim().toUpperCase())) ?? null
   );
+}
+
+function formatClockLocal(iso: string, timeZone: string): string {
+  return new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso));
 }
 
 function elsewhereReason(reason: NotArrivingReason, aircraft: SnapshotAircraft): string {
@@ -151,14 +156,36 @@ export const snapshotFlightProvider: FlightProvider = {
     const estimate = otherDay ? null : foundEstimate;
     const elsewhere = aircraft ? notArrivingReason(aircraft, input.airport) : null;
 
+    // The airline schedule, where there is one: the only free source that can
+    // say a flight is cancelled, and the best estimate before the aircraft is
+    // in range. Optional — a missing schedule changes nothing else.
+    const schedule = flightNumber ? await loadSchedule(signal).catch(() => null) : null;
+    const onSchedule: ScheduledFlight | null =
+      schedule && flightNumber
+        ? input.scheduledArrival !== null
+          ? findScheduled(schedule.arrivals, flightNumber, input.scheduledArrival)
+          : input.scheduledDeparture !== null
+            ? findScheduled(schedule.departures, flightNumber, input.scheduledDeparture)
+            : null
+        : null;
+    const cancelled = onSchedule?.status === 'cancelled';
+    const scheduleEstimate =
+      !estimate && !cancelled && onSchedule && input.scheduledArrival !== null
+        ? (onSchedule.actual ?? onSchedule.estimated)
+        : null;
+
     const status: FlightStatus = {
       flightNumber,
       callsign: aircraft?.callsign.trim() ?? null,
-      phase: phaseFor(aircraft, elsewhere, input.scheduledArrival, now),
+      phase: cancelled
+        ? 'cancelled'
+        : !aircraft && onSchedule?.status === 'landed' && input.scheduledArrival !== null
+          ? 'landed'
+          : phaseFor(aircraft, elsewhere, input.scheduledArrival, now),
       scheduledArrival: input.scheduledArrival,
       scheduledDeparture: input.scheduledDeparture,
-      estimatedArrival: estimate ? estimate.onStand : input.scheduledArrival,
-      estimatedArrivalSource: estimate ? 'live-position' : 'user-schedule',
+      estimatedArrival: estimate ? estimate.onStand : (scheduleEstimate ?? input.scheduledArrival),
+      estimatedArrivalSource: estimate ? 'live-position' : scheduleEstimate ? 'airline-schedule' : 'user-schedule',
       position: aircraft
         ? {
             latitude: aircraft.latitude,
@@ -173,7 +200,11 @@ export const snapshotFlightProvider: FlightProvider = {
             distanceToAirportKm: Math.round(haversineKm(aircraft, input.airport)),
           }
         : null,
-      observedAt: aircraft ? aircraft.lastContact * 1000 : observedAt,
+      observedAt: aircraft
+        ? aircraft.lastContact * 1000
+        : scheduleEstimate && schedule
+          ? Date.parse(schedule.generatedAt)
+          : observedAt,
     };
 
     return {
@@ -183,7 +214,11 @@ export const snapshotFlightProvider: FlightProvider = {
       observedAt,
       provider: 'flight-snapshot',
       attribution: FLIGHT_DATA_ATTRIBUTION,
-      message: tooOld
+      message: cancelled && schedule
+        ? `The airline schedule lists ${onSchedule?.flight ?? flightNumber} as cancelled (as of ${formatClockLocal(schedule.generatedAt, input.airport.timeZone)}). Check with the airline.`
+        : scheduleEstimate
+          ? `The aircraft is not in range yet, so this is the airline schedule's estimate. It will be timed from the aircraft's position once it is close.`
+          : tooOld
         ? `The latest flight data is ${formatAge(ageMinutes ?? 0)} old — too old to say where the aircraft is now. Your scheduled time is being used instead.`
         : otherDay && found
           ? `An aircraft broadcasting ${found.callsign.trim()} is in the air, but it is due many hours from the scheduled time you entered, so it is most likely a different day's flight. Your scheduled time is being used instead.`

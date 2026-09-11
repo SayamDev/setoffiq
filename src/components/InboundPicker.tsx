@@ -5,14 +5,19 @@ import {
   ARRIVAL_ESTIMATE,
   listInboundAircraft,
   loadArrivalHistory,
+  loadSchedule,
+  upcomingArrivals,
   minutesAgainstUsual,
   SnapshotTooOldError,
   USUAL_MIN_DAYS,
   usualArrivals,
   type ArrivalHistory,
+  type FlightSchedule,
   type InboundAircraft,
+  type ListedFlight,
   type UsualArrival,
 } from '../services/flight';
+import { describeScheduled, ScheduledList } from './ScheduledList';
 import { Button, ui } from './ui';
 import styles from './InboundPicker.module.css';
 
@@ -27,7 +32,7 @@ export interface PickedFlight {
    * Where the time came from: a live position, the recorded landing pattern,
    * or the recorded take-off pattern less the gate-to-take-off allowance.
    */
-  basis: 'position' | 'usual' | 'usual-departure';
+  basis: 'position' | 'schedule' | 'usual' | 'usual-departure';
 }
 
 type Live =
@@ -44,6 +49,8 @@ type State =
       /** undefined while the record is still loading; null if it could not be. */
       history: ArrivalHistory | null | undefined;
       usual: UsualArrival[];
+      /** undefined while loading; null when there is no usable schedule. */
+      schedule: FlightSchedule | null | undefined;
     }
   | { kind: 'picked'; title: string; detail: string };
 
@@ -69,6 +76,7 @@ export function InboundPicker({
     // The live list shows as soon as it is ready; the record of usual arrivals
     // follows when it arrives, rather than holding the live list back.
     const historyPromise = loadArrivalHistory();
+    const schedulePromise = loadSchedule();
     const live = await listInboundAircraft(airport).then(
       (aircraft): Live => ({ kind: 'ok', aircraft }),
       (error: unknown): Live =>
@@ -76,12 +84,12 @@ export function InboundPicker({
           ? { kind: 'too-old', ageMinutes: error.ageMinutes }
           : { kind: 'error' },
     );
-    setState({ kind: 'ready', live, history: undefined, usual: [] });
+    setState({ kind: 'ready', live, history: undefined, usual: [], schedule: undefined });
 
-    const history = await historyPromise;
+    const [history, schedule] = await Promise.all([historyPromise, schedulePromise]);
     const inTheAir = new Set(live.kind === 'ok' ? live.aircraft.map((a) => a.callsign) : []);
     const usual = history ? usualArrivals(history, airport, Date.now(), inTheAir) : [];
-    setState((current) => (current.kind === 'ready' ? { ...current, history, usual } : current));
+    setState((current) => (current.kind === 'ready' ? { ...current, history, usual, schedule } : current));
   };
 
   const pickLive = (aircraft: InboundAircraft): void => {
@@ -97,6 +105,20 @@ export function InboundPicker({
       detail: aircraft.estimatedArrival
         ? `Due on stand about ${formatClock(aircraft.estimatedArrival, airport.timeZone)}, from its position now.`
         : 'The flight number is filled in. Enter the time from the booking below.',
+    });
+  };
+
+  const pickScheduled = (flight: ListedFlight): void => {
+    onPick({
+      flightNumber: flight.flight,
+      fillAt: flight.scheduled,
+      otherEndCountry: flight.otherEnd?.country ?? null,
+      basis: 'schedule',
+    });
+    setState({
+      kind: 'picked',
+      title: describe(flight.flight, flight.airlineName, flight.place),
+      detail: describeScheduled(flight, airport.timeZone, 'arrival'),
     });
   };
 
@@ -123,8 +145,8 @@ export function InboundPicker({
         <span className={styles.entryText}>
           <span className={styles.entryTitle}>Collecting from a flight landing soon?</span>
           <span className={styles.entryBody}>
-            Choose it from aircraft heading for {airport.name} now, or flights that usually land in
-            the next twelve hours, and the flight and time are filled in for you.
+            Choose it from the arrivals at {airport.name} in the next ten hours — with delays and
+            cancellations — and the flight and time are filled in for you.
           </span>
         </span>
       </button>
@@ -151,7 +173,7 @@ export function InboundPicker({
     );
   }
 
-  const { live, history, usual } = state;
+  const { live, history, usual, schedule } = state;
   const now = Date.now();
 
   return (
@@ -219,6 +241,45 @@ export function InboundPicker({
         </>
       ) : null}
 
+      {schedule === undefined ? (
+        <p className={ui.hint}>Checking the schedule…</p>
+      ) : schedule !== null ? (
+        <>
+          <h2 className={styles.sectionTitle}>Scheduled in the next ten hours</h2>
+          <p className={ui.hint}>
+            From AirLabs, as of {formatClock(Date.parse(schedule.generatedAt), airport.timeZone)}.
+            Delays and cancellations can be a few hours old here; aircraft in the air above are
+            live. Check with the airline before you set off.
+          </p>
+          <ScheduledList
+            flights={upcomingArrivals(schedule, now)}
+            airport={airport}
+            direction="arrival"
+            onPick={pickScheduled}
+          />
+        </>
+      ) : (
+        <UsualSection history={history} usual={usual} airport={airport} now={now} onPick={pickUsual} />
+      )}
+    </div>
+  );
+}
+
+function UsualSection({
+  history,
+  usual,
+  airport,
+  now,
+  onPick,
+}: {
+  history: ArrivalHistory | null | undefined;
+  usual: UsualArrival[];
+  airport: AirportProfile;
+  now: number;
+  onPick: (flight: UsualArrival) => void;
+}): React.JSX.Element {
+  return (
+    <>
       <h2 className={styles.sectionTitle}>Usually in the next twelve hours</h2>
       {history === undefined ? (
         <p className={ui.hint}>Checking SetoffIQ's record of arrivals…</p>
@@ -241,7 +302,7 @@ export function InboundPicker({
           <ul className={styles.list}>
             {usual.map((flight) => (
               <li key={flight.callsign}>
-                <button type="button" className={styles.option} onClick={() => pickUsual(flight)}>
+                <button type="button" className={styles.option} onClick={() => onPick(flight)}>
                   <span className={styles.identifier}>{flight.flightNumber ?? flight.callsign}</span>
                   <span className={styles.who}>
                     {flight.airline ? <span className={styles.airline}>{flight.airline}</span> : null}
@@ -267,7 +328,7 @@ export function InboundPicker({
           </ul>
         </>
       )}
-    </div>
+    </>
   );
 }
 

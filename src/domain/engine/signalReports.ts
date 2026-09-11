@@ -21,6 +21,8 @@ const STALE_AFTER_MINUTES = {
   weather: 120,
   /** The snapshot job runs every fifteen minutes. */
   road: 60,
+  /** The airline schedule is refreshed every four and a half hours. */
+  schedule: 300,
 } as const;
 
 function ageState(
@@ -73,6 +75,14 @@ export function buildSignalReports(
       label: 'Flight',
       state: ageState(input.flight.observedAt, input.now, STALE_AFTER_MINUTES.flight),
       summary: `Aircraft seen ${flight.position.distanceToAirportKm} km out; arrival estimated from its position.`,
+      impact: 'none',
+    });
+  } else if (flight.estimatedArrivalSource === 'airline-schedule') {
+    reports.push({
+      id: 'flight',
+      label: 'Flight',
+      state: ageState(input.flight.observedAt, input.now, STALE_AFTER_MINUTES.schedule),
+      summary: "The airline schedule's estimate, until the aircraft is close enough to time from its position.",
       impact: 'none',
     });
   } else if (flight.estimatedArrivalSource === 'scenario') {

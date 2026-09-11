@@ -132,7 +132,10 @@ function buildFactors(
 
   const source = flight?.estimatedArrivalSource ?? null;
 
-  if (flight?.estimatedArrival && (source === 'live-position' || source === 'scenario')) {
+  if (
+    flight?.estimatedArrival &&
+    (source === 'live-position' || source === 'airline-schedule' || source === 'scenario')
+  ) {
     const delta = minutesBetween(input.scheduledArrival, flight.estimatedArrival);
     const difference =
       delta === 0
@@ -145,7 +148,9 @@ function buildFactors(
       detail:
         source === 'scenario'
           ? `Simulated by a test scenario — ${difference}. This is not live information.`
-          : `Estimated from the aircraft position — ${difference}.`,
+          : source === 'airline-schedule'
+            ? `The airline schedule's current estimate — ${difference}. The aircraft is not yet in range to time it from its position.`
+            : `Estimated from the aircraft position — ${difference}.`,
       // A test scenario is not live data and is never presented as though it is.
       basis: source === 'scenario' ? 'assumption' : 'live-data',
     });

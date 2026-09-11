@@ -125,6 +125,12 @@
   color: var(--ink-3);
 }
 
+/* A flight that is not coming: the strongest thing a row can say. */
+.cancelled {
+  color: var(--red-2);
+  font-weight: 700;
+}
+
 /* "Later than usual", "Not seen yet": the one thing on a row worth noticing. */
 .notice {
   color: var(--amber-2);

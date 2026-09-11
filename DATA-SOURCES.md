@@ -4,8 +4,8 @@ Every external service SetoffIQ uses, what it actually provides, and its terms
 as verified against the provider's own primary documentation.
 
 **All entries verified: 10 September 2026, with aerodrome observations, the
-road-data assessment, and the move from OpenSky to adsb.lol and the Virtual
-Radar Server routes added 11 September 2026.**
+road-data assessment, the move from OpenSky to adsb.lol and the Virtual Radar
+Server routes, and the AirLabs schedule added 11 September 2026.**
 
 ---
 
@@ -160,6 +160,62 @@ of the picker: nobody is collected from them.
   Republishing them in the snapshot would breach that.
 
 ---
+
+## AirLabs — the flight schedule
+
+- **Official documentation:** https://airlabs.co/docs/schedules
+- **Purpose:** what lands and leaves at Manchester in the next ten hours, with
+  status — the one thing live positions cannot give, because a flight that has
+  not taken off is not in the air.
+- **Authentication:** a free API key, held in the `AIRLABS_KEY` repository
+  secret and used only by the deploy job. It never reaches a browser.
+- **Free plan, verified 11 September 2026:** sign-up shows *"free $0/month"*
+  and asks for no payment details, so nothing can bill. The API's own
+  developer guide: *"The free plan requires no credit card."* The free tier is
+  reported as 1,000 requests a month. **Do not start a "Free Trial" of a paid
+  plan**: the terms say a trial may take billing details and *"you will be
+  automatically charged"* when it ends.
+- **What a free key actually returns** — checked with a probe
+  (`.github/workflows/airlabs-probe.yml`) before anything depended on it, since
+  the documentation marks only some fields as free: status (`scheduled`,
+  `active`, `landed`, `cancelled`), `delayed` / `arr_delayed` / `dep_delayed`,
+  scheduled, estimated and actual times, terminal, gate, baggage belt, and
+  codeshares. 100 flights per request. That evening Manchester's arrivals
+  showed 2 cancelled and 73 with a delay figure.
+- **Budget:** a refresh takes about six requests (arrivals and departures, 100
+  a page). `scripts/fetch-schedule.mjs` refreshes only when the published
+  schedule is over **4.5 hours** old, and never past **900 requests** in a
+  calendar month, counted in the published file itself. In between it
+  republishes what it has; the app says how old the status is, and aircraft in
+  the air stay current from the live snapshot.
+- **Codeshares:** one aircraft is listed once per marketing number. Those
+  copies are folded into the operating flight as aliases, so a typed codeshare
+  number still finds it and the list shows each aircraft once.
+- **Terms — two points worth recording.**
+  - The API's responses carry: *"Reselling data 'As Is' without AirLabs.Co
+    permission is strictly prohibited."* SetoffIQ sells nothing and shows a
+    processed list free of charge.
+  - The terms of service (https://airlabs.co/terms-of-service) forbid using
+    *"any robot, spider, or other automatic device, process, or means to access
+    Service for any purpose, including monitoring or copying any of the
+    material on Service."* Read literally that would forbid using their own
+    API, which exists for automated access; the reading taken here is that it
+    targets scraping the website. Recorded because it is ambiguous, not settled
+    — the same situation as National Highways ¶21(e).
+  - No attribution requirement was found; the app credits AirLabs anyway.
+- **What the app does with it:**
+  - Both pickers list the next ten hours of scheduled flights with the ticket
+    flight number, airline, origin or destination, and a plain status:
+    *Cancelled*, *Delayed ~25 min* (with the expected time), *In the air*,
+    *Landed*. Picking one fills in the booking time — for a drop-off, the gate
+    time directly, with no allowance.
+  - A monitored journey whose flight the schedule lists as **cancelled** stops
+    with *"This flight is showing as cancelled"*. Before the aircraft is in
+    range, the schedule's estimate replaces the typed time, labelled as the
+    airline schedule's.
+- **Fallback:** without the key or once the schedule is over twelve hours old,
+  none of this appears; the pickers fall back to SetoffIQ's own record of
+  usual flights, and monitoring to live positions.
 
 ## SetoffIQ's own record of arrivals
 

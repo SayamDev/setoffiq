@@ -168,7 +168,7 @@ export interface AircraftPosition {
 }
 
 /** Where an arrival or departure estimate came from. Never guessed. */
-export type TimeSource = 'user-schedule' | 'live-position' | 'scenario';
+export type TimeSource = 'user-schedule' | 'live-position' | 'airline-schedule' | 'scenario';
 
 export interface FlightStatus {
   /** Flight number as the user typed it, e.g. "EK21". */

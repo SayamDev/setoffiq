@@ -74,6 +74,7 @@ export async function loadArrivalHistory(signal?: AbortSignal): Promise<ArrivalH
       provider: 'flight-snapshot',
       endpoint: 'history',
       signal,
+      retries: 0,
     });
     writeCache(CACHE_KEY, history, now);
     return history;

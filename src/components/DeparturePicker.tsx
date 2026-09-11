@@ -2,7 +2,17 @@ import { useState } from 'react';
 import { GATE_TO_TAKEOFF_MINUTES } from '../domain/assumptions';
 import { formatClock, formatDate } from '../domain/time';
 import type { AirportProfile } from '../domain/types';
-import { loadArrivalHistory, USUAL_MIN_DAYS, usualDepartures, type UsualDeparture } from '../services/flight';
+import {
+  loadArrivalHistory,
+  loadSchedule,
+  upcomingDepartures,
+  USUAL_MIN_DAYS,
+  usualDepartures,
+  type FlightSchedule,
+  type ListedFlight,
+  type UsualDeparture,
+} from '../services/flight';
+import { describeScheduled, ScheduledList } from './ScheduledList';
 import { describe, type PickedFlight } from './InboundPicker';
 import { Button, ui } from './ui';
 import styles from './InboundPicker.module.css';
@@ -10,7 +20,7 @@ import styles from './InboundPicker.module.css';
 type State =
   | { kind: 'idle' }
   | { kind: 'loading' }
-  | { kind: 'ready'; since: string | null; departures: UsualDeparture[] }
+  | { kind: 'ready'; since: string | null; departures: UsualDeparture[]; schedule: FlightSchedule | null }
   | { kind: 'unavailable' }
   | { kind: 'picked'; title: string; detail: string };
 
@@ -34,12 +44,34 @@ export function DeparturePicker({
 
   const load = async (): Promise<void> => {
     setState({ kind: 'loading' });
-    const history = await loadArrivalHistory();
-    setState(
-      history
-        ? { kind: 'ready', since: history.departuresSince ?? null, departures: usualDepartures(history, airport, Date.now()) }
-        : { kind: 'unavailable' },
-    );
+    const [history, schedule] = await Promise.all([loadArrivalHistory(), loadSchedule()]);
+    if (!history && !schedule) {
+      setState({ kind: 'unavailable' });
+      return;
+    }
+    setState({
+      kind: 'ready',
+      since: history?.departuresSince ?? null,
+      departures: history ? usualDepartures(history, airport, Date.now()) : [],
+      schedule,
+    });
+  };
+
+  const pickScheduled = (flight: ListedFlight): void => {
+    // A schedule's departure time is the gate time on the booking: no allowance.
+    onPick({
+      flightNumber: flight.flight,
+      fillAt: flight.scheduled,
+      otherEndCountry: flight.otherEnd?.country ?? null,
+      basis: 'schedule',
+    });
+    setState({
+      kind: 'picked',
+      title: [describe(flight.flight, flight.airlineName, null), flight.place ? `to ${flight.place}` : null]
+        .filter(Boolean)
+        .join(' '),
+      detail: describeScheduled(flight, airport.timeZone, 'departure'),
+    });
   };
 
   const pick = (flight: UsualDeparture): void => {
@@ -68,8 +100,8 @@ export function DeparturePicker({
         <span className={styles.entryText}>
           <span className={styles.entryTitle}>Dropping off for a flight leaving soon?</span>
           <span className={styles.entryBody}>
-            Choose it from flights that usually leave {airport.name} in the next twelve hours, and
-            the flight and time are filled in for you.
+            Choose it from the departures at {airport.name} in the next ten hours — with delays and
+            cancellations — and the flight and time are filled in for you.
           </span>
         </span>
       </button>
@@ -91,7 +123,7 @@ export function DeparturePicker({
   if (state.kind === 'loading') {
     return (
       <div className={styles.wrapper}>
-        <p className={ui.hint}>Checking SetoffIQ's record of departures…</p>
+        <p className={ui.hint}>Checking the schedule…</p>
       </div>
     );
   }
@@ -105,6 +137,25 @@ export function DeparturePicker({
   }
 
   const now = Date.now();
+  if (state.schedule) {
+    return (
+      <div className={styles.wrapper}>
+        <h2 className={styles.sectionTitle}>Scheduled departures in the next ten hours</h2>
+        <p className={ui.hint}>
+          From AirLabs, as of {formatClock(Date.parse(state.schedule.generatedAt), airport.timeZone)}.
+          Delays and cancellations can be a few hours old; check with the airline before you set
+          off.
+        </p>
+        <ScheduledList
+          flights={upcomingDepartures(state.schedule, now)}
+          airport={airport}
+          direction="departure"
+          onPick={pickScheduled}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={styles.wrapper}>
       <h2 className={styles.sectionTitle}>Usually leaving in the next twelve hours</h2>

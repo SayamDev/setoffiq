@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { OPEN_METEO_ATTRIBUTION } from '../services/weather';
 import { OSRM_ATTRIBUTION, POSTCODES_ATTRIBUTION } from '../services/routing';
-import { FLIGHT_DATA_ATTRIBUTION } from '../services/flight';
+import { FLIGHT_DATA_ATTRIBUTION, SCHEDULE_ATTRIBUTION } from '../services/flight';
 import { AWC_ATTRIBUTION } from '../services/conditions';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { Wordmark } from '../components/Wordmark';
@@ -96,6 +96,7 @@ export function AppShell({
 
           <div className={styles.attribution}>
             <span>{FLIGHT_DATA_ATTRIBUTION}</span>
+            <span>{SCHEDULE_ATTRIBUTION}</span>
             <span>{AWC_ATTRIBUTION}</span>
             <span>{OPEN_METEO_ATTRIBUTION}</span>
             <span>{OSRM_ATTRIBUTION}</span>

@@ -16,6 +16,7 @@ Verified 10 September 2026 against each provider's own documentation. See
 | --- | --- | ---: | --- | --- |
 | adsb.lol | Aircraft positions | **£0** | None — keyless, no account, no payment method | ODbL 1.0; the project asks production users to get in touch, and may require a (free) key in future |
 | Virtual Radar Server standing data | Reported routes | **£0** | None — a public GitHub repository, cloned once a day | CC0 1.0 |
+| AirLabs | Flight schedule, delays, cancellations | **£0** | None — free plan, no payment details taken; hard monthly budget of 900 requests enforced by the job | Keyed (repository secret, CI only); 1,000 requests/month reported for the free tier |
 | NOAA Aviation Weather Center | Aerodrome observations (METAR) | **£0** | None — US government public-domain data, no account | No published limit |
 | Open-Meteo | Weather | **£0** | None — no key, no account, no payment method | 10,000 calls/day, non-commercial, CC BY 4.0 |
 | OSRM (FOSSGIS + project instances) | Driving times | **£0** | None — public instances, no key, no account | Fair use; no live traffic |

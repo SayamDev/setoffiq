@@ -93,6 +93,8 @@ export function JourneyForm({
     switch (whenFrom) {
       case 'position':
         return "Filled in from the aircraft's position. Change them if the booking says otherwise.";
+      case 'schedule':
+        return 'Filled in from the airline schedule. Check the time on the booking.';
       case 'usual':
         return 'Filled in from when this flight usually lands. Check the time on the booking.';
       case 'usual-departure':

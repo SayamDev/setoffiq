@@ -9,3 +9,13 @@ export type { InboundAircraft } from './inbound';
 export { callsignToFlightNumber } from './callsigns';
 export { loadArrivalHistory, minutesAgainstUsual, usualArrivals, usualDepartures, USUAL_MIN_DAYS } from './history';
 export type { ArrivalHistory, UsualArrival, UsualDeparture } from './history';
+export {
+  bestTime,
+  findScheduled,
+  lateBy,
+  loadSchedule,
+  SCHEDULE_ATTRIBUTION,
+  upcomingArrivals,
+  upcomingDepartures,
+} from './schedule';
+export type { FlightSchedule, ListedFlight, ScheduledFlight } from './schedule';
