@@ -127,7 +127,30 @@ four counts that matter here.
 | **Commercial use** | Permitted — *"exploit the Information commercially and non-commercially"*. Less restrictive than Open-Meteo. |
 | **Rate limit** | *"The APIs have a rate limit of 10 calls per subscription key per minute."* A fifteen-minute schedule uses about 0.07% of that. |
 | **Licence** | Open Government Licence 2.0 with National Highways amendments. |
-| **Attribution** | Required verbatim: **"Powered by National Highways' Transport Data Feeds"**. SetoffIQ renders this beneath the signal table whenever the data is actually in use. |
+| **Attribution** | Required verbatim by clause 20(a): **“Powered by National Highways’ Transport Data Feeds”** — typographic apostrophe included. SetoffIQ renders this beneath the signal table whenever the data is in use, and a test pins the exact string so a tidy-up cannot silently break the licence condition. |
+
+### Licence clauses worth knowing
+
+Read in full at the subscription screen. Four clauses bear on how SetoffIQ uses
+this feed:
+
+- **¶21(e)** prohibits *"any automated system, software or process to extract
+  content and/or data, including trawling, data mining and screen scraping"*.
+  Read literally this sits oddly beside an API issued with a subscription key
+  for automated consumption, and whose own FAQ says *"it is your responsibility
+  to call the API as frequently as appropriate"*. The reading taken here is that
+  it targets scraping the website rather than authorised API use. It is recorded
+  because it is genuinely ambiguous, not because it is settled.
+- **¶17** permits immediate termination for abuse, explicitly including
+  *"inadvertent disruption of NH's systems due to incorrect operation or design
+  of Your interface"*. SetoffIQ makes two requests per scheduled run on a
+  fifteen-minute cadence, caps pagination at four pages, and treats a 429 as a
+  hard failure — roughly eight calls an hour against a limit of ten a minute.
+- **¶2** allows the licence to be revised at any time without notice, with
+  continued use counting as acceptance. This is why the feed sits behind a
+  provider interface and can be removed without touching the engine.
+- **¶20(b)** requires NH's trademarks and branding to be respected. SetoffIQ
+  displays the attribution text only and uses no National Highways logo.
 
 The six-month notice clause is the one thing to keep an eye on. It does not
 create billing risk today — a charge would require actively agreeing to pay —

@@ -40,8 +40,11 @@ const KEY = process.env.NATIONAL_HIGHWAYS_KEY ?? '';
 const BASE =
   process.env.ROAD_DISRUPTION_URL ?? 'https://api.data.nationalhighways.co.uk/roads/v2.0/closures';
 
-/** Required verbatim by the licence. Do not reword. */
-const ATTRIBUTION = "Powered by National Highways' Transport Data Feeds";
+/**
+ * Required verbatim by clause 20(a) of the licence, typographic apostrophe and
+ * all. Do not reword, and do not "fix" the punctuation.
+ */
+const ATTRIBUTION = 'Powered by National Highways’ Transport Data Feeds';
 
 /**
  * Fetch one page.

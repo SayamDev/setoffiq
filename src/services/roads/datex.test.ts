@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error — plain JS shared with the CI snapshot script.
 import { firstCoordinate, parseClosures } from '../../../scripts/lib/datex.mjs';
@@ -17,6 +19,19 @@ import {
 const AIRPORT = { latitude: 53.3537, longitude: -2.275 };
 const NOW = Date.parse('2026-09-11T10:00:00Z');
 const OPTIONS = { now: NOW, airport: AIRPORT, radiusKm: 40, closureType: 'planned' as const };
+
+describe('licence compliance', () => {
+  it('emits the attribution string exactly as clause 20(a) requires', async () => {
+    // Verbatim means verbatim, including the typographic apostrophe. This is a
+    // licence condition for publishing the data at all, so it is pinned here
+    // rather than left to survive the next tidy-up of the script.
+    const source = await readFile(
+      resolve(process.cwd(), 'scripts/fetch-road-disruption.mjs'),
+      'utf8',
+    );
+    expect(source).toContain('Powered by National Highways\u2019 Transport Data Feeds');
+  });
+});
 
 describe('DATEX II position lists', () => {
   it('reads latitude before longitude, as the feed declares', () => {
