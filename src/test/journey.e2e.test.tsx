@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import App from '../App';
 import { clearAll } from '../services/storage';
 import { resetHttpState } from '../services/http';
-import { todayInZone } from '../domain/time';
+import { formatClock, todayInZone } from '../domain/time';
 import { MANCHESTER } from '../domain/airports';
 
 /**
@@ -136,8 +136,10 @@ describe('planning and monitoring a pickup', () => {
     fireEvent.change(screen.getByLabelText('Date'), {
       target: { value: todayInZone(arrival.getTime(), MANCHESTER.timeZone) },
     });
+    // The hour in Manchester, like the date — not the machine's own zone. CI
+    // runs in UTC, and mixing the two once put the flight a day away.
     fireEvent.change(screen.getByLabelText(/Scheduled arrival time/i), {
-      target: { value: `${String(arrival.getHours()).padStart(2, '0')}:00` },
+      target: { value: `${formatClock(arrival.getTime(), MANCHESTER.timeZone).slice(0, 2)}:00` },
     });
     await user.type(screen.getByLabelText(/Flight number/i), 'KL1038');
     await user.type(screen.getByLabelText(/Setting off from/i), 'M1 4BT');
