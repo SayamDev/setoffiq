@@ -29,12 +29,12 @@
       the app actually uses are reachable, plus localhost for the optional local
       model, and no plugins may load.
 
-      `frame-ancestors` is deliberately absent: browsers ignore it when it is
-      delivered in a meta element, so including it would only produce a console
-      error and a false sense of protection. GitHub Pages does not allow custom
-      response headers, so framing cannot be prevented here. There is no session,
-      no login and no privileged action in this app, so there is nothing for a
-      clickjacking attempt to hijack.
+      Framing is deliberately not restricted here: the directive that would do
+      it is ignored by browsers when delivered in a meta element, and GitHub
+      Pages cannot set response headers. Including it would only produce a
+      console error and a false sense of protection. See SECURITY.md. There is
+      no session, no login and no privileged action in this app, so there is
+      nothing for a clickjacking attempt to hijack.
     -->
     <meta
       http-equiv="Content-Security-Policy"
