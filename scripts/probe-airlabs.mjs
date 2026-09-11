@@ -6,11 +6,14 @@
  */
 import { fieldsPresent } from './lib/airlabs.mjs';
 
-const key = process.env.AIRLABS_KEY;
+const raw = process.env.AIRLABS_KEY ?? '';
+// A key pasted with a space or line break is the commonest setup mistake.
+const key = raw.trim();
 if (!key) {
   console.log('AIRLABS_KEY is not set; nothing to check.');
   process.exit(0);
 }
+console.log(`key: ${key.length} characters${raw !== key ? ' (surrounding whitespace removed)' : ''}${/\s/.test(key) ? ', contains whitespace inside' : ''}`);
 
 for (const [direction, param] of [['arrivals', 'arr_iata'], ['departures', 'dep_iata']]) {
   const url = new URL('https://airlabs.co/api/v9/schedules');
