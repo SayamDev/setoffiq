@@ -44,6 +44,13 @@ its distance and ground speed.
 **Does not provide:** airline schedules, gate or terminal assignments, official
 delay status, or anything at all about a flight that has not taken off yet.
 
+The same snapshot powers the "pick from aircraft inbound now" assist on the
+pickup form. That assist can only ever offer aircraft already in the air:
+OpenSky's arrivals endpoint returns `404` anonymously and every commercial
+schedule API meters usage, so "which flights land tomorrow" has no free answer.
+The interface states this rather than letting someone discover it by finding
+their flight missing.
+
 SetoffIQ therefore asks the user for the scheduled time from their booking and
 treats live position data as an improvement on it when available. When no
 aircraft is found, the scheduled time is used unchanged and the interface says

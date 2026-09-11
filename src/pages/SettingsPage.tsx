@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DEFAULT_NOTIFICATION_THRESHOLD_MINUTES } from '../domain/assumptions';
 import { Button, Callout, Card, Field, ui } from '../components/ui';
+import { ollamaProvider } from '../services/ai';
 import { clearAll } from '../services/storage';
 import {
   notificationSupport,
@@ -23,6 +24,22 @@ export function SettingsPage({
     notificationSupport(),
   );
   const [cleared, setCleared] = useState(false);
+  /*
+   * The published site has no model behind it, so for almost everyone this
+   * option could never do anything. A control that cannot have an effect is
+   * just a puzzle, so it appears only when a local model actually answers.
+   */
+  const [localModelFound, setLocalModelFound] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void ollamaProvider.isAvailable().then((available) => {
+      if (active) setLocalModelFound(available);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const enableNotifications = async (): Promise<void> => {
     const result = await requestNotificationPermission();
@@ -104,25 +121,29 @@ export function SettingsPage({
         </div>
       </Card>
 
-      <Card>
-        <h2>Explanations</h2>
-        <p className={ui.hint}>
-          SetoffIQ always explains a recommendation from the figures it calculated. If you run
-          Ollama locally, it can word that explanation instead — it never changes any of the times.
-        </p>
-        <label className={ui.label} style={{ marginTop: 'var(--space-4)', display: 'block' }}>
-          <input
-            type="checkbox"
-            checked={settings.useLocalModel}
-            onChange={(event) => onUpdate({ useLocalModel: event.target.checked })}
-          />{' '}
-          Use a local Ollama model if one is running
-        </label>
-        <p className={ui.hint} style={{ marginTop: 'var(--space-2)' }}>
-          Off by default. The published site has no model behind it, so leaving this off changes
-          nothing.
-        </p>
-      </Card>
+      {localModelFound ? (
+        <Card>
+          <h2>Explanations</h2>
+          <p className={ui.hint}>
+            Every recommendation comes with a written explanation, built from the same figures
+            SetoffIQ calculated. A local AI model is running on this machine, so it can write that
+            explanation instead. It only changes the wording — every time and window stays exactly
+            as calculated.
+          </p>
+          <label className={ui.label} style={{ marginTop: 'var(--space-4)', display: 'block' }}>
+            <input
+              type="checkbox"
+              checked={settings.useLocalModel}
+              onChange={(event) => onUpdate({ useLocalModel: event.target.checked })}
+            />{' '}
+            Let the local model write explanations
+          </label>
+          <p className={ui.hint} style={{ marginTop: 'var(--space-2)' }}>
+            Nothing is sent over the internet — the model runs on this machine, and it is never
+            given your postcode or address.
+          </p>
+        </Card>
+      ) : null}
 
       <Card>
         <h2>Appearance</h2>

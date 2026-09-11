@@ -41,14 +41,49 @@ wait around and rarely late enough that the passenger does.
 
 Drop-offs work the same way in reverse, from the departure time.
 
+## What it looks like
+
+The recommendation leads with one number, because that is the only thing anyone
+actually needs:
+
+```
+RECOMMENDED DEPARTURE                              ●●○ MEDIUM CONFIDENCE
+
+14:11
+Today · MAN time        Leave at 14:11
+                        That is 2 hr 57 min from now, and puts your
+                        passenger at the terminal by about 15:14.
+
+AT THE TERMINAL      ARRIVE AT AIRPORT      JOURNEY
+15:09–15:14          14:51–14:56            40–45 min
+```
+
+Then, beneath it, what that answer rests on:
+
+```
+WHAT'S AFFECTING YOUR TIMING?
+◻ TIME AT THE TERMINAL   120–180 min — a SetoffIQ assumption …      Estimated
+◼ ROUTE                  40–45 min, routed over real roads …        Live · 11:14
+◻ FLIGHT                 The departure time on your booking.        From you
+◼ AIRPORT CONDITIONS     Marginal conditions                        Live · 10:50
+◼ ROAD DISRUPTION        13 roadworks nearby, none closing a road   Live · 11:12
+```
+
+Confidence is derived from those rows, so the score can never disagree with the
+table explaining it.
+
 ## Key features
 
 - **A deterministic prediction engine.** Same inputs, same recommendation, every
   time. No randomness, no model deciding what time you leave.
 - **Live aircraft positions** where they exist, via a scheduled snapshot of The
-  OpenSky Network, matched to your flight number by callsign.
-- **Real routing** over OpenStreetMap data, and real weather at the airport,
-  both feeding the journey estimate.
+  OpenSky Network, matched to your flight number by callsign — or picked from a
+  list of aircraft inbound right now.
+- **Real routing** to the terminal itself over OpenStreetMap data, plus the
+  aerodrome's own weather observation and live road closures, all feeding the
+  journey estimate.
+- **Passenger stages**, because a landed flight is not a ready passenger — and
+  the stages that are inferred rather than observed say so.
 - **Windows, not false precision.** "Ready between 18:55 and 19:15", never
   "ready at 19:03".
 - **Every number is sourced.** Each factor is tagged as live data, something you
@@ -159,6 +194,7 @@ for each provider's current terms and the date they were checked.
 | --- | --- | --- |
 | [The OpenSky Network](https://opensky-network.org/) | Aircraft positions | Anonymous, 400 credits/day, no billing |
 | [NOAA Aviation Weather Center](https://aviationweather.gov/data/api/) | Aerodrome observations (METAR) | Public domain, no key, no billing |
+| [National Highways](https://developer.data.nationalhighways.co.uk/) | Road and lane closures | Free, keyed, OGL 2.0, redistribution permitted |
 | [Open-Meteo](https://open-meteo.com/) | Weather | No key, 10,000 calls/day, non-commercial, CC BY 4.0 |
 | [OSRM](https://project-osrm.org/) (FOSSGIS + project instances) | Driving time and distance | No key, no billing, no live traffic |
 | [postcodes.io](https://postcodes.io/) | UK postcode → coordinates | MIT, ONS/OS open data, no key |
@@ -178,10 +214,13 @@ Stated plainly, because a planner that oversells itself is worse than useless:
 - **No queue data.** Border control, security and baggage times are SetoffIQ
   assumptions, documented in [DATA-SOURCES.md](DATA-SOURCES.md) and labelled as
   assumptions in the app. They are not airport statistics.
-- **No road disruption, yet.** Every free UK source requires a registered key.
-  The integration is built and tested but unenabled, and the app says the roads
-  were *not checked* rather than implying they are clear. See
-  [DATA-SOURCES.md](DATA-SOURCES.md) for how to switch it on.
+- **Road disruption covers motorways only.** National Highways operates the
+  Strategic Road Network, so the M56 and M60 are covered and local roads are
+  not. Routine roadworks are reported but deliberately do not widen the
+  estimate — dozens of live lane closures is the normal state of the network,
+  and a warning that is always on is not a warning.
+- **No flight schedules.** Nothing free will tell you which flights land
+  tomorrow, so the inbound picker can only offer aircraft already in the air.
 - **No parking prices.** There is no reliable free source, so none are shown.
 - **Monitoring only runs while the app is open.** A browser app cannot run in the
   background when the browser is closed, and this one does not pretend to. It
