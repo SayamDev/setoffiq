@@ -21,16 +21,21 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { toSnapshotAircraft } from './lib/adsblol.mjs';
+import { haversineKm, keepInSnapshot, NEAR_RADIUS_KM, toSnapshotAircraft } from './lib/adsblol.mjs';
 import { createRouteLookup } from './lib/routes.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUTPUT = resolve(HERE, '../public/data/flights/EGCC-arrivals.json');
 
 const AIRPORT = { icao: 'EGCC', latitude: 53.3537, longitude: -2.275 };
-const RADIUS_KM = 300;
-/** adsb.lol takes the radius in nautical miles, up to 250. */
-const RADIUS_NM = Math.round(RADIUS_KM / 1.852);
+/**
+ * adsb.lol's widest circle: 250 nautical miles, about 463 km. Everything near
+ * the airport is kept; beyond NEAR_RADIUS_KM only aircraft whose reported route
+ * touches Manchester, so arrivals are seen earlier without publishing every
+ * flight in range.
+ */
+const RADIUS_NM = 250;
+const RADIUS_KM = Math.floor(RADIUS_NM * 1.852);
 
 const ATTRIBUTION = 'Aircraft data from adsb.lol, licensed under ODbL 1.0';
 const ROUTES_ATTRIBUTION = 'Reported routes from the Virtual Radar Server standing data (CC0)';
@@ -65,7 +70,8 @@ async function main() {
   const aircraft = payload.ac
     .map((ac) => toSnapshotAircraft(ac, nowMs, AIRPORT, RADIUS_KM))
     .filter(Boolean)
-    .map((entry) => ({ ...entry, route: routes.lookup(entry.callsign, AIRPORT.icao) }));
+    .map((entry) => ({ ...entry, route: routes.lookup(entry.callsign, AIRPORT.icao) }))
+    .filter((entry) => keepInSnapshot(entry, haversineKm(entry, AIRPORT), AIRPORT.icao));
 
   const snapshot = {
     generatedAt: new Date(nowMs).toISOString(),
@@ -75,6 +81,7 @@ async function main() {
     license: 'ODbL-1.0',
     routesAttribution: routes.available ? ROUTES_ATTRIBUTION : null,
     radiusKm: RADIUS_KM,
+    nearRadiusKm: NEAR_RADIUS_KM,
     aircraft,
   };
 

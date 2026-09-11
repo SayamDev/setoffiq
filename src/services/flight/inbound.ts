@@ -15,6 +15,8 @@ export interface InboundAircraft {
   airline: string | null;
   /** Where it is reported to be coming from, when a route is known. */
   from: string | null;
+  /** ISO country code of that origin, when known. */
+  fromCountry: string | null;
   distanceKm: number;
   /** Estimated on-stand time, from position and ground speed. */
   estimatedArrival: Instant | null;
@@ -35,8 +37,15 @@ export class SnapshotTooOldError extends Error {
   }
 }
 
-/** Beyond this an aircraft is probably passing overhead rather than arriving. */
-const INBOUND_RADIUS_KM = 200;
+/**
+ * The snapshot's full circle. Far-out aircraft only reach the snapshot when
+ * their reported route is to or from here, so the height, heading and route
+ * checks — not the radius — decide what is arriving.
+ */
+const INBOUND_RADIUS_KM = 470;
+
+/** Enough to cover a busy arrival bank without becoming a wall of rows. */
+const MAX_LISTED = 20;
 
 /**
  * Aircraft that look like they are arriving, from the snapshot the app already
@@ -96,10 +105,11 @@ export async function listInboundAircraft(
       flightNumber: callsignToFlightNumber(callsign),
       airline: operatorName(callsign),
       from: aircraft.route ? (aircraft.route.from.city ?? aircraft.route.from.name ?? aircraft.route.from.icao) : null,
+      fromCountry: aircraft.route?.from.country ?? null,
       distanceKm: Math.round(estimate.distanceKm),
       estimatedArrival: estimate.onStand,
     });
   }
 
-  return results.sort((a, b) => a.distanceKm - b.distanceKm).slice(0, 12);
+  return results.sort((a, b) => a.distanceKm - b.distanceKm).slice(0, MAX_LISTED);
 }

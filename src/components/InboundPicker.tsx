@@ -9,24 +9,25 @@ type State =
   | { kind: 'idle' }
   | { kind: 'loading' }
   | { kind: 'ready'; aircraft: InboundAircraft[] }
+  | { kind: 'picked'; aircraft: InboundAircraft }
   | { kind: 'error' }
   | { kind: 'too-old'; ageMinutes: number };
 
 /**
  * Pick from aircraft currently in the air near the airport.
  *
- * An assist for the flight-number field, not a schedule. There is no free
- * source for "which flights land tomorrow", so this can only offer what is
- * already flying — which is genuinely useful for a pickup in the next hour or
- * two and useless for anything further out. The interface says so rather than
- * letting someone discover it by finding their flight missing.
+ * The quickest way to plan a pickup that is happening now: choosing an
+ * aircraft fills in the flight number and, from its position, the date and
+ * time — so nobody has to dig out a booking for a flight they can already see
+ * on the list. It can only offer what is already flying; there is no free
+ * source for "which flights land tomorrow", and the interface says so.
  */
 export function InboundPicker({
   airport,
   onPick,
 }: {
   airport: AirportProfile;
-  onPick: (flightNumber: string) => void;
+  onPick: (aircraft: InboundAircraft) => void;
 }): React.JSX.Element {
   const [state, setState] = useState<State>({ kind: 'idle' });
 
@@ -43,11 +44,44 @@ export function InboundPicker({
     }
   };
 
+  const pick = (aircraft: InboundAircraft): void => {
+    onPick(aircraft);
+    setState({ kind: 'picked', aircraft });
+  };
+
   if (state.kind === 'idle') {
     return (
-      <div className={styles.wrapper}>
-        <Button variant="quiet" onClick={load} className={styles.trigger}>
-          Or pick from aircraft inbound now
+      <button type="button" className={styles.entry} onClick={() => void load()}>
+        <span className={styles.entryGlyph} aria-hidden="true">
+          ✈
+        </span>
+        <span className={styles.entryText}>
+          <span className={styles.entryTitle}>Collecting from a flight that's in the air?</span>
+          <span className={styles.entryBody}>
+            Choose it from the aircraft heading for {airport.name} now, and the flight and time are
+            filled in for you.
+          </span>
+        </span>
+      </button>
+    );
+  }
+
+  if (state.kind === 'picked') {
+    const { aircraft } = state;
+    return (
+      <div className={styles.picked} role="status">
+        <p className={styles.pickedTitle}>
+          <span className={styles.identifier}>{aircraft.flightNumber ?? aircraft.callsign}</span>
+          {aircraft.airline ? <span> · {aircraft.airline}</span> : null}
+          {aircraft.from ? <span> from {aircraft.from}</span> : null}
+        </p>
+        <p className={ui.hint}>
+          {aircraft.estimatedArrival
+            ? `Due on stand about ${formatClock(aircraft.estimatedArrival, airport.timeZone)}, from its position now.`
+            : 'The flight number is filled in. Enter the time from the booking below.'}
+        </p>
+        <Button variant="quiet" onClick={() => void load()} className={styles.change}>
+          Choose a different aircraft
         </Button>
       </div>
     );
@@ -62,38 +96,35 @@ export function InboundPicker({
           {Number.isFinite(state.ageMinutes)
             ? `The latest flight data is ${formatAge(state.ageMinutes)} old, so it cannot show what is in the air now.`
             : 'The latest flight data has no timestamp, so it cannot show what is in the air now.'}{' '}
-          Type the flight number instead.
+          Enter the flight details below instead.
         </p>
       ) : null}
 
       {state.kind === 'error' ? (
         <p className={ui.hint}>
-          We couldn't check what is inbound just now. Type the flight number instead.
+          We couldn't check what is inbound just now. Enter the flight details below instead.
         </p>
       ) : null}
 
       {state.kind === 'ready' && state.aircraft.length === 0 ? (
         <p className={ui.hint}>
-          No airline aircraft are inbound to {airport.name} at the moment. This only ever shows
-          flights already in the air, so type the flight number instead.
+          No airline aircraft are heading for {airport.name} at the moment. This only ever shows
+          flights already in the air, so enter the flight details below instead.
         </p>
       ) : null}
 
       {state.kind === 'ready' && state.aircraft.length > 0 ? (
         <>
           <p className={ui.hint}>
-            Aircraft in the air near {airport.name} now. Where a route is shown it is the one reported
-            for that callsign, not a schedule. Flights that have not taken off yet cannot appear here,
-            and some airlines broadcast a callsign that is not the number on a ticket.
+            Aircraft heading for {airport.name} now, nearest first. Where a route is shown it is the
+            one reported for that callsign, not a schedule. Flights that have not taken off yet
+            cannot appear here, and some airlines broadcast a callsign that is not the number on a
+            ticket.
           </p>
           <ul className={styles.list}>
             {state.aircraft.map((aircraft) => (
               <li key={aircraft.callsign}>
-                <button
-                  type="button"
-                  className={styles.option}
-                  onClick={() => onPick(aircraft.flightNumber ?? aircraft.callsign)}
-                >
+                <button type="button" className={styles.option} onClick={() => pick(aircraft)}>
                   <span className={styles.identifier}>
                     {aircraft.flightNumber ?? aircraft.callsign}
                   </span>

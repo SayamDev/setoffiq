@@ -50,9 +50,6 @@ export function toSnapshotAircraft(ac, nowMs, airport, radiusKm) {
   const geoFeet = number(ac.alt_geom);
   const baroAltitudeM = baroFeet === null ? null : Math.round(baroFeet * FEET_TO_M);
 
-  // Aircraft cruising far above the airport are overflights, not arrivals.
-  if (baroAltitudeM !== null && baroAltitudeM > 12000 && distanceKm > 120) return null;
-
   const knots = number(ac.gs);
   const feetPerMinute = number(ac.baro_rate) ?? number(ac.geom_rate);
   const track = number(ac.track);
@@ -73,3 +70,28 @@ export function toSnapshotAircraft(ac, nowMs, airport, radiusKm) {
     lastContact: Math.floor(nowMs / 1000 - positionAge),
   };
 }
+
+/**
+ * Whether an aircraft belongs in the published snapshot.
+ *
+ * Near the airport, everything with a callsign except cruising overflights.
+ * Further out, only aircraft whose reported route touches this airport: the
+ * wider circle exists to see arrivals earlier, not to publish every flight
+ * over Britain, Ireland and the Low Countries.
+ *
+ * @param {{ baroAltitudeM: number | null, route?: { from: { icao: string }, to: { icao: string } } | null }} aircraft
+ * @param {number} distanceKm
+ * @param {string} airportIcao
+ */
+export function keepInSnapshot(aircraft, distanceKm, airportIcao) {
+  const route = aircraft.route;
+  if (route && (route.to.icao === airportIcao || route.from.icao === airportIcao)) return true;
+  if (distanceKm > NEAR_RADIUS_KM) return false;
+  // Cruising far above the airport: an overflight, not an arrival.
+  if (aircraft.baroAltitudeM !== null && aircraft.baroAltitudeM > 12000 && distanceKm > 120) return false;
+  return true;
+}
+
+/** Inside this, every aircraft with a callsign is kept whatever its route. */
+export const NEAR_RADIUS_KM = 300;
+

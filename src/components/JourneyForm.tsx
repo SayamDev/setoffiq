@@ -1,6 +1,6 @@
 import { useId, useRef, useState } from 'react';
 import { DEFAULT_AIRPORT } from '../domain/airports';
-import { parseLocalDateTime, todayInZone } from '../domain/time';
+import { formatClock, parseLocalDateTime, todayInZone } from '../domain/time';
 import { earliestSelectableDate, validateScheduledTime } from '../domain/scheduleWindow';
 import type {
   AirportProfile,
@@ -11,7 +11,7 @@ import type {
   PickupMode,
 } from '../domain/types';
 import { geocodePostcode, isValidPostcodeShape } from '../services/routing';
-import { normaliseFlightNumber } from '../services/flight';
+import { normaliseFlightNumber, type InboundAircraft } from '../services/flight';
 import { Button, Field, ui } from './ui';
 import { InboundPicker } from './InboundPicker';
 import styles from './JourneyForm.module.css';
@@ -46,6 +46,8 @@ export function JourneyForm({
   const errorRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
+  /** Whether the date and time came from a picked aircraft rather than a booking. */
+  const [whenFromAircraft, setWhenFromAircraft] = useState(false);
   const [state, setState] = useState<FormState>({
     flightNumber: '',
     date: todayInZone(now, airport.timeZone),
@@ -59,6 +61,23 @@ export function JourneyForm({
   const update = <K extends keyof FormState>(key: K, value: FormState[K]): void => {
     setState((current) => ({ ...current, [key]: value }));
     setErrors((current) => ({ ...current, [key]: undefined, form: undefined }));
+  };
+
+  /*
+   * Picking an aircraft that is already in the air gives everything the time
+   * field was for: the flight number, and an arrival from its position. The
+   * route's origin settles domestic or international where it is known.
+   */
+  const fillFromAircraft = (aircraft: InboundAircraft): void => {
+    update('flightNumber', aircraft.flightNumber ?? aircraft.callsign);
+    if (aircraft.estimatedArrival !== null) {
+      update('date', todayInZone(aircraft.estimatedArrival, airport.timeZone));
+      update('time', formatClock(aircraft.estimatedArrival, airport.timeZone));
+      setWhenFromAircraft(true);
+    }
+    if (aircraft.fromCountry) {
+      update('passengerRoute', aircraft.fromCountry === 'GB' ? 'domestic' : 'international');
+    }
   };
 
   const timeLabel = kind === 'pickup' ? 'Scheduled arrival time' : 'Scheduled departure time';
@@ -162,6 +181,8 @@ export function JourneyForm({
         the recommendation works.
       </p>
 
+      {kind === 'pickup' ? <InboundPicker airport={airport} onPick={fillFromAircraft} /> : null}
+
       <div className={ui.stackTight}>
         <div className={styles.grid}>
           <Field
@@ -175,7 +196,11 @@ export function JourneyForm({
               type="date"
               value={state.date}
               min={earliestSelectableDate(kind, now, airport.timeZone)}
-              onChange={(event) => update('date', event.target.value)}
+              onChange={(event) => {
+                update('date', event.target.value);
+                setWhenFromAircraft(false);
+              }}
+              onClick={openPicker}
               aria-describedby={`${baseId}-when-note`}
               required
             />
@@ -187,7 +212,11 @@ export function JourneyForm({
               className={errors.time ? ui.controlInvalid : ui.control}
               type="time"
               value={state.time}
-              onChange={(event) => update('time', event.target.value)}
+              onChange={(event) => {
+                update('time', event.target.value);
+                setWhenFromAircraft(false);
+              }}
+              onClick={openPicker}
               aria-describedby={`${baseId}-when-note`}
               required
             />
@@ -196,7 +225,9 @@ export function JourneyForm({
         {/* One note for the pair, below it: a hint inside only the time field
             pushed that box lower than the date box beside it. */}
         <p className={ui.hint} id={`${baseId}-when-note`}>
-          The date and time on your booking.
+          {whenFromAircraft
+            ? "Filled in from the aircraft's position. Change them if the booking says otherwise."
+            : 'The date and time on your booking.'}
         </p>
       </div>
 
@@ -224,13 +255,6 @@ export function JourneyForm({
           onChange={(event) => update('flightNumber', event.target.value)}
         />
       </Field>
-
-      {kind === 'pickup' ? (
-        <InboundPicker
-          airport={airport}
-          onPick={(flightNumber) => update('flightNumber', flightNumber)}
-        />
-      ) : null}
 
       <Field
         id={`${baseId}-postcode`}
@@ -339,4 +363,17 @@ export function JourneyForm({
       </div>
     </form>
   );
+}
+
+/**
+ * Open the browser's own date or time picker on a click anywhere in the box,
+ * not only on its small icon. Keyboard entry is untouched; where a browser
+ * refuses (no support, or not a user gesture), the box behaves as before.
+ */
+function openPicker(event: React.MouseEvent<HTMLInputElement>): void {
+  try {
+    event.currentTarget.showPicker?.();
+  } catch {
+    // Typing still works.
+  }
 }

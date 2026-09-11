@@ -48,5 +48,7 @@ export interface FlightSnapshot {
   license?: string;
   routesAttribution?: string | null;
   radiusKm: number;
+  /** Inside this every aircraft is kept; beyond it only those routed here. */
+  nearRadiusKm?: number;
   aircraft: SnapshotAircraft[];
 }

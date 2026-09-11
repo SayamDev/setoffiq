@@ -16,7 +16,12 @@ Radar Server routes added 11 September 2026.**
   https://www.adsb.lol/docs/open-data/api/
 - **Purpose:** Positions of aircraft currently in the air near Manchester.
 - **Endpoint:** `GET /v2/point/{lat}/{lon}/{radius}` — radius in nautical miles,
-  up to 250. SetoffIQ asks for 162 nm (300 km) around EGCC.
+  up to 250. SetoffIQ asks for the full 250 nm (about 463 km) around EGCC.
+  Within 300 km every aircraft with a callsign is kept (bar cruising
+  overflights); beyond that, only aircraft whose reported route is to or from
+  Manchester, so arrivals are seen earlier without publishing every flight in
+  range. This is the widest circle adsb.lol serves: an aircraft further out —
+  EK21 over the Gulf, say — cannot be seen by this snapshot at all.
 - **Data returned:** readsb's JSON, the ADSBexchange v2 format — callsign,
   ICAO address, position, barometric and geometric altitude **in feet** (the
   string `"ground"` on the ground), ground speed **in knots**, track, climb rate
