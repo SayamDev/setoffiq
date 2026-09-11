@@ -114,7 +114,7 @@ export function useMonitoredJourney(
           };
 
           if (settingsRef.current.notificationsEnabled) {
-            const shown = showNotification({
+            const shown = await showNotification({
               id: newId(now),
               journeyId: current.id,
               at: now,

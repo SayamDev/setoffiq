@@ -28,6 +28,28 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Notifications are shown from here (Android Chrome allows no other way), so
+// a tap has to be handled here too: bring SetoffIQ forward on that journey.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const journeyId = event.notification.data?.journeyId;
+  const target = new URL(journeyId ? `./#/journeys/${journeyId}` : './', self.registration.scope).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      const open = windows.find((client) => client.url.startsWith(self.registration.scope));
+      // navigate() rejects for a window this worker does not control; focusing
+      // it without moving is still better than doing nothing.
+      if (open) {
+        return open
+          .navigate(target)
+          .then((client) => (client ?? open).focus())
+          .catch(() => open.focus());
+      }
+      return self.clients.openWindow(target);
+    }),
+  );
+});
+
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;

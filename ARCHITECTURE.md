@@ -123,6 +123,12 @@ The honest limitation: a browser app cannot run when the browser is closed.
 SetoffIQ checks while it is open, checks again when the tab becomes visible, and
 says so in the interface rather than implying a background service exists.
 
+A meaningful change raises a browser notification through the service worker's
+`showNotification`, falling back to `new Notification()` only when no worker is
+registered. The order matters: Chrome on Android throws on the constructor, so
+a page-built notification there would never appear. Tapping one opens the
+journey it is about.
+
 An explicit "Check now" bypasses the snapshot cache — serving a cached answer to
 a deliberate request would be misleading.
 
