@@ -1,0 +1,22 @@
+name: AirLabs probe
+
+# Manual, one-off: check which schedule fields the free AirLabs key returns
+# before the app depends on them. Two API requests per run.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check the free key's schedule fields
+        env:
+          AIRLABS_KEY: ${{ secrets.AIRLABS_KEY }}
+        run: node scripts/probe-airlabs.mjs
