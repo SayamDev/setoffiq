@@ -156,17 +156,22 @@ export function buildSignalReports(
       impact: 'none',
     });
   } else {
-    const closures = roads.disruptions.filter((entry) => entry.category === 'closure');
-    const headline = roads.disruptions[0]!;
+    const disruptive = roads.disruptions.filter(
+      (entry) => entry.active && (entry.category === 'closure' || entry.category === 'incident'),
+    );
+    const headline = disruptive[0] ?? roads.disruptions[0]!;
+    const closures = disruptive.filter((entry) => entry.category === 'closure').length;
+
     reports.push({
       id: 'road-disruption',
       label: 'Road disruption',
       state: { kind: 'live', observedAt: roads.generatedAt },
-      summary:
-        roads.disruptions.length === 1
-          ? `${headline.road}: ${headline.description}`
-          : `${roads.disruptions.length} reported nearby, closest ${headline.road}: ${headline.description}`,
-      impact: closures.length > 0 ? 'high' : 'moderate',
+      summary: disruptive.length
+        ? `${headline.road}: ${headline.description}${disruptive.length > 1 ? ` (and ${disruptive.length - 1} more nearby)` : ''}`
+        : // Routine maintenance is worth stating but is not a warning: this is
+          // the normal condition of the motorway network.
+          `${roads.disruptions.length} roadworks reported nearby, none currently closing a road. Closest ${headline.road}.`,
+      impact: closures > 0 ? 'high' : disruptive.length > 0 ? 'moderate' : 'none',
     });
   }
 

@@ -179,11 +179,18 @@ export function parseClosures(payload, options) {
     }
   }
 
-  // A situation can appear in both feeds; keep the first of each id.
+  /*
+   * Deduplicate on content rather than id. National Highways models a single
+   * set of works as several situationRecords — one per lane, or per time
+   * period — each with its own idG, so an id-based key lets the same closure
+   * through four times. A driver cares that the M67 has a lane shut, not how
+   * the publisher chose to split the record.
+   */
   const seen = new Set();
   return results.filter((entry) => {
-    if (seen.has(entry.id)) return false;
-    seen.add(entry.id);
+    const key = `${entry.road}|${entry.description}|${entry.distanceFromAirportKm}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
     return true;
   });
 }

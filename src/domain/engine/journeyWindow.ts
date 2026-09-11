@@ -84,16 +84,28 @@ export function estimateJourney(
     );
   }
 
-  // A reported closure is a reason to allow more time, not a basis for
-  // claiming to know how much longer the drive takes.
+  /*
+   * Only genuinely disruptive events widen the estimate, and only when in
+   * force. Routine lane closures for maintenance are the normal state of the
+   * motorway network — there are typically dozens within 40 km of any airport
+   * — so letting them add time would put a permanent, meaningless penalty on
+   * every recommendation. They are still reported; they just do not move the
+   * number.
+   *
+   * A reported closure is a reason to allow more time, not a basis for
+   * claiming to know how much longer the drive takes.
+   */
   const disruptions = roadDisruption?.value?.disruptions ?? [];
-  if (disruptions.length > 0) {
-    const closures = disruptions.filter((entry) => entry.category === 'closure').length;
-    fraction += closures > 0 ? 0.2 : disruptions.length > 2 ? 0.12 : 0.06;
+  const disruptive = disruptions.filter(
+    (entry) => entry.active && (entry.category === 'closure' || entry.category === 'incident'),
+  );
+  if (disruptive.length > 0) {
+    const closures = disruptive.filter((entry) => entry.category === 'closure').length;
+    fraction += closures > 0 ? 0.2 : 0.1;
     reasons.push(
       closures > 0
         ? 'A road closure is reported near the route.'
-        : 'Roadworks or incidents are reported near the route.',
+        : 'An incident is reported near the route.',
     );
   }
 

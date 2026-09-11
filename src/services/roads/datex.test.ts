@@ -129,6 +129,20 @@ describe('parsing the closures feed', () => {
     expect(parseClosures(nameless, OPTIONS)).toEqual([]);
   });
 
+  it('collapses one set of works published as several records', () => {
+    // National Highways splits a single closure across situationRecords — one
+    // per lane or time period — each with its own id. Four identical M67 rows
+    // is a publishing artefact, not four closures.
+    const split = JSON.parse(JSON.stringify(plannedMultiLocation));
+    const record = split.D2Payload.situation[0].situationRecord[0];
+    split.D2Payload.situation[0].situationRecord = [0, 1, 2, 3].map((n) => {
+      const copy = JSON.parse(JSON.stringify(record));
+      copy.sitRoadOrCarriagewayOrLaneManagement.idG = `split-${n}`;
+      return copy;
+    });
+    expect(parseClosures(split, OPTIONS)).toHaveLength(1);
+  });
+
   it('deduplicates a record that appears in both feeds', () => {
     const doubled = parseClosures(plannedMultiLocation, OPTIONS).concat(
       parseClosures(plannedMultiLocation, OPTIONS),

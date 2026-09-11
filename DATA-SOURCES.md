@@ -236,6 +236,26 @@ closure.
 the M56 and M60 around the airport are covered but local roads generally are
 not. The signal is useful, not complete, and the app does not imply otherwise.
 
+### What the live feed taught us
+
+The first successful run returned 24 disruptions within 40 km, and two things
+about it only became apparent with real data in hand.
+
+**One set of works arrives as several records.** National Highways splits a
+single closure across multiple `situationRecord` entries — one per lane, or per
+time period — each with its own `idG`. Deduplicating on id let the same M67
+lane closure through four times. The key is now the road, description and
+rounded distance, because a driver cares that a lane is shut, not how the
+publisher chose to model it.
+
+**Routine roadworks are the normal state of the network, not an event.** All 24
+were maintenance lane closures. Letting those widen the journey estimate would
+put a permanent 6–12% penalty on every single recommendation, which is worse
+than useless: a warning that is always on is not a warning. Only closures and
+incidents that are currently *in force* move the number. Roadworks are still
+reported — *"24 roadworks reported nearby, none currently closing a road"* —
+they simply do not inflate the estimate.
+
 **Until then**, the app reports road disruption as *"Not checked — every free UK
 source for this requires a registered key. Absence of information here is not
 evidence the roads are clear."* That distinction is deliberate and is covered by

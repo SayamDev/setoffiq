@@ -104,19 +104,61 @@ describe('road disruption in a recommendation', () => {
     expect(withNothingReported.recommendedDeparture).toBe(withoutSource.recommendedDeparture);
   });
 
-  it('widens the drive and leaves earlier when a closure is reported', () => {
+  it('widens the drive and leaves earlier when a closure is in force', () => {
     const clear = assess();
     const closed = assess({
-      roadDisruption: roadDisruption([{ category: 'closure', description: 'M56 closed' }], manTime(17, 0)),
+      roadDisruption: roadDisruption(
+        [{ category: 'closure', description: 'M56 closed', active: true }],
+        manTime(17, 0),
+      ),
     });
     expect(closed.journey.maxMinutes).toBeGreaterThan(clear.journey.maxMinutes);
     expect(closed.recommendedDeparture).toBeLessThan(clear.recommendedDeparture);
   });
 
+  it('does not let routine roadworks inflate every estimate', () => {
+    /*
+     * There are typically dozens of live lane closures within 40 km of any
+     * airport — it is the normal state of the motorway network. If routine
+     * maintenance moved the number, every recommendation would carry a
+     * permanent penalty that meant nothing.
+     */
+    const clear = assess();
+    const busy = assess({
+      roadDisruption: roadDisruption(
+        Array.from({ length: 24 }, (_, index) => ({
+          id: `rw${index}`,
+          category: 'roadworks' as const,
+          description: `M60 lane ${index} closure`,
+          active: true,
+        })),
+        manTime(17, 0),
+      ),
+    });
+    expect(busy.journey.maxMinutes).toBe(clear.journey.maxMinutes);
+    expect(busy.recommendedDeparture).toBe(clear.recommendedDeparture);
+
+    // Still reported, just not alarming.
+    const signal = busy.signals.find((s) => s.id === 'road-disruption');
+    expect(signal?.impact).toBe('none');
+    expect(signal?.summary).toMatch(/none currently closing a road/i);
+  });
+
+  it('ignores a closure that is not yet in force', () => {
+    const clear = assess();
+    const planned = assess({
+      roadDisruption: roadDisruption(
+        [{ category: 'closure', description: 'M56 closing later', active: false }],
+        manTime(17, 0),
+      ),
+    });
+    expect(planned.journey.maxMinutes).toBe(clear.journey.maxMinutes);
+  });
+
   it('reports a closure as a high-impact signal and names the road', () => {
     const result = assess({
       roadDisruption: roadDisruption(
-        [{ category: 'closure', road: 'M56', description: 'Closed between J5 and J6' }],
+        [{ category: 'closure', road: 'M56', description: 'Closed between J5 and J6', active: true }],
         manTime(17, 0),
       ),
     });
