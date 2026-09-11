@@ -3,12 +3,15 @@ import { readCache } from '../cache';
 import { fetchJson } from '../http';
 import { estimateArrivalFromPosition, notArrivingReason } from './arrivalEstimate';
 import { callsignToFlightNumber } from './callsigns';
+import { isCargoOperator, operatorName } from './operators';
 import type { FlightSnapshot } from './snapshotTypes';
 
 export interface InboundAircraft {
   callsign: string;
   /** The equivalent flight number, where one can honestly be derived. */
   flightNumber: string | null;
+  /** Operator name from the callsign's ICAO designator, where it is known. */
+  airline: string | null;
   distanceKm: number;
   /** Estimated on-stand time, from position and ground speed. */
   estimatedArrival: Instant | null;
@@ -64,10 +67,13 @@ export async function listInboundAircraft(
     // Airline callsigns are a three-letter designator and a number; anything
     // else is most likely general aviation and not what anyone is collecting.
     if (!/^[A-Z]{3}\d/.test(callsign)) continue;
+    // Freighters: nobody is collected from them.
+    if (isCargoOperator(callsign)) continue;
 
     results.push({
       callsign,
       flightNumber: callsignToFlightNumber(callsign),
+      airline: operatorName(callsign),
       distanceKm: Math.round(estimate.distanceKm),
       estimatedArrival: estimate.onStand,
     });

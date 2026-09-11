@@ -82,11 +82,16 @@ export function InboundPicker({
                   <span className={styles.identifier}>
                     {aircraft.flightNumber ?? aircraft.callsign}
                   </span>
-                  {aircraft.flightNumber ? (
-                    <span className={styles.callsign}>{aircraft.callsign}</span>
-                  ) : (
-                    <span className={styles.callsign}>callsign only</span>
-                  )}
+                  <span className={styles.who}>
+                    {aircraft.airline ? (
+                      <span className={styles.airline}>{aircraft.airline}</span>
+                    ) : null}
+                    {aircraft.flightNumber ? (
+                      <span className={styles.callsign}>{aircraft.callsign}</span>
+                    ) : (
+                      <span className={styles.callsign}>callsign only</span>
+                    )}
+                  </span>
                   <span className={styles.detail}>{aircraft.distanceKm} km out</span>
                   <span className={styles.detail}>
                     {aircraft.estimatedArrival
