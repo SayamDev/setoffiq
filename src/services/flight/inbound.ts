@@ -1,7 +1,7 @@
 import type { AirportProfile, Instant } from '../../domain/types';
 import { readCache } from '../cache';
 import { fetchJson } from '../http';
-import { estimateArrivalFromPosition } from './arrivalEstimate';
+import { estimateArrivalFromPosition, notArrivingReason } from './arrivalEstimate';
 import { callsignToFlightNumber } from './callsigns';
 import type { FlightSnapshot } from './snapshotTypes';
 
@@ -52,6 +52,10 @@ export async function listInboundAircraft(
     // Climbing away is a departure; level at cruise a long way out is likely
     // an overflight. Only descending traffic is plausibly arriving here.
     if (aircraft.verticalRateMps !== null && aircraft.verticalRateMps > 0) continue;
+
+    // Descending is not the same as descending *here*. Aircraft bound for
+    // Liverpool, Leeds or Birmingham pass inside this radius too.
+    if (notArrivingReason(aircraft, airport)) continue;
 
     const estimate = estimateArrivalFromPosition(aircraft, airport);
     if (!estimate || estimate.distanceKm > INBOUND_RADIUS_KM) continue;

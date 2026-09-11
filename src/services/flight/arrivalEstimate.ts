@@ -1,5 +1,5 @@
 import type { AirportProfile, Instant } from '../../domain/types';
-import { haversineKm } from '../geo';
+import { bearingDeg, haversineKm } from '../geo';
 import type { SnapshotAircraft } from './snapshotTypes';
 
 /**
@@ -32,6 +32,74 @@ export const ARRIVAL_ESTIMATE = {
   climbOutRangeKm: 90,
 } as const;
 
+/**
+ * When an airborne aircraft cannot be arriving at this airport.
+ *
+ * Found by a real watch: a descending easyJet was offered as inbound to
+ * Manchester when it was on its way to Birmingham, and a monitored journey then
+ * timed a Manchester arrival from its position 105 km away. Both checks are
+ * SetoffIQ judgements from physics and geometry, not air-traffic data.
+ */
+export const APPROACH_CHECK = {
+  /** A standard approach descends at 3°: about 52 m of height per km out. */
+  glidePathMetresPerKm: Math.tan((3 * Math.PI) / 180) * 1000,
+  /**
+   * Far below that profile, it is landing somewhere else. Forty per cent is
+   * generous enough to absorb barometric error and a steep descent.
+   */
+  lowestFractionOfGlidePath: 0.4,
+  /** Inside this, heights are too small and too noisy to judge by. */
+  glidePathCheckFromKm: 10,
+  /**
+   * Heading is only judged beyond this. Closer in, downwind legs and holding
+   * patterns legitimately point away from the airport for minutes at a time,
+   * and judging them would make a monitored flight flicker between "arriving"
+   * and "not arriving" on every check. Sixty kilometres leaves room for them.
+   */
+  headingCheckFromKm: 60,
+  /** More than this off the direct bearing counts as heading away. */
+  headingAwayDeg: 120,
+} as const;
+
+/** An aircraft on the ground further out than this is at another airfield. */
+const ON_GROUND_HERE_KM = 8;
+
+export type NotArrivingReason = 'too-low' | 'heading-away' | 'on-ground-elsewhere';
+
+export function notArrivingReason(
+  aircraft: SnapshotAircraft,
+  airport: AirportProfile,
+): NotArrivingReason | null {
+  const here = { latitude: airport.latitude, longitude: airport.longitude };
+  const there = { latitude: aircraft.latitude, longitude: aircraft.longitude };
+  const distanceKm = haversineKm(there, here);
+
+  if (aircraft.onGround) return distanceKm > ON_GROUND_HERE_KM ? 'on-ground-elsewhere' : null;
+
+  // The higher of the two readings, so an error in either can only make an
+  // aircraft look more like an arrival, never less.
+  const readings = [aircraft.geoAltitudeM, aircraft.baroAltitudeM].filter(
+    (value): value is number => typeof value === 'number',
+  );
+  const heightM = readings.length > 0 ? Math.max(...readings) : null;
+  if (
+    heightM !== null &&
+    distanceKm > APPROACH_CHECK.glidePathCheckFromKm &&
+    heightM <
+      distanceKm * APPROACH_CHECK.glidePathMetresPerKm * APPROACH_CHECK.lowestFractionOfGlidePath
+  ) {
+    return 'too-low';
+  }
+
+  const track = aircraft.trueTrackDeg;
+  if (typeof track === 'number' && distanceKm > APPROACH_CHECK.headingCheckFromKm) {
+    const offBy = Math.abs(((track - bearingDeg(there, here) + 540) % 360) - 180);
+    if (offBy > APPROACH_CHECK.headingAwayDeg) return 'heading-away';
+  }
+
+  return null;
+}
+
 export interface ArrivalEstimate {
   /** Expected on-stand time: touchdown plus taxi. */
   onStand: Instant;
@@ -63,9 +131,13 @@ export function estimateArrivalFromPosition(
   if (aircraft.onGround) {
     // Already down. The remaining wait is taxi only, and only if it is at this
     // airport rather than somewhere else inside the snapshot area.
-    if (distanceKm > 8) return null;
+    if (distanceKm > ON_GROUND_HERE_KM) return null;
     return { onStand: observedAt + ARRIVAL_ESTIMATE.taxiMinutes * 60_000, distanceKm, minutesRemaining: ARRIVAL_ESTIMATE.taxiMinutes };
   }
+
+  // Too low, or pointing away: whatever it is doing, it is not arriving here,
+  // and timing a Manchester arrival from its position would be invention.
+  if (notArrivingReason(aircraft, airport)) return null;
 
   // Same callsign, opposite direction: an aircraft climbing away from the
   // airport is operating the outbound leg, not the arrival being waited for.

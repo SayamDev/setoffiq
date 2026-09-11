@@ -46,7 +46,7 @@ function haversineKm(a, b) {
  * API and documented at https://openskynetwork.github.io/opensky-api/rest.html.
  */
 function toAircraft(state) {
-  const [icao24, callsign, , , lastContact, longitude, latitude, baroAltitude, onGround, velocity, , verticalRate, , geoAltitude] = state;
+  const [icao24, callsign, , , lastContact, longitude, latitude, baroAltitude, onGround, velocity, trueTrack, verticalRate, , geoAltitude] = state;
   if (typeof latitude !== 'number' || typeof longitude !== 'number') return null;
   const name = (callsign ?? '').trim();
   if (!name) return null;
@@ -66,6 +66,9 @@ function toAircraft(state) {
     geoAltitudeM: typeof geoAltitude === 'number' ? Math.round(geoAltitude) : null,
     groundSpeedMps: typeof velocity === 'number' ? Math.round(velocity) : null,
     verticalRateMps: typeof verticalRate === 'number' ? Number(verticalRate.toFixed(1)) : null,
+    // Without it, an aircraft passing Manchester on its way to Birmingham is
+    // indistinguishable from one arriving here.
+    trueTrackDeg: typeof trueTrack === 'number' ? Math.round(trueTrack) : null,
     onGround: Boolean(onGround),
     lastContact: typeof lastContact === 'number' ? lastContact : Math.floor(Date.now() / 1000),
   };

@@ -89,9 +89,13 @@ export function buildSignalReports(
       label: 'Flight',
       state: { kind: 'user-supplied' },
       summary:
-        input.journeyKind === 'pickup'
-          ? 'No aircraft found for this flight number, so your scheduled time is used as-is.'
-          : 'The departure time on your booking.',
+        input.journeyKind !== 'pickup'
+          ? 'The departure time on your booking.'
+          : flight.position
+            ? // Found, but too low, pointing away or on the ground elsewhere —
+              // "no aircraft found" would be untrue.
+              'The aircraft was found, but it does not look like it is arriving here, so your scheduled time is used as-is.'
+            : 'No aircraft found for this flight number, so your scheduled time is used as-is.',
       impact: input.journeyKind === 'pickup' ? 'moderate' : 'none',
     });
   }

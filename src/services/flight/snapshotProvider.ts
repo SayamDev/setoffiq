@@ -8,7 +8,8 @@ import type {
 } from '../../domain/types';
 import { readCache, writeCache } from '../cache';
 import { fetchJson } from '../http';
-import { estimateArrivalFromPosition } from './arrivalEstimate';
+import { haversineKm } from '../geo';
+import { estimateArrivalFromPosition, notArrivingReason, type NotArrivingReason } from './arrivalEstimate';
 import { candidateCallsigns, normaliseFlightNumber } from './callsigns';
 import type { FlightSnapshot, SnapshotAircraft } from './snapshotTypes';
 
@@ -34,8 +35,24 @@ function findAircraft(snapshot: FlightSnapshot, flightNumber: string): SnapshotA
   );
 }
 
-function phaseFor(aircraft: SnapshotAircraft | null, scheduled: number | null, now: number): FlightPhase {
-  if (aircraft) return aircraft.onGround ? 'landed' : 'airborne';
+const ELSEWHERE: Record<NotArrivingReason, string> = {
+  'too-low': 'it is far too low to be approaching here, so it is most likely landing at another airfield',
+  'heading-away': 'it is heading away from the airport',
+  'on-ground-elsewhere': 'it is on the ground at another airfield',
+};
+
+function phaseFor(
+  aircraft: SnapshotAircraft | null,
+  elsewhere: NotArrivingReason | null,
+  scheduled: number | null,
+  now: number,
+): FlightPhase {
+  // On the ground somewhere else is not "landed": before a short-haul flight
+  // departs, it sits at its origin inside the snapshot area, and calling that
+  // landed would end monitoring before the flight had even left.
+  if (aircraft && elsewhere !== 'on-ground-elsewhere') {
+    return aircraft.onGround ? 'landed' : 'airborne';
+  }
   if (scheduled === null) return 'unknown';
   return scheduled > now ? 'scheduled' : 'unknown';
 }
@@ -107,11 +124,12 @@ export const snapshotFlightProvider: FlightProvider = {
 
     const aircraft = flightNumber ? findAircraft(snapshot, flightNumber) : null;
     const estimate = aircraft ? estimateArrivalFromPosition(aircraft, input.airport) : null;
+    const elsewhere = aircraft ? notArrivingReason(aircraft, input.airport) : null;
 
     const status: FlightStatus = {
       flightNumber,
       callsign: aircraft?.callsign.trim() ?? null,
-      phase: phaseFor(aircraft, input.scheduledArrival, now),
+      phase: phaseFor(aircraft, elsewhere, input.scheduledArrival, now),
       scheduledArrival: input.scheduledArrival,
       scheduledDeparture: input.scheduledDeparture,
       estimatedArrival: estimate ? estimate.onStand : input.scheduledArrival,
@@ -125,7 +143,9 @@ export const snapshotFlightProvider: FlightProvider = {
             groundSpeedMps: aircraft.groundSpeedMps,
             verticalRateMps: aircraft.verticalRateMps,
             onGround: aircraft.onGround,
-            distanceToAirportKm: Math.round(estimate?.distanceKm ?? 0),
+            // From the position itself: an aircraft with no usable estimate is
+            // still somewhere, and "0 km" would claim it is at the airport.
+            distanceToAirportKm: Math.round(haversineKm(aircraft, input.airport)),
           }
         : null,
       observedAt: aircraft ? aircraft.lastContact * 1000 : observedAt,
@@ -139,7 +159,9 @@ export const snapshotFlightProvider: FlightProvider = {
       provider: 'flight-snapshot',
       attribution: OPENSKY_ATTRIBUTION,
       message: aircraft
-        ? null
+        ? elsewhere
+          ? `An aircraft broadcasting ${aircraft.callsign.trim()} was found, but ${ELSEWHERE[elsewhere]}, so it does not look like it is arriving at ${input.airport.name}. Your scheduled time is being used instead.`
+          : null
         : flightNumber
           ? `No aircraft broadcasting ${flightNumber} was in the covered area when this snapshot was taken. Your scheduled time is being used instead.`
           : 'No flight number was given, so your scheduled time is being used.',

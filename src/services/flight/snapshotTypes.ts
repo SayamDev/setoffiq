@@ -8,6 +8,11 @@ export interface SnapshotAircraft {
   geoAltitudeM: number | null;
   groundSpeedMps: number | null;
   verticalRateMps: number | null;
+  /**
+   * Direction of travel, degrees clockwise from true north. Optional because
+   * snapshots published before it was captured do not carry it.
+   */
+  trueTrackDeg?: number | null;
   onGround: boolean;
   /** Seconds since the epoch, as OpenSky reports it. */
   lastContact: number;

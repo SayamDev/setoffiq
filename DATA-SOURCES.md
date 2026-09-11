@@ -436,5 +436,27 @@ Vectoring factor 1.15 on remaining distance, 8 minutes of final approach,
 6 minutes of taxi to the stand. An aircraft climbing faster than 4 m/s within
 90 km of the airport is treated as departing, not arriving.
 
+Descending is not the same as descending *here*. A live watch on 11 September
+2026 caught the inbound picker offering an easyJet that was landing at
+Birmingham, and a monitored journey then timing a Manchester arrival from its
+position 105 km away. Two checks now decide whether an aircraft can be
+arriving at all:
+
+- **Height.** A standard approach descends at 3°, about 52 m per km. More than
+  10 km out and below 40% of that profile — judged on the higher of the GPS and
+  barometric readings — it is landing somewhere else. This alone catches
+  Liverpool, 40 km away, and Birmingham.
+- **Heading.** More than 60 km out and pointing more than 120° away from the
+  airport, it is not coming here yet. Heading is not judged closer in, where
+  downwind legs and holding patterns legitimately point away for minutes at a
+  time. The snapshot records OpenSky's `true_track` for this.
+
+An aircraft on the ground more than 8 km away is at another airfield — often
+its origin, before departure — and is no longer reported as landed.
+
+When any check fails, the aircraft is left out of the picker, and a monitored
+journey uses the scheduled time and says why. Both checks are SetoffIQ
+judgements from geometry, not air-traffic information.
+
 None of these figures are published airport statistics, and SetoffIQ never
 presents them as such.
