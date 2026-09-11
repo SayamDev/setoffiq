@@ -162,38 +162,42 @@ export function JourneyForm({
         the recommendation works.
       </p>
 
-      <div className={styles.grid}>
-        <Field
-          id={`${baseId}-date`}
-          label="Date"
-          error={errors.date ?? null}
-        >
-          <input
+      <div className={ui.stackTight}>
+        <div className={styles.grid}>
+          <Field
             id={`${baseId}-date`}
-            className={errors.date ? ui.controlInvalid : ui.control}
-            type="date"
-            value={state.date}
-            min={earliestSelectableDate(kind, now, airport.timeZone)}
-            onChange={(event) => update('date', event.target.value)}
-            required
-          />
-        </Field>
+            label="Date"
+            error={errors.date ?? null}
+          >
+            <input
+              id={`${baseId}-date`}
+              className={errors.date ? ui.controlInvalid : ui.control}
+              type="date"
+              value={state.date}
+              min={earliestSelectableDate(kind, now, airport.timeZone)}
+              onChange={(event) => update('date', event.target.value)}
+              aria-describedby={`${baseId}-when-note`}
+              required
+            />
+          </Field>
 
-        <Field
-          id={`${baseId}-time`}
-          label={timeLabel}
-          hint="From the booking"
-          error={errors.time ?? null}
-        >
-          <input
-            id={`${baseId}-time`}
-            className={errors.time ? ui.controlInvalid : ui.control}
-            type="time"
-            value={state.time}
-            onChange={(event) => update('time', event.target.value)}
-            required
-          />
-        </Field>
+          <Field id={`${baseId}-time`} label={timeLabel} error={errors.time ?? null}>
+            <input
+              id={`${baseId}-time`}
+              className={errors.time ? ui.controlInvalid : ui.control}
+              type="time"
+              value={state.time}
+              onChange={(event) => update('time', event.target.value)}
+              aria-describedby={`${baseId}-when-note`}
+              required
+            />
+          </Field>
+        </div>
+        {/* One note for the pair, below it: a hint inside only the time field
+            pushed that box lower than the date box beside it. */}
+        <p className={ui.hint} id={`${baseId}-when-note`}>
+          The date and time on your booking.
+        </p>
       </div>
 
       <Field
