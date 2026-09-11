@@ -20,6 +20,7 @@ Verified 10 September 2026 against each provider's own documentation. See
 | OSRM (FOSSGIS + project instances) | Driving times | **£0** | None — public instances, no key, no account | Fair use; no live traffic |
 | postcodes.io | UK postcode → coordinates | **£0** | None — open service, no key, no account | MIT; ONS/OS open data |
 | OpenStreetMap | Road network data | **£0** | None — open data | ODbL, attribution required and given |
+| National Highways | Road and lane closures | **£0** | None — no payment method on file; the licence commits to six months' notice before any charge | Keyed (repository secret, used only in CI); 10 calls/minute; OGL 2.0 |
 | GitHub Pages | Hosting | **£0** | None — free for public repositories; over-quota results in throttling or an email, never a charge | 1 GB site, 100 GB/month soft |
 | GitHub Actions | Build and snapshot job | **£0** | None — free for public repositories | Best-effort scheduling |
 | Ollama | Optional local explanations | **£0** | None — open-source, runs on the user's own machine | Optional, off by default |
@@ -59,7 +60,7 @@ because visitors read a static file rather than calling the API.
 | Google Maps / Mapbox routing and geocoding | Pay-as-you-go with automatic billing. |
 | Hosted LLM APIs for explanations | Metered per token. The rule-based explanation is deterministic anyway, which is better for this use. |
 | Serverless proxy for the OpenSky CORS problem | Would need a platform account, and most free tiers either require a card or overflow into paid. Solved with a scheduled Actions job and a static file instead. |
-| National Highways closures, Street Manager roadworks | Both require a registered key. Usable in principle — a key in repository secrets never reaches a browser and costs a visitor nothing — but neither has been registered, and their terms have not been verified against the rule that a usage mistake cannot create a bill. See DATA-SOURCES.md. |
+| Street Manager roadworks | Requires an account, and its terms have not been verified against the rule that a usage mistake cannot create a bill. National Highways, the other keyed road source, was verified and is used — see DATA-SOURCES.md. |
 | Hosted database for saved journeys | Unnecessary and worse for privacy. Journeys belong in the browser. |
 | SMS or hosted email notifications | Both cost money per message. Browser notifications are free and sufficient. |
 | Hosted analytics | Costs money at volume, and privacy-first is part of the product. |

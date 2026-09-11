@@ -95,23 +95,25 @@ be matched — no attempt is made to fake it.
 
 ---
 
-## Road disruption and roadworks — assessed and not used
+## Road disruption and roadworks — National Highways
 
 Live road disruption would be genuinely valuable, and three sources were
-examined on 11 September 2026. None is currently used, for reasons worth
-recording rather than glossing.
+examined on 11 September 2026. None of them is free and keyless for this
+question. National Highways' closures feed passed the checks below and has been
+live since 11 September 2026, through a key held in repository secrets; the
+other two are not used, for reasons worth recording rather than glossing.
 
 | Source | Finding |
 | --- | --- |
-| [National Highways closures API](https://api.data.nationalhighways.co.uk/) | Returns `401 {"message":"Invalid Subscription Key"}`. Requires registration and a subscription key. |
+| [National Highways closures API](https://api.data.nationalhighways.co.uk/) | Returns `401 {"message":"Invalid Subscription Key"}` without a key. Requires registration and a subscription key. **Used**, via a repository secret. |
 | [WebTRIS](https://webtris.nationalhighways.co.uk/api/swagger/ui/index) | Free, keyless and CORS-enabled — but it serves **MIDAS traffic-count sensor archives** (20,076 loop sites), not closures or incidents. It is the wrong dataset for this question. |
 | [Street Manager](https://www.gov.uk/guidance/find-and-use-roadworks-data) | GOV.UK states plainly: "You need to create an account to access the roadworks API service." Registration required. |
 
 **On keyed sources.** Requiring a key does not by itself rule a source out. A
 key can be held in repository secrets and used by the scheduled job, exactly as
 the flight and conditions snapshots work — the key never reaches a browser, and
-no visitor is ever asked for one or charged anything. `deploy.yml` carries a
-commented step showing where such a source would go.
+no visitor is ever asked for one or charged anything. The road disruption step
+in `deploy.yml` works exactly this way.
 
 Two things must be true before one is switched on:
 
@@ -181,13 +183,14 @@ The endpoint is `https://api.data.nationalhighways.co.uk/roads/v2.0/closures`,
 confirmed to exist because it answers `401 Invalid Subscription Key` rather than
 `404`.
 
-### Status: built, not enabled
+### Status: live since 11 September 2026
 
-The integration exists and is tested — a provider, a normalisation layer, a
-signal, journey-uncertainty weighting and a CI step. It is inert because no key
-has been registered.
+The integration is a provider, a normalisation layer, a signal,
+journey-uncertainty weighting and a CI step. The `NATIONAL_HIGHWAYS_KEY`
+repository secret was added on 11 September 2026, and every scheduled deploy
+since has published `data/roads/EGCC-disruption.json` alongside the app.
 
-**To enable it:**
+**To enable it on a fork** (a fork does not have the owner's key):
 
 1. Register at
    [developer.data.nationalhighways.co.uk](https://developer.data.nationalhighways.co.uk/)
@@ -263,14 +266,17 @@ incidents that are currently *in force* move the number. Roadworks are still
 reported — *"24 roadworks reported nearby, none currently closing a road"* —
 they simply do not inflate the estimate.
 
-**Until then**, the app reports road disruption as *"Not checked — every free UK
-source for this requires a registered key. Absence of information here is not
+### Without a key
+
+A fork without the key, or a deployment after the secret is deleted, publishes
+no road file. The app then reports road disruption as *"Not checked — every free
+UK source for this requires a registered key. Absence of information here is not
 evidence the roads are clear."* That distinction is deliberate and is covered by
 a test: no data is not the same as no disruption.
 
-Because the source is never configured rather than failing, it carries no
+A source that was never configured, as opposed to one that failed, carries no
 confidence penalty. Scoring every recommendation down for a limitation that is
-always present would make the number meaningless.
+always present in that deployment would make the number meaningless.
 
 ---
 

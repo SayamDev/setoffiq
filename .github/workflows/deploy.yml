@@ -55,7 +55,7 @@ jobs:
       #
       # With no secret set the script exits cleanly without writing a file, and
       # the app reports road disruption as "not checked" — so a fork without
-      # the key is no worse off than the product is today.
+      # the key is no worse off than the product was before it had one.
       - name: Refresh road disruption snapshot
         continue-on-error: true
         env:
