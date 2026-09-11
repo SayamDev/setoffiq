@@ -138,3 +138,10 @@ export function todayInZone(now: Instant, timeZone: string): string {
   }).format(new Date(now));
   return parts;
 }
+
+/** "45 minutes", "22 hours", "3 days" — how old a piece of data is, in words. */
+export function formatAge(minutes: number): string {
+  if (minutes < 120) return `${Math.max(0, Math.round(minutes))} minutes`;
+  const hours = Math.round(minutes / 60);
+  return hours < 48 ? `${hours} hours` : `${Math.round(hours / 24)} days`;
+}

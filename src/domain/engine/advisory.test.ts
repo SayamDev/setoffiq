@@ -40,3 +40,21 @@ describe('advice as of now, not as of the last check', () => {
     expect(notificationTitle(early, DEPARTURE, ZONE)).toBe('Leave at 16:18');
   });
 });
+
+describe('a pickup long past', () => {
+  // "Leave as soon as you can — 21 hr 23 min ago" was shown for a pickup the
+  // day before. Nobody can act on that.
+  it('says the pickup has passed rather than urging someone to hurry', () => {
+    const nextDay = advisoryAt(pickupAt(DEPARTURE), DEPARTURE + 21 * 60 * MINUTE, ZONE);
+    expect(nextDay.kind).toBe('blocked');
+    expect(nextDay.headline).toBe('This pickup time has passed');
+    expect(nextDay.detail).toMatch(/on Fri 11 Sept|check the date and time/);
+    expect(notificationTitle(nextDay, DEPARTURE, ZONE)).toBe('This pickup time has passed');
+  });
+
+  it('still urges them on while the passenger could plausibly be waiting', () => {
+    const late = advisoryAt(pickupAt(DEPARTURE), DEPARTURE + 60 * MINUTE, ZONE);
+    expect(late.kind).toBe('running-late');
+  });
+});
+

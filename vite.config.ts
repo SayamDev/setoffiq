@@ -7,6 +7,18 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ command }) => ({
   base: command === 'build' ? '/setoffiq/' : '/',
   plugins: [react()],
+  // In development, serve the data snapshots from the live site. The copies in
+  // public/data are only a build fallback and go stale within the hour; a
+  // day-old flight snapshot in dev once looked exactly like a production bug.
+  server: {
+    proxy: {
+      '/data': {
+        target: 'https://sayamdev.github.io',
+        changeOrigin: true,
+        rewrite: (path) => `/setoffiq${path}`,
+      },
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',

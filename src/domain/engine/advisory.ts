@@ -1,10 +1,24 @@
-import { formatClock, minutesBetween } from '../time';
+import { formatClock, formatDate, minutesBetween } from '../time';
 import type { Advisory, Instant, Recommendation, TimeWindow } from '../types';
 
 /**
  * Turns "leave at 18:05" into the thing the user actually wants to be told
  * right now: wait, go, or you are behind.
  */
+/**
+ * How long after the last plausible moment before advice to hurry stops
+ * making sense. "Leave as soon as you can — 21 hr 23 min ago" is not advice
+ * anyone can act on; by then the pickup has simply passed.
+ */
+const PASSED_AFTER_MINUTES = 60;
+
+function clockWithDay(instant: Instant, now: Instant, timeZone: string): string {
+  const clock = formatClock(instant, timeZone);
+  return formatDate(instant, timeZone) === formatDate(now, timeZone)
+    ? clock
+    : `${clock} on ${formatDate(instant, timeZone)}`;
+}
+
 export function buildPickupAdvisory(
   now: Instant,
   departure: Instant,
@@ -44,6 +58,14 @@ export function buildPickupAdvisory(
       kind: 'leave-now',
       headline: 'Leave now',
       detail: `Your journey estimate and your passenger's readiness window now line up. Aim to be at the airport for ${formatClock(readiness.earliest, timeZone)}.`,
+    };
+  }
+
+  if (minutesBetween(readiness.latest, now) > PASSED_AFTER_MINUTES) {
+    return {
+      kind: 'blocked',
+      headline: 'This pickup time has passed',
+      detail: `Your passenger was most likely ready by ${clockWithDay(readiness.latest, now, timeZone)}. If the flight is still to come, check the date and time you entered.`,
     };
   }
 
@@ -94,6 +116,14 @@ export function buildDropoffAdvisory(
     };
   }
 
+  if (minutesBetween(terminalArrival.latest, now) > PASSED_AFTER_MINUTES) {
+    return {
+      kind: 'blocked',
+      headline: 'This drop-off time has passed',
+      detail: `Your passenger needed to be at the terminal by about ${clockWithDay(terminalArrival.latest, now, timeZone)}. If the flight is still to come, check the date and time you entered.`,
+    };
+  }
+
   return {
     kind: 'running-late',
     headline: 'Leave as soon as you can',
@@ -120,7 +150,7 @@ export function advisoryAt(recommendation: Recommendation, now: Instant, timeZon
 
 /** Wording for a notification: past a departure, "Leave at 16:18" is not advice. */
 export function notificationTitle(advisory: Advisory, departure: Instant, timeZone: string): string {
-  return advisory.kind === 'running-late' || advisory.kind === 'leave-now'
+  return advisory.kind === 'running-late' || advisory.kind === 'leave-now' || advisory.kind === 'blocked'
     ? advisory.headline
     : `Leave at ${formatClock(departure, timeZone)}`;
 }

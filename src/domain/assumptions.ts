@@ -42,6 +42,21 @@ export const OFFLINE_ROUTE_ESTIMATE = {
 /** Flight data older than this is shown as stale and lowers confidence. */
 export const FLIGHT_SNAPSHOT_STALE_AFTER_MINUTES = 30;
 
+/**
+ * Beyond this, aircraft positions are not used at all. The snapshot job runs
+ * every fifteen minutes; a snapshot an hour old means the job has stopped, not
+ * run late, and an aircraft seen an hour ago may be on the ground by now. A
+ * 22-hour-old snapshot once produced a "leave now" for a flight from the day
+ * before.
+ */
+export const FLIGHT_POSITIONS_UNUSABLE_AFTER_MINUTES = 60;
+
+/**
+ * A live estimate further than this from the scheduled time is a different
+ * day's flight with the same number, not a late or early one.
+ */
+export const FLIGHT_MATCH_WINDOW_HOURS = 6;
+
 /** Weather beyond this age is refetched rather than reused. */
 export const WEATHER_CACHE_TTL_MINUTES = 60;
 

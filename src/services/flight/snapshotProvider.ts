@@ -1,4 +1,8 @@
-import { FLIGHT_SNAPSHOT_STALE_AFTER_MINUTES } from '../../domain/assumptions';
+import {
+  FLIGHT_MATCH_WINDOW_HOURS,
+  FLIGHT_POSITIONS_UNUSABLE_AFTER_MINUTES,
+  FLIGHT_SNAPSHOT_STALE_AFTER_MINUTES,
+} from '../../domain/assumptions';
 import type {
   FlightPhase,
   FlightProvider,
@@ -7,6 +11,7 @@ import type {
   Observed,
 } from '../../domain/types';
 import { readCache, writeCache } from '../cache';
+import { formatAge } from '../../domain/time';
 import { fetchJson } from '../http';
 import { haversineKm } from '../geo';
 import { estimateArrivalFromPosition, notArrivingReason, type NotArrivingReason } from './arrivalEstimate';
@@ -122,8 +127,22 @@ export const snapshotFlightProvider: FlightProvider = {
     const ageMinutes = observedAt === null ? null : Math.round((now - observedAt) / 60_000);
     const stale = ageMinutes !== null && ageMinutes > FLIGHT_SNAPSHOT_STALE_AFTER_MINUTES;
 
-    const aircraft = flightNumber ? findAircraft(snapshot, flightNumber) : null;
-    const estimate = aircraft ? estimateArrivalFromPosition(aircraft, input.airport) : null;
+    const tooOld =
+      ageMinutes !== null && ageMinutes > FLIGHT_POSITIONS_UNUSABLE_AFTER_MINUTES;
+
+    const found = flightNumber && !tooOld ? findAircraft(snapshot, flightNumber) : null;
+    const foundEstimate = found ? estimateArrivalFromPosition(found, input.airport) : null;
+
+    // Same number, different day: an evening flight in the air tonight is not
+    // tomorrow evening's flight, however well the callsign matches.
+    const scheduled = input.scheduledArrival;
+    const otherDay =
+      foundEstimate !== null &&
+      scheduled !== null &&
+      Math.abs(foundEstimate.onStand - scheduled) > FLIGHT_MATCH_WINDOW_HOURS * 3_600_000;
+
+    const aircraft = otherDay ? null : found;
+    const estimate = otherDay ? null : foundEstimate;
     const elsewhere = aircraft ? notArrivingReason(aircraft, input.airport) : null;
 
     const status: FlightStatus = {
@@ -158,13 +177,17 @@ export const snapshotFlightProvider: FlightProvider = {
       observedAt,
       provider: 'flight-snapshot',
       attribution: OPENSKY_ATTRIBUTION,
-      message: aircraft
-        ? elsewhere
-          ? `An aircraft broadcasting ${aircraft.callsign.trim()} was found, but ${ELSEWHERE[elsewhere]}, so it does not look like it is arriving at ${input.airport.name}. Your scheduled time is being used instead.`
-          : null
-        : flightNumber
-          ? `No aircraft broadcasting ${flightNumber} was in the covered area when this snapshot was taken. Your scheduled time is being used instead.`
-          : 'No flight number was given, so your scheduled time is being used.',
+      message: tooOld
+        ? `The latest flight data is ${formatAge(ageMinutes ?? 0)} old — too old to say where the aircraft is now. Your scheduled time is being used instead.`
+        : otherDay && found
+          ? `An aircraft broadcasting ${found.callsign.trim()} is in the air, but it is due many hours from the scheduled time you entered, so it is most likely a different day's flight. Your scheduled time is being used instead.`
+          : aircraft
+            ? elsewhere
+              ? `An aircraft broadcasting ${aircraft.callsign.trim()} was found, but ${ELSEWHERE[elsewhere]}, so it does not look like it is arriving at ${input.airport.name}. Your scheduled time is being used instead.`
+              : null
+            : flightNumber
+              ? `No aircraft broadcasting ${flightNumber} was in the covered area when this snapshot was taken. Your scheduled time is being used instead.`
+              : 'No flight number was given, so your scheduled time is being used.',
     };
   },
 };

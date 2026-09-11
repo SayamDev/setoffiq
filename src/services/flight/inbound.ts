@@ -1,3 +1,4 @@
+import { FLIGHT_SNAPSHOT_STALE_AFTER_MINUTES } from '../../domain/assumptions';
 import type { AirportProfile, Instant } from '../../domain/types';
 import { readCache } from '../cache';
 import { fetchJson } from '../http';
@@ -19,6 +20,18 @@ export interface InboundAircraft {
 
 const SNAPSHOT_PATH = 'data/flights/EGCC-arrivals.json';
 const CACHE_KEY = 'flight-snapshot:EGCC';
+
+/**
+ * Thrown when the snapshot is too old to describe what is in the air now. The
+ * picker says "in the air near Manchester now", so a stale list would be a
+ * false statement, not a degraded one.
+ */
+export class SnapshotTooOldError extends Error {
+  constructor(readonly ageMinutes: number) {
+    super(`Flight snapshot is ${ageMinutes} minutes old`);
+    this.name = 'SnapshotTooOldError';
+  }
+}
 
 /** Beyond this an aircraft is probably passing overhead rather than arriving. */
 const INBOUND_RADIUS_KM = 200;
@@ -46,6 +59,12 @@ export async function listInboundAircraft(
       `${base}${SNAPSHOT_PATH}`.replace(/([^:]\/)\/+/g, '$1'),
       { provider: 'flight-snapshot', endpoint: 'inbound', signal },
     );
+  }
+
+  const generatedAt = Date.parse(snapshot.generatedAt);
+  const ageMinutes = Number.isFinite(generatedAt) ? Math.round((now - generatedAt) / 60_000) : null;
+  if (ageMinutes === null || ageMinutes > FLIGHT_SNAPSHOT_STALE_AFTER_MINUTES) {
+    throw new SnapshotTooOldError(ageMinutes ?? Number.POSITIVE_INFINITY);
   }
 
   const results: InboundAircraft[] = [];

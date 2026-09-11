@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { formatClock } from '../domain/time';
+import { formatAge, formatClock } from '../domain/time';
 import type { AirportProfile } from '../domain/types';
-import { listInboundAircraft, type InboundAircraft } from '../services/flight';
+import { listInboundAircraft, SnapshotTooOldError, type InboundAircraft } from '../services/flight';
 import { Button, ui } from './ui';
 import styles from './InboundPicker.module.css';
 
@@ -9,7 +9,8 @@ type State =
   | { kind: 'idle' }
   | { kind: 'loading' }
   | { kind: 'ready'; aircraft: InboundAircraft[] }
-  | { kind: 'error' };
+  | { kind: 'error' }
+  | { kind: 'too-old'; ageMinutes: number };
 
 /**
  * Pick from aircraft currently in the air near the airport.
@@ -33,8 +34,12 @@ export function InboundPicker({
     setState({ kind: 'loading' });
     try {
       setState({ kind: 'ready', aircraft: await listInboundAircraft(airport) });
-    } catch {
-      setState({ kind: 'error' });
+    } catch (error) {
+      setState(
+        error instanceof SnapshotTooOldError
+          ? { kind: 'too-old', ageMinutes: error.ageMinutes }
+          : { kind: 'error' },
+      );
     }
   };
 
@@ -51,6 +56,15 @@ export function InboundPicker({
   return (
     <div className={styles.wrapper}>
       {state.kind === 'loading' ? <p className={ui.hint}>Checking what is in the air…</p> : null}
+
+      {state.kind === 'too-old' ? (
+        <p className={ui.hint}>
+          {Number.isFinite(state.ageMinutes)
+            ? `The latest flight data is ${formatAge(state.ageMinutes)} old, so it cannot show what is in the air now.`
+            : 'The latest flight data has no timestamp, so it cannot show what is in the air now.'}{' '}
+          Type the flight number instead.
+        </p>
+      ) : null}
 
       {state.kind === 'error' ? (
         <p className={ui.hint}>
