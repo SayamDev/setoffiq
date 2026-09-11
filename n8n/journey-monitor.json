@@ -1,0 +1,118 @@
+{
+  "name": "SetoffIQ journey monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "minutes", "minutesInterval": 15 }] }
+      },
+      "id": "schedule",
+      "name": "Every 15 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "callsign",
+              "name": "callsign",
+              "value": "KLM1038",
+              "type": "string"
+            },
+            {
+              "id": "snapshotUrl",
+              "name": "snapshotUrl",
+              "value": "https://sayamdev.github.io/setoffiq/data/flights/EGCC-arrivals.json",
+              "type": "string"
+            },
+            {
+              "id": "thresholdMinutes",
+              "name": "thresholdMinutes",
+              "value": 10,
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "id": "config",
+      "name": "Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.snapshotUrl }}",
+        "options": { "timeout": 15000 }
+      },
+      "id": "fetch",
+      "name": "Fetch position snapshot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Same arithmetic as the application's prediction engine, kept\n// deliberately simple so it can be read alongside it.\nconst AIRPORT = { latitude: 53.3537, longitude: -2.275 };\nconst VECTORING = 1.15;\nconst TAXI_MINUTES = 6;\nconst FINAL_APPROACH_KM = 25;\nconst FINAL_APPROACH_MINUTES = 8;\n\nconst config = $('Configuration').first().json;\nconst snapshot = $input.first().json;\nconst wanted = String(config.callsign).trim().toUpperCase();\n\nfunction haversineKm(a, b) {\n  const rad = (d) => (d * Math.PI) / 180;\n  const dLat = rad(b.latitude - a.latitude);\n  const dLon = rad(b.longitude - a.longitude);\n  const h =\n    Math.sin(dLat / 2) ** 2 +\n    Math.cos(rad(a.latitude)) * Math.cos(rad(b.latitude)) * Math.sin(dLon / 2) ** 2;\n  return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));\n}\n\nconst aircraft = (snapshot.aircraft || []).find(\n  (entry) => String(entry.callsign).trim().toUpperCase() === wanted,\n);\n\nif (!aircraft) {\n  return [{ json: { found: false, callsign: wanted, generatedAt: snapshot.generatedAt } }];\n}\n\nconst distanceKm = haversineKm(aircraft, AIRPORT);\nconst observedAt = aircraft.lastContact * 1000;\n\nlet minutesRemaining;\nif (aircraft.onGround) {\n  minutesRemaining = distanceKm <= 8 ? TAXI_MINUTES : null;\n} else if (aircraft.verticalRateMps > 4 && distanceKm < 90) {\n  // Climbing away from the airport: this is the outbound leg, not an arrival.\n  minutesRemaining = null;\n} else if (distanceKm <= FINAL_APPROACH_KM) {\n  minutesRemaining = FINAL_APPROACH_MINUTES + TAXI_MINUTES;\n} else if ((aircraft.groundSpeedMps || 0) >= 40) {\n  const speedKph = (aircraft.groundSpeedMps * 3600) / 1000;\n  minutesRemaining = Math.round(\n    ((distanceKm * VECTORING) / speedKph) * 60 + FINAL_APPROACH_MINUTES + TAXI_MINUTES,\n  );\n} else {\n  minutesRemaining = null;\n}\n\nreturn [\n  {\n    json: {\n      found: true,\n      callsign: wanted,\n      distanceKm: Math.round(distanceKm),\n      onGround: aircraft.onGround,\n      minutesRemaining,\n      estimatedOnStand:\n        minutesRemaining === null ? null : new Date(observedAt + minutesRemaining * 60000).toISOString(),\n      observedAt: new Date(observedAt).toISOString(),\n      generatedAt: snapshot.generatedAt,\n    },\n  },\n];"
+      },
+      "id": "estimate",
+      "name": "Estimate arrival",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compare with the previous run and only pass on meaningful moves.\nconst config = $('Configuration').first().json;\nconst current = $input.first().json;\nconst previous = $getWorkflowStaticData('global');\n\nif (!current.found || current.estimatedOnStand === null) {\n  return [{ json: { ...current, changed: false, reason: 'No usable position for this callsign.' } }];\n}\n\nconst estimate = Date.parse(current.estimatedOnStand);\nconst last = previous.lastEstimate ? Date.parse(previous.lastEstimate) : null;\nprevious.lastEstimate = current.estimatedOnStand;\n\nif (last === null) {\n  return [{ json: { ...current, changed: false, reason: 'First observation recorded.' } }];\n}\n\nconst deltaMinutes = Math.round((estimate - last) / 60000);\nconst changed = Math.abs(deltaMinutes) >= Number(config.thresholdMinutes);\n\nreturn [\n  {\n    json: {\n      ...current,\n      changed,\n      deltaMinutes,\n      reason: changed\n        ? `Estimated arrival moved ${Math.abs(deltaMinutes)} minutes ${deltaMinutes > 0 ? 'later' : 'earlier'}.`\n        : 'Nothing meaningful changed.',\n    },\n  },\n];"
+      },
+      "id": "compare",
+      "name": "Detect meaningful change",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "version": 2 },
+          "conditions": [
+            {
+              "id": "changed",
+              "leftValue": "={{ $json.changed }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "gate",
+      "name": "Worth telling someone?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1300, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Emit the event. Delivering it — desktop notification, webhook, message —\n// is deliberately left to you: every service that would deliver it for you\n// costs money, and SetoffIQ is built to cost nothing.\nconsole.log('SetoffIQ change:', $input.first().json.reason);\nreturn $input.all();"
+      },
+      "id": "emit",
+      "name": "Emit change event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1520, 220]
+    }
+  ],
+  "connections": {
+    "Every 15 minutes": { "main": [[{ "node": "Configuration", "type": "main", "index": 0 }]] },
+    "Configuration": { "main": [[{ "node": "Fetch position snapshot", "type": "main", "index": 0 }]] },
+    "Fetch position snapshot": { "main": [[{ "node": "Estimate arrival", "type": "main", "index": 0 }]] },
+    "Estimate arrival": { "main": [[{ "node": "Detect meaningful change", "type": "main", "index": 0 }]] },
+    "Detect meaningful change": { "main": [[{ "node": "Worth telling someone?", "type": "main", "index": 0 }]] },
+    "Worth telling someone?": { "main": [[{ "node": "Emit change event", "type": "main", "index": 0 }], []] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {}
+}
