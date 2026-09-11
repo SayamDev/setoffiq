@@ -76,9 +76,9 @@ table explaining it.
 
 - **A deterministic prediction engine.** Same inputs, same recommendation, every
   time. No randomness, no model deciding what time you leave.
-- **Live aircraft positions** where they exist, via a scheduled snapshot of The
-  OpenSky Network, matched to your flight number by callsign — or picked from a
-  list of aircraft inbound right now.
+- **Live aircraft positions** where they exist, via a scheduled snapshot from
+  adsb.lol, matched to your flight number by callsign — or picked from a list of
+  aircraft inbound right now, each with its airline and reported origin.
 - **Real routing** to the terminal itself over OpenStreetMap data, plus the
   aerodrome's own weather observation and live road closures, all feeding the
   journey estimate.
@@ -107,7 +107,7 @@ table explaining it.
         │            │            │              │
    Flight        Weather      Routing        Postcode
   snapshot      Open-Meteo      OSRM        postcodes.io
- (OpenSky via
+ (adsb.lol via
  GitHub Actions)
         │            │            │              │
         └────────────┴─────┬──────┴──────────────┘
@@ -141,27 +141,32 @@ path would not be.
 This is the part most projects quietly fake, so to be explicit about what is and
 is not possible for free:
 
-The OpenSky Network gives **aircraft positions** — where something broadcasting
-a given callsign is, how fast, how high, climbing or descending. It does **not**
-give airline schedules, gate information, or any status for a flight that has
-not taken off.
+adsb.lol gives **aircraft positions** — where something broadcasting a given
+callsign is, how fast, how high, which way it is heading, climbing or
+descending. The Virtual Radar Server standing data adds the **route reported**
+for that callsign. Neither gives airline schedules, gate information, or any
+status for a flight that has not taken off.
 
-Its REST API also responds with `access-control-allow-origin:
-https://opensky-network.org`, so a browser on another origin cannot call it at
-all. Rather than run a proxy — infrastructure, and eventually a bill — a
-scheduled GitHub Actions job calls OpenSky anonymously, well inside its
-documented 400-credit daily allowance, and publishes the result as a static JSON
-file alongside the app.
+A scheduled GitHub Actions job fetches both about four times an hour and
+publishes one static JSON file alongside the app, so no visitor's browser calls
+a flight-data service and usage does not grow with traffic. adsb.lol publishes
+its data under the Open Database Licence, which permits exactly that; the routes
+are public domain (CC0).
+
+The app used The OpenSky Network until 11 September 2026, when its terms turned
+out to require a written agreement for any operational use of its API — see
+[DATA-SOURCES.md](DATA-SOURCES.md).
 
 So SetoffIQ can tell you *"that aircraft is 60 km out, descending, so expect it
 on stand about 18:34"*. It cannot tell you *"your flight is delayed"* before the
 aircraft is in the air, and it does not claim to. When no aircraft is found, it
 uses the scheduled time you entered, unchanged, and says exactly that on screen.
 
-Not every airline helps, either. Emirates' EK21 is broadcast as `UAE21` and
-matches cleanly; Ryanair and easyJet broadcast alphanumeric callsigns unrelated
-to the flight number on your ticket, so those will not match. The app is honest
-about that rather than guessing.
+Not every airline helps, either. Ryanair and easyJet broadcast alphanumeric
+callsigns unrelated to the flight number on your ticket, so those will not match
+a flight number you type, and some airlines vary their callsigns — the standing
+data lists Emirates' Dubai–Manchester service as both `UAE21` and `UAE1KM`. The
+app is honest about that rather than guessing.
 
 ## Privacy
 
@@ -192,7 +197,8 @@ for each provider's current terms and the date they were checked.
 
 | Provider | Provides | Terms |
 | --- | --- | --- |
-| [The OpenSky Network](https://opensky-network.org/) | Aircraft positions | Anonymous, 400 credits/day, no billing |
+| [adsb.lol](https://www.adsb.lol/) | Aircraft positions | Free, keyless, ODbL 1.0 — republishing with attribution permitted |
+| [Virtual Radar Server standing data](https://github.com/vradarserver/standing-data) | Reported routes by callsign | CC0 1.0 (public domain), community-submitted |
 | [NOAA Aviation Weather Center](https://aviationweather.gov/data/api/) | Aerodrome observations (METAR) | Public domain, no key, no billing |
 | [National Highways](https://developer.data.nationalhighways.co.uk/) | Road and lane closures | Free, keyed, OGL 2.0, redistribution permitted |
 | [Open-Meteo](https://open-meteo.com/) | Weather | No key, 10,000 calls/day, non-commercial, CC BY 4.0 |

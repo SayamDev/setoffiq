@@ -94,9 +94,10 @@ user-safe message. Provider-specific field names never escape the adapter.
 - **`usage.ts`** — counts requests per provider in hourly buckets. Counts are
   kept separately from the capped record list, so they stay accurate past the
   cap. Surfaced on the diagnostics page.
-- **`flight/`** — reads the static OpenSky snapshot, matches a flight number to
-  broadcast callsigns, and estimates an on-stand time from position and ground
-  speed. Also holds the labelled test scenarios.
+- **`flight/`** — reads the static flight snapshot (adsb.lol positions with
+  reported routes), matches a flight number to broadcast callsigns, rules out
+  aircraft that cannot be arriving here, and estimates an on-stand time from
+  position and ground speed. Also holds the labelled test scenarios.
 - **`plan.ts`** — gathers all three providers concurrently and hands plain data
   to the engine. Each provider failure is contained; none can take down another.
 

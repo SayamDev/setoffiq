@@ -46,5 +46,5 @@ Open http://localhost:5678, import `journey-monitor.json`, and set the
 
 The snapshot URL can point at the published site
 (`https://sayamdev.github.io/setoffiq/data/flights/EGCC-arrivals.json`), so the
-workflow costs nothing and adds no load to OpenSky — it reads the same static
+workflow costs nothing and adds no load to adsb.lol — it reads the same static
 file the app does.

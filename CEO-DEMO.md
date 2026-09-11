@@ -126,11 +126,11 @@ Scroll to **Activity** — the full audit trail.
 > Nothing in the stack has a payment method attached, so a mistake *can't*
 > produce a bill.
 >
-> The interesting constraint was flight data. OpenSky blocks browser requests
-> from other origins, so instead of running a proxy — infrastructure, and
-> eventually a bill — a scheduled GitHub Action calls it anonymously and
-> publishes a static snapshot. Ninety-six requests a day against a
-> four-hundred-credit allowance, no matter how many people use the site.
+> The interesting constraint was flight data. Instead of a proxy —
+> infrastructure, and eventually a bill — a scheduled GitHub Action fetches
+> aircraft positions from adsb.lol, adds public-domain route data, and
+> publishes one static file. Ninety-six requests a day, no matter how many
+> people use the site — and the licences were read, not assumed.
 >
 > And everything personal stays in the browser. There's no server to hold it."
 
@@ -142,8 +142,8 @@ Scroll to **Activity** — the full audit trail.
 
 ## Notes for the presenter
 
-- **Never claim live tracking for a flight that hasn't taken off.** OpenSky
-  gives positions, not schedules.
+- **Never claim live tracking for a flight that hasn't taken off.** adsb.lol
+  gives positions, not schedules, and routes are reported, not scheduled.
 - **Ryanair and easyJet flight numbers will not match a callsign.** Use an
   airline whose callsign maps cleanly — BA, KLM, Emirates, Lufthansa — or use a
   test scenario.

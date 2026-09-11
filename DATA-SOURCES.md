@@ -3,53 +3,65 @@
 Every external service SetoffIQ uses, what it actually provides, and its terms
 as verified against the provider's own primary documentation.
 
-**All entries verified: 10 September 2026, with aerodrome observations and the
-road-data assessment added 11 September 2026.**
+**All entries verified: 10 September 2026, with aerodrome observations, the
+road-data assessment, and the move from OpenSky to adsb.lol and the Virtual
+Radar Server routes added 11 September 2026.**
 
 ---
 
-## The OpenSky Network
+## adsb.lol — aircraft positions
 
-- **Official documentation:** https://openskynetwork.github.io/opensky-api/rest.html
+- **Official documentation:** the API's OpenAPI description at
+  https://api.adsb.lol/api/openapi.json, and
+  https://www.adsb.lol/docs/open-data/api/
 - **Purpose:** Positions of aircraft currently in the air near Manchester.
-- **Data returned:** ICAO 24-bit address, callsign, latitude, longitude,
-  barometric and geometric altitude, ground speed, vertical rate, on-ground
-  flag, time of last contact.
-- **Authentication:** OAuth2 for registered access. SetoffIQ uses the anonymous
-  endpoint, which requires no credentials.
-- **Rate limit:** 400 credits per day anonymously; 4,000 for authenticated
-  users. A bounding-box `/states/all` request costs a small number of credits.
-- **Free-use conditions:** No payment method, no account, no billing mechanism.
-- **Attribution:** "Aircraft position data from The OpenSky Network
-  (opensky-network.org)" — shown in the application footer.
+- **Endpoint:** `GET /v2/point/{lat}/{lon}/{radius}` — radius in nautical miles,
+  up to 250. SetoffIQ asks for 162 nm (300 km) around EGCC.
+- **Data returned:** readsb's JSON, the ADSBexchange v2 format — callsign,
+  ICAO address, position, barometric and geometric altitude **in feet** (the
+  string `"ground"` on the ground), ground speed **in knots**, track, climb rate
+  **in feet per minute**, and seconds since the last position. The snapshot job
+  converts to the metric units the app has always used
+  (`scripts/lib/adsblol.mjs`, tested against a recorded response).
+- **Authentication:** None. No key, no account.
+- **Terms, verified 11 September 2026.** From the API's own description:
+  *"You can use the API for free."* *"The license for the API as well as all
+  data ADSB.lol makes public is ODbL."* Two notes in the same text are worth
+  holding on to: *"In the future, you will require an API key which you can get
+  by feeding to adsb.lol"*, and *"If you want to use the API for production
+  purposes, please contact me so I do not break your application by
+  accident."* The second is a courtesy, not a condition — worth doing.
+- **Licence obligations (ODbL 1.0):** attribution, and share-alike for derived
+  databases. The published snapshot is one, so it carries `"license":
+  "ODbL-1.0"` and is offered under the same licence. Attribution — *"Aircraft
+  data from adsb.lol (ODbL 1.0)"* — is in the application footer and on the
+  Data sources page.
+- **Rate limit:** none published. One request per scheduled run, about four an
+  hour, from one place, however many people use the site.
+- **Fallback:** the committed snapshot; and the app will not place an aircraft
+  from a snapshot more than an hour old, using the scheduled time instead.
 
-### The CORS constraint, and how it is handled
+### Why a scheduled snapshot, not a browser call
 
-The REST API responds with `access-control-allow-origin:
-https://opensky-network.org`. A browser on any other origin therefore cannot
-call it, and no amount of client-side code changes that.
-
-Rather than run a proxy server — infrastructure, and eventually a bill — a
-scheduled GitHub Actions job calls the anonymous endpoint about four times an
-hour and publishes the result as a static JSON file served from the same origin
-as the app. Roughly 96 requests a day against a 400-credit allowance, from one
-place, regardless of how many people use the site.
+The browser reads one static JSON file from the app's own origin. No visitor's
+browser contacts a flight-data service, the request count is fixed by the
+schedule rather than by traffic, and the same file carries the routes below.
 
 ### What this genuinely provides, and what it does not
 
 **Provides:** whether an aircraft broadcasting a given callsign is currently
-airborne in the covered area, where it is, and an arrival estimate derived from
-its distance and ground speed.
+airborne in the covered area, where it is, which way it is heading, and an
+arrival estimate derived from its distance and ground speed — plus, where one
+is reported, its route.
 
 **Does not provide:** airline schedules, gate or terminal assignments, official
 delay status, or anything at all about a flight that has not taken off yet.
 
 The same snapshot powers the "pick from aircraft inbound now" assist on the
-pickup form. That assist can only ever offer aircraft already in the air:
-OpenSky's arrivals endpoint returns `404` anonymously and every commercial
-schedule API meters usage, so "which flights land tomorrow" has no free answer.
-The interface states this rather than letting someone discover it by finding
-their flight missing.
+pickup form. That assist can only ever offer aircraft already in the air; every
+commercial schedule API meters usage, so "which flights land tomorrow" has no
+free answer. The interface states this rather than letting someone discover it
+by finding their flight missing.
 
 SetoffIQ therefore asks the user for the scheduled time from their booking and
 treats live position data as an improvement on it when available. When no
@@ -64,6 +76,32 @@ be matched — no attempt is made to fake it.
 
 - **Fallback:** the user's scheduled time, clearly labelled as such, with
   reduced confidence.
+
+### The OpenSky Network — used until 11 September 2026, then replaced
+
+SetoffIQ first used OpenSky's anonymous `/states/all` endpoint. Its cost and
+rate limits were checked (400 credits a day anonymously, no billing mechanism),
+but its **terms of use** were not, and they rule this use out. From
+https://opensky-network.org/about/terms-of-use, read on 11 September 2026:
+
+> "Operational REST API use: Use of the REST API in any operational capacity —
+> including integration into a live product, service, or automated system (even
+> if only internal) — requires a previous written agreement, even for
+> non-profit or governmental entities."
+
+A scheduled job feeding a live app is exactly that, and being free,
+non-commercial and anonymous does not exempt it. The same terms require any web
+page using the data to cite Schäfer et al., *Bringing up OpenSky* (IPSN 2014),
+and to send OpenSky a link. OpenSky's arrivals endpoint (`/flights/arrival`,
+which would say which callsigns actually landed at Manchester) now returns
+`403` anonymously, and is batch-updated overnight anyway.
+
+The lesson is recorded because it is the easy one to miss: *free* and *allowed*
+are separate questions, and only the first had been asked.
+
+Alternatives checked the same day: **adsb.fi** works keyless but its terms say
+*"adsb.fi open data is for personal, non-commercial use only"*, which a public
+site used by others does not fit; **airplanes.live** returned `403`.
 
 ### Airline names in the inbound picker
 
@@ -80,37 +118,41 @@ designator shows no name rather than a guess.
 Freight-only operators (FedEx, UPS, DHL, West Atlantic and others) are left out
 of the picker: nobody is collected from them.
 
-### Where an aircraft is coming from — assessed and not used
+### Where an aircraft is coming from — Virtual Radar Server standing data
 
-Showing each inbound aircraft's origin was examined on 11 September 2026.
+- **Source:** https://github.com/vradarserver/standing-data — CSV files built
+  from routes submitted by Virtual Radar Server users; refreshed daily (last
+  commit checked: 11 September 2026, 03:49 UTC).
+- **Licence:** **CC0 1.0** (public domain dedication), per the repository's
+  licence. No attribution is required; SetoffIQ gives it anyway.
+- **How it is used:** the deploy job keeps a shallow sparse clone of
+  `routes/schema-01` and `airports/schema-01` (about 26 MB, 1,576 route files,
+  ~620,000 routes), refreshed at most once a day and cached between runs. The
+  snapshot job looks up each aircraft's callsign and records the leg that
+  matters to Manchester: arriving here if the route stops here, otherwise first
+  to last (`scripts/lib/routes.mjs`, tested). No visitor's browser contacts it.
+- **What it changes:**
+  - The inbound picker shows *"from Ibiza"* beside the airline.
+  - An aircraft whose reported route ends somewhere else is not arriving here —
+    it is left out of the picker, and a monitored journey says where it is
+    reported to be going and uses the scheduled time. The first live sample
+    showed how much this matters: the top three aircraft the picker offered
+    were bound for Bristol, Luton and Belfast City.
+- **Honesty about quality:** it is community-submitted, so the app calls a
+  route *reported*, never *scheduled*. Airlines reuse alphanumeric callsigns
+  across seasons and a submission can lag a change, so a route **to**
+  Manchester does not exempt an aircraft from the height and heading checks.
+- **Fallback:** no route; aircraft are judged on position alone.
 
-**The snapshot cannot answer it.** OpenSky's state vectors carry an
-`origin_country`, but it is the aircraft's **country of registration**, not
-where the flight departed. Many easyJet aircraft are registered in Austria, so
-it would label a flight from Spain "Austria". It is not used for this.
+**Not used for this:**
 
-**A route database can, but its terms forbid republishing.**
-[adsbdb](https://github.com/mrjackwills/adsbdb) offers callsign-to-route
-lookups: free, keyless, and CORS-open (`access-control-allow-origin: *`). A
-sample of live callsigns returned plausible routes, and usefully showed two
-aircraft the picker was offering were not coming to Manchester at all
-(`EZY81DL` Edinburgh–Birmingham, `CFE18M` Edinburgh–London City). But its README
-states:
-
-> "The flight route data is the work of David Taylor, Edinburgh and Jim Mason,
-> Glasgow, and may not be copied, published, or incorporated into other
-> databases without the explicit permission of David J Taylor, Edinburgh."
-
-Publishing routes in the static snapshot would be exactly that. Looking them up
-from each visitor's browser instead would avoid storing them, but showing them
-on a public page is arguably still publishing, it would add a third party that
-every visitor's browser contacts, and adsbdb publishes no rate limit to stay
-within. The data is also community-maintained and least reliable for the
-alphanumeric callsigns easyJet and Ryanair use.
-
-So the picker shows airline and distance, not origin. If permission were ever
-granted, the natural use is in the snapshot job: an origin label, and a
-destination check that drops aircraft bound elsewhere.
+- **OpenSky's `origin_country`** is the aircraft's *country of registration*,
+  not where the flight departed — an easyJet from Spain can read "Austria".
+- **[adsbdb](https://github.com/mrjackwills/adsbdb)** has routes, but its README
+  states: *"The flight route data is the work of David Taylor, Edinburgh and Jim
+  Mason, Glasgow, and may not be copied, published, or incorporated into other
+  databases without the explicit permission of David J Taylor, Edinburgh."*
+  Republishing them in the snapshot would breach that.
 
 ---
 
@@ -502,7 +544,7 @@ arriving at all:
 - **Heading.** More than 60 km out and pointing more than 120° away from the
   airport, it is not coming here yet. Heading is not judged closer in, where
   downwind legs and holding patterns legitimately point away for minutes at a
-  time. The snapshot records OpenSky's `true_track` for this.
+  time. The snapshot records each aircraft's `track` for this.
 
 An aircraft on the ground more than 8 km away is at another airfield — often
 its origin, before departure — and is no longer reported as landed.
