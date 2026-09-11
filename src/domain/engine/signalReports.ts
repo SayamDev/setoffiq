@@ -33,7 +33,12 @@ export function buildSignalReports(
     reports.push({
       id: 'flight',
       label: 'Flight',
-      state: { kind: 'unavailable', reason: 'No live flight information could be retrieved.' },
+      // A drop-off is planned around the departure time on the ticket, which we
+      // have. Nothing is missing, so nothing is reported as missing.
+      state:
+        input.journeyKind === 'pickup'
+          ? { kind: 'unavailable', reason: 'No live flight information could be retrieved.' }
+          : { kind: 'user-supplied' },
       summary:
         input.journeyKind === 'pickup'
           ? 'Working from the scheduled time you entered.'
@@ -129,6 +134,41 @@ export function buildSignalReports(
       : `${formatMinuteRange(journey.range)}, estimated from straight-line distance because no routing service answered.`,
     impact: routeImpact,
   });
+
+  // --- The road ------------------------------------------------------------
+  const roads = input.roadDisruption.value;
+  if (!roads) {
+    reports.push({
+      id: 'road-disruption',
+      label: 'Road disruption',
+      state: { kind: 'not-configured', reason: 'No source configured.' },
+      // Not knowing must never be reported as "the roads are clear".
+      summary:
+        'Not checked — every free UK source for this requires a registered key. Absence of information here is not evidence the roads are clear.',
+      impact: 'none',
+    });
+  } else if (roads.disruptions.length === 0) {
+    reports.push({
+      id: 'road-disruption',
+      label: 'Road disruption',
+      state: { kind: 'live', observedAt: roads.generatedAt },
+      summary: 'Nothing reported on the roads near the airport.',
+      impact: 'none',
+    });
+  } else {
+    const closures = roads.disruptions.filter((entry) => entry.category === 'closure');
+    const headline = roads.disruptions[0]!;
+    reports.push({
+      id: 'road-disruption',
+      label: 'Road disruption',
+      state: { kind: 'live', observedAt: roads.generatedAt },
+      summary:
+        roads.disruptions.length === 1
+          ? `${headline.road}: ${headline.description}`
+          : `${roads.disruptions.length} reported nearby, closest ${headline.road}: ${headline.description}`,
+      impact: closures.length > 0 ? 'high' : 'moderate',
+    });
+  }
 
   // --- Getting through the airport -----------------------------------------
   reports.push({

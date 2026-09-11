@@ -1,5 +1,11 @@
 import { JOURNEY_UNCERTAINTY, OFFLINE_ROUTE_ESTIMATE } from '../assumptions';
-import type { Instant, MinuteRange, RouteResult, WeatherSnapshot } from '../types';
+import type {
+  Instant,
+  MinuteRange,
+  RoadDisruptionSnapshot,
+  RouteResult,
+  WeatherSnapshot,
+} from '../types';
 import type { ProviderInput } from './inputs';
 
 export interface JourneyEstimate {
@@ -46,6 +52,7 @@ export function estimateJourney(
   distanceKm: number,
   arriveAround: Instant,
   timeZone: string,
+  roadDisruption: ProviderInput<RoadDisruptionSnapshot> | null = null,
 ): JourneyEstimate {
   const routed = route.state !== 'unavailable' && route.value !== null;
   const baseMinutes = routed
@@ -74,6 +81,19 @@ export function estimateJourney(
       severity === 'poor'
         ? 'Poor weather is expected around this time.'
         : 'Some rain or wind is expected around this time.',
+    );
+  }
+
+  // A reported closure is a reason to allow more time, not a basis for
+  // claiming to know how much longer the drive takes.
+  const disruptions = roadDisruption?.value?.disruptions ?? [];
+  if (disruptions.length > 0) {
+    const closures = disruptions.filter((entry) => entry.category === 'closure').length;
+    fraction += closures > 0 ? 0.2 : disruptions.length > 2 ? 0.12 : 0.06;
+    reasons.push(
+      closures > 0
+        ? 'A road closure is reported near the route.'
+        : 'Roadworks or incidents are reported near the route.',
     );
   }
 

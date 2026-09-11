@@ -5,6 +5,8 @@ import type {
   AirportConditions,
   FlightStatus,
   Instant,
+  RoadDisruption,
+  RoadDisruptionSnapshot,
   RouteResult,
   WeatherSnapshot,
 } from '../domain/types';
@@ -118,3 +120,37 @@ export const noConditions: ProviderInput<AirportConditions> = {
   state: 'unavailable',
   observedAt: null,
 };
+
+/** No road source configured — the default, and the shipped behaviour. */
+export const noRoadDisruption: ProviderInput<RoadDisruptionSnapshot> = {
+  value: null,
+  state: 'unavailable',
+  observedAt: null,
+};
+
+export function roadDisruption(
+  entries: Partial<RoadDisruption>[],
+  observedAt: Instant,
+): ProviderInput<RoadDisruptionSnapshot> {
+  return {
+    value: {
+      generatedAt: observedAt,
+      source: 'test',
+      attribution: 'test',
+      searchRadiusKm: 40,
+      disruptions: entries.map((entry, index) => ({
+        id: `d${index}`,
+        road: 'M56',
+        category: 'roadworks',
+        description: 'Lane closure',
+        distanceFromAirportKm: 6,
+        startedAt: observedAt,
+        expectedEndAt: null,
+        active: true,
+        ...entry,
+      })),
+    },
+    state: 'ok',
+    observedAt,
+  };
+}

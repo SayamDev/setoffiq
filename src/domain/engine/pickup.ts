@@ -80,6 +80,7 @@ export function calculatePickupRecommendation(input: PickupEngineInput): Recomme
     input.distanceKm,
     targetAirportArrival,
     airport.timeZone,
+    input.roadDisruption,
   );
 
   const recommendedDeparture = addMinutes(targetAirportArrival, -journey.range.maxMinutes);

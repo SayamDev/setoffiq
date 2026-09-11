@@ -9,6 +9,7 @@ import {
   manTime,
   noConditions,
   noFlight,
+  noRoadDisruption,
   noRoute,
   noWeather,
   okRoute,
@@ -45,6 +46,7 @@ function pickup(overrides: Partial<PickupEngineInput> = {}): PickupEngineInput {
     route: okRoute(42),
     weather: weather('clear', ARRIVAL),
     airportConditions: conditions('VFR', ARRIVAL),
+    roadDisruption: noRoadDisruption,
     ...overrides,
   };
 }
@@ -63,6 +65,7 @@ describe('confidence, derived from signals', () => {
       'flight',
       'journey-weather',
       'processing',
+      'road-disruption',
       'route',
     ]);
   });
@@ -131,13 +134,14 @@ describe('confidence, derived from signals', () => {
       route: okRoute(45),
       weather: weather('clear', departure),
       airportConditions: conditions('VFR', departure),
+    roadDisruption: noRoadDisruption,
     };
     const result = calculateDropoffRecommendation(base);
     if (result.kind !== 'dropoff') throw new Error('expected a drop-off recommendation');
 
     const signal = result.signals.find((s) => s.id === 'flight');
     expect(signal?.impact).toBe('none');
-    expect(result.confidence.level).not.toBe('low');
+    expect(result.confidence.level).toBe('medium');
   });
 
   it('lowers confidence for a journey more than a day away', () => {

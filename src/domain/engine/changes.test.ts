@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { compareRecommendations, toVersion } from './changes';
 import { nextPollDelayMinutes } from './polling';
 import { calculatePickupRecommendation } from './pickup';
-import { manTime, flight, okRoute, weather, conditions } from '../../test/factories';
+import { manTime, flight, okRoute, weather, conditions, noRoadDisruption } from '../../test/factories';
 import { MANCHESTER } from '../airports';
 import type { RecommendationVersion } from '../types';
 import type { PickupEngineInput } from './inputs';
@@ -20,6 +20,7 @@ function recommendation(scheduledArrival: number) {
     route: okRoute(42),
     weather: weather('clear', scheduledArrival),
     airportConditions: conditions('VFR', scheduledArrival),
+    roadDisruption: noRoadDisruption,
   };
   const result = calculatePickupRecommendation(input);
   if (result.kind !== 'pickup') throw new Error('expected a pickup recommendation');

@@ -11,6 +11,8 @@ function markClass(state: SignalState): string {
       return styles.markStale!;
     case 'unavailable':
       return styles.markUnavailable!;
+    case 'not-configured':
+      return styles.markAssumed!;
     default:
       return styles.markAssumed!;
   }
@@ -26,6 +28,8 @@ function describeState(state: SignalState, now: Instant, timeZone: string): stri
       return 'From you';
     case 'assumed':
       return 'Estimated';
+    case 'not-configured':
+      return 'Not checked';
     case 'unavailable':
       return 'Unavailable';
   }

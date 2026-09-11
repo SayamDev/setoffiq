@@ -51,6 +51,7 @@ export function calculateDropoffRecommendation(input: DropoffEngineInput): Recom
     input.distanceKm,
     targetAirportArrival,
     airport.timeZone,
+    input.roadDisruption,
   );
 
   const recommendedDeparture = addMinutes(targetAirportArrival, -journey.range.maxMinutes);

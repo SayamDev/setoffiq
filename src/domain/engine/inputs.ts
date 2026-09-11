@@ -8,6 +8,7 @@ import type {
   JourneyKind,
   PassengerRoute,
   PickupMode,
+  RoadDisruptionSnapshot,
   RouteResult,
   WeatherSnapshot,
 } from '../types';
@@ -41,6 +42,11 @@ export interface JourneyEngineInput {
   weather: ProviderInput<WeatherSnapshot>;
   /** Observed conditions at the aerodrome itself. A different question. */
   airportConditions: ProviderInput<AirportConditions>;
+  /**
+   * Current road disruption near the airport. Absent unless a key has been
+   * configured for one of the (all keyed) UK sources — see DATA-SOURCES.md.
+   */
+  roadDisruption: ProviderInput<RoadDisruptionSnapshot>;
 }
 
 export interface PickupEngineInput extends JourneyEngineInput {

@@ -48,29 +48,20 @@ jobs:
         continue-on-error: true
         run: node scripts/fetch-airport-conditions.mjs
 
-      # ---------------------------------------------------------------------
-      # Where a keyed source would go.
+      # Road disruption. Every free UK source for this requires a registered
+      # key, which is fine as long as the key stays here: it is read from a
+      # repository secret, used in CI, and never reaches a browser. No visitor
+      # is ever asked for a key or charged anything.
       #
-      # A free API that requires registration is still usable, as long as the
-      # key never reaches the browser. This job is the right place for it: the
-      # key lives in repository secrets, the request happens here, and the
-      # browser only ever reads the static JSON that results.
-      #
-      # National Highways' closures feed and the Street Manager roadworks API
-      # both work this way. Neither is enabled, because neither has been
-      # registered and their terms have not been verified against the £0 rule —
-      # free registration is not the same as free at volume.
-      #
-      # To enable one: add the secret, drop the `if:` guard, and the app picks
-      # up the extra file. Without it the recommendation is unchanged, just
-      # without a road-disruption signal.
-      #
-      # - name: Refresh road disruption snapshot
-      #   if: ${{ secrets.NATIONAL_HIGHWAYS_KEY != '' }}
-      #   continue-on-error: true
-      #   env:
-      #     NATIONAL_HIGHWAYS_KEY: ${{ secrets.NATIONAL_HIGHWAYS_KEY }}
-      #   run: node scripts/fetch-road-disruption.mjs
+      # With no secret set the script exits cleanly without writing a file, and
+      # the app reports road disruption as "not checked" — so a fork without
+      # the key is no worse off than the product is today.
+      - name: Refresh road disruption snapshot
+        continue-on-error: true
+        env:
+          NATIONAL_HIGHWAYS_KEY: ${{ secrets.NATIONAL_HIGHWAYS_KEY }}
+          ROAD_DISRUPTION_URL: ${{ vars.ROAD_DISRUPTION_URL }}
+        run: node scripts/fetch-road-disruption.mjs
 
       - run: npm run build
 

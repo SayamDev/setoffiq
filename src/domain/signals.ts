@@ -17,6 +17,7 @@ export type SignalId =
   | 'airport-conditions'
   | 'journey-weather'
   | 'route'
+  | 'road-disruption'
   | 'processing';
 
 /**
@@ -32,6 +33,14 @@ export type SignalState =
   | { kind: 'user-supplied' }
   /** A SetoffIQ product assumption. Never presented as measurement. */
   | { kind: 'assumed' }
+  /**
+   * No source is wired up for this at all — a known limitation of the product
+   * rather than a failure. It carries no confidence penalty, because scoring
+   * every recommendation down for something that is never available would make
+   * the number meaningless. It is still shown, so "not checked" is never
+   * mistaken for "nothing to report".
+   */
+  | { kind: 'not-configured'; reason: string }
   /** We tried and could not find out. */
   | { kind: 'unavailable'; reason: string };
 
@@ -58,8 +67,9 @@ export function byConcern(reports: SignalReport[]): SignalReport[] {
     unavailable: 0,
     stale: 1,
     assumed: 2,
-    'user-supplied': 3,
-    live: 4,
+    'not-configured': 3,
+    'user-supplied': 4,
+    live: 5,
   };
   return [...reports].sort(
     (a, b) =>

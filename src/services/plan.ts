@@ -4,6 +4,7 @@ import type { ProviderInput } from '../domain/engine';
 import type {
   AirportConditions,
   FlightStatus,
+  RoadDisruptionSnapshot,
   JourneyInput,
   Observed,
   RecommendationResult,
@@ -14,6 +15,7 @@ import { metarConditionsProvider } from './conditions';
 import { snapshotFlightProvider } from './flight';
 import { findScenario, scenarioFlightStatus } from './flight/scenarios';
 import { haversineKm } from './geo';
+import { roadDisruptionProvider } from './roads';
 import { osrmRoutingProvider } from './routing';
 import { openMeteoProvider } from './weather';
 
@@ -25,6 +27,8 @@ export interface JourneyPlan {
   weather: Observed<WeatherSnapshot>;
   /** Observed at the aerodrome. A different question from the forecast. */
   airportConditions: Observed<AirportConditions>;
+  /** Absent unless a key is configured — see DATA-SOURCES.md. */
+  roadDisruption: Observed<RoadDisruptionSnapshot>;
   computedAt: number;
 }
 
@@ -76,11 +80,12 @@ export async function planJourney(
         signal,
       );
 
-  const [flight, route, weather, airportConditions] = await Promise.all([
+  const [flight, route, weather, airportConditions, roadDisruption] = await Promise.all([
     flightPromise,
     osrmRoutingProvider.calculateRoute({ origin: input.origin, destination }, signal),
     openMeteoProvider.getWeather(destination, input.scheduledTime, signal),
     metarConditionsProvider.getConditions(airport, signal),
+    roadDisruptionProvider.getDisruption(airport, signal),
   ]);
 
   const distanceKm = haversineKm(input.origin, destination);
@@ -94,6 +99,7 @@ export async function planJourney(
     route: toProviderInput(route),
     weather: toProviderInput(weather),
     airportConditions: toProviderInput(airportConditions),
+    roadDisruption: toProviderInput(roadDisruption),
   };
 
   const recommendation =
@@ -109,5 +115,13 @@ export async function planJourney(
           mode: input.dropoffMode ?? 'drop-off',
         });
 
-  return { recommendation, flight, route, weather, airportConditions, computedAt: now };
+  return {
+    recommendation,
+    flight,
+    route,
+    weather,
+    airportConditions,
+    roadDisruption,
+    computedAt: now,
+  };
 }

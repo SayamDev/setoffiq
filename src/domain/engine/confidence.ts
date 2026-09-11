@@ -21,6 +21,8 @@ const STATE_PENALTY: Record<SignalState['kind'], number> = {
   stale: 12,
   'user-supplied': 6,
   assumed: 8,
+  /** A source that is never wired up is a stated limitation, not a failure. */
+  'not-configured': 0,
   unavailable: 18,
 };
 

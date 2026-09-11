@@ -3,7 +3,7 @@ import { MANCHESTER } from '../airports';
 import { formatClock, minutesBetween } from '../time';
 import { calculatePickupRecommendation } from './pickup';
 import type { PickupEngineInput } from './inputs';
-import { flight, manTime, noFlight, noRoute, noWeather, okRoute, weather, conditions } from '../../test/factories';
+import { flight, manTime, noFlight, noRoute, noWeather, okRoute, weather, conditions, noRoadDisruption } from '../../test/factories';
 
 const ZONE = MANCHESTER.timeZone;
 const at = (instant: number): string => formatClock(instant, ZONE);
@@ -22,6 +22,7 @@ function pickupInput(overrides: Partial<PickupEngineInput> = {}): PickupEngineIn
     route: okRoute(42),
     weather: weather('clear', scheduledArrival),
     airportConditions: conditions('VFR', scheduledArrival),
+    roadDisruption: noRoadDisruption,
     ...overrides,
   };
 }

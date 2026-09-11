@@ -251,6 +251,36 @@ export interface AirportConditionsProvider {
   ): Promise<Observed<AirportConditions>>;
 }
 
+/**
+ * A current disruption on the road network near the journey.
+ *
+ * Deliberately minimal. Every free source for this requires a registered key,
+ * so this is normalised to the small set of fields that are common across
+ * them and genuinely useful — rather than modelling one provider's schema and
+ * baking it into the domain.
+ */
+export interface RoadDisruption {
+  id: string;
+  /** e.g. "M56" or "A538". Shown to the user verbatim. */
+  road: string;
+  category: 'closure' | 'roadworks' | 'incident' | 'other';
+  description: string;
+  /** Straight-line distance from the airport, in km. */
+  distanceFromAirportKm: number;
+  startedAt: Instant | null;
+  expectedEndAt: Instant | null;
+  /** True when the source says it is currently in force, not merely planned. */
+  active: boolean;
+}
+
+export interface RoadDisruptionSnapshot {
+  generatedAt: Instant;
+  source: string;
+  attribution: string;
+  searchRadiusKm: number;
+  disruptions: RoadDisruption[];
+}
+
 export interface GeoPoint {
   latitude: number;
   longitude: number;

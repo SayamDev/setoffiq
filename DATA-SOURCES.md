@@ -115,9 +115,35 @@ Two things must be true before one is switched on:
    not have the owner's key, so a keyed source can only ever add a signal — it
    can never become load-bearing.
 
-Neither National Highways nor Street Manager has been registered or verified, so
-neither is enabled. SetoffIQ does not claim to know about road disruption, and
-the journey estimate widens its upper bound for traffic generally instead.
+### Status: built, not enabled
+
+The integration exists and is tested — a provider, a normalisation layer, a
+signal, journey-uncertainty weighting and a CI step. It is inert because no key
+has been registered.
+
+**To enable it:**
+
+1. Register with a provider (National Highways' API portal or Street Manager)
+   and obtain a key. This is an account creation, so it is the repository
+   owner's to do.
+2. Check the provider's terms against the £0 rule. Free registration is not the
+   same as free at volume; reject anything that can bill.
+3. Add the key as the repository secret `NATIONAL_HIGHWAYS_KEY` and the endpoint
+   as the repository variable `ROAD_DISRUPTION_URL`.
+4. Verify `normalise()` in `scripts/fetch-road-disruption.mjs` against one real
+   response. It is written from the documented shape and has never been run
+   against live output. The script refuses to publish if it maps no records from
+   a non-empty response, so a wrong mapping fails loudly rather than producing
+   plausible nonsense.
+
+**Until then**, the app reports road disruption as *"Not checked — every free UK
+source for this requires a registered key. Absence of information here is not
+evidence the roads are clear."* That distinction is deliberate and is covered by
+a test: no data is not the same as no disruption.
+
+Because the source is never configured rather than failing, it carries no
+confidence penalty. Scoring every recommendation down for a limitation that is
+always present would make the number meaningless.
 
 ---
 

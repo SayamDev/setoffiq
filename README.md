@@ -158,6 +158,7 @@ for each provider's current terms and the date they were checked.
 | Provider | Provides | Terms |
 | --- | --- | --- |
 | [The OpenSky Network](https://opensky-network.org/) | Aircraft positions | Anonymous, 400 credits/day, no billing |
+| [NOAA Aviation Weather Center](https://aviationweather.gov/data/api/) | Aerodrome observations (METAR) | Public domain, no key, no billing |
 | [Open-Meteo](https://open-meteo.com/) | Weather | No key, 10,000 calls/day, non-commercial, CC BY 4.0 |
 | [OSRM](https://project-osrm.org/) (FOSSGIS + project instances) | Driving time and distance | No key, no billing, no live traffic |
 | [postcodes.io](https://postcodes.io/) | UK postcode → coordinates | MIT, ONS/OS open data, no key |
@@ -177,6 +178,10 @@ Stated plainly, because a planner that oversells itself is worse than useless:
 - **No queue data.** Border control, security and baggage times are SetoffIQ
   assumptions, documented in [DATA-SOURCES.md](DATA-SOURCES.md) and labelled as
   assumptions in the app. They are not airport statistics.
+- **No road disruption, yet.** Every free UK source requires a registered key.
+  The integration is built and tested but unenabled, and the app says the roads
+  were *not checked* rather than implying they are clear. See
+  [DATA-SOURCES.md](DATA-SOURCES.md) for how to switch it on.
 - **No parking prices.** There is no reliable free source, so none are shown.
 - **Monitoring only runs while the app is open.** A browser app cannot run in the
   background when the browser is closed, and this one does not pretend to. It
