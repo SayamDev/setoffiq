@@ -125,6 +125,31 @@ export function SettingsPage({
       </Card>
 
       <Card>
+        <h2>Appearance</h2>
+        <p className={ui.hint}>
+          SetoffIQ follows your device's light or dark setting unless you choose otherwise.
+        </p>
+        <div className={ui.stackTight} style={{ marginTop: 'var(--space-4)' }}>
+          {(['system', 'light', 'dark'] as const).map((choice) => (
+            <label className={ui.label} key={choice}>
+              <input
+                type="radio"
+                name="theme"
+                value={choice}
+                checked={settings.theme === choice}
+                onChange={() => onUpdate({ theme: choice })}
+              />{' '}
+              {choice === 'system'
+                ? "Match my device"
+                : choice === 'light'
+                  ? 'Always light'
+                  : 'Always dark'}
+            </label>
+          ))}
+        </div>
+      </Card>
+
+      <Card>
         <h2>Motion</h2>
         <label className={ui.label} style={{ display: 'block' }}>
           <input

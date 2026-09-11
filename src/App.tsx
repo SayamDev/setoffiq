@@ -16,7 +16,7 @@ export default function App(): React.JSX.Element {
   const { settings, update } = useSettings();
 
   return (
-    <AppShell route={route}>
+    <AppShell route={route} theme={settings.theme} onThemeChange={(theme) => update({ theme })}>
       {route.name === 'home' ? <HomePage /> : null}
 
       {route.name === 'plan' ? (

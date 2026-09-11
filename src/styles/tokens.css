@@ -93,8 +93,19 @@
   --dur-out: 150ms;
 }
 
+/*
+ * Three-state theming.
+ *
+ * With no explicit choice the OS preference wins. An explicit choice is stamped
+ * on the root element as data-theme and overrides it in both directions — which
+ * is why the media query excludes data-theme="light" rather than simply being
+ * overridden by specificity.
+ *
+ * The dark values appear twice by necessity: a media query cannot be combined
+ * with an attribute selector in one rule. Keep the two blocks in step.
+ */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --ink: #eef0f1;
     --ink-2: #c3c9ce;
     --ink-3: #8d959c;
@@ -125,3 +136,35 @@
     --lift: 0 1px 1px rgb(0 0 0 / 40%), 0 8px 26px -10px rgb(0 0 0 / 60%);
   }
 }
+
+:root[data-theme='dark'] {
+  --ink: #eef0f1;
+  --ink-2: #c3c9ce;
+  --ink-3: #8d959c;
+  --ink-4: #6b737a;
+
+  --paper: #0e1114;
+  --surface: #15191d;
+  --surface-2: #1d2227;
+
+  --rule: #272d33;
+  --rule-strong: #3a424a;
+
+  --signal: #4fbfa2;
+  --signal-2: #6bd3b8;
+  --signal-ink: #c6e8de;
+  --signal-wash: #11312a;
+
+  --amber: #dba75a;
+  --amber-2: #e8bd7c;
+  --amber-wash: #2e2313;
+
+  --red: #e08a86;
+  --red-2: #eda5a1;
+  --red-wash: #2f1a19;
+
+  --on-signal: #07110e;
+
+  --lift: 0 1px 1px rgb(0 0 0 / 40%), 0 8px 26px -10px rgb(0 0 0 / 60%);
+}
+

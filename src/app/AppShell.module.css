@@ -36,8 +36,19 @@
   color: inherit;
 }
 
+/*
+ * The same green the app icon is painted with, so the wordmark and the icon
+ * read as one mark. In dark mode the token lightens for legibility rather than
+ * holding a colour that would disappear against the page.
+ */
 .brandMark {
-  color: var(--signal-2);
+  color: var(--signal);
+}
+
+.headerControls {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-5);
 }
 
 .nav {

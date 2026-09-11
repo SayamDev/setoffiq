@@ -4,6 +4,8 @@ import { OPEN_METEO_ATTRIBUTION } from '../services/weather';
 import { OSRM_ATTRIBUTION, POSTCODES_ATTRIBUTION } from '../services/routing';
 import { OPENSKY_ATTRIBUTION } from '../services/flight';
 import { AWC_ATTRIBUTION } from '../services/conditions';
+import { ThemeToggle } from '../components/ThemeToggle';
+import type { ThemeChoice } from '../storage/settings';
 import { hrefFor, type Route } from './router';
 import styles from './AppShell.module.css';
 
@@ -27,7 +29,17 @@ function useOnline(): boolean {
   return online;
 }
 
-export function AppShell({ route, children }: { route: Route; children: ReactNode }): React.JSX.Element {
+export function AppShell({
+  route,
+  children,
+  theme,
+  onThemeChange,
+}: {
+  route: Route;
+  children: ReactNode;
+  theme: ThemeChoice;
+  onThemeChange: (theme: ThemeChoice) => void;
+}): React.JSX.Element {
   const online = useOnline();
 
   return (
@@ -41,7 +53,8 @@ export function AppShell({ route, children }: { route: Route; children: ReactNod
           <a className={styles.brand} href={hrefFor({ name: 'home' })}>
             Setoff<span className={styles.brandMark}>IQ</span>
           </a>
-          <nav className={styles.nav} aria-label="Main">
+          <div className={styles.headerControls}>
+            <nav className={styles.nav} aria-label="Main">
             {NAV.map((item) => (
               <a
                 key={item.label}
@@ -51,8 +64,10 @@ export function AppShell({ route, children }: { route: Route; children: ReactNod
               >
                 {item.label}
               </a>
-            ))}
-          </nav>
+              ))}
+            </nav>
+            <ThemeToggle theme={theme} onChange={onThemeChange} />
+          </div>
         </div>
       </header>
 

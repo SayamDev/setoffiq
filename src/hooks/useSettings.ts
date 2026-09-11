@@ -12,6 +12,17 @@ export function useSettings(): {
     document.documentElement.dataset['reducedMotion'] = String(settings.reducedMotion);
   }, [settings.reducedMotion]);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    if (settings.theme === 'system') {
+      // No attribute at all, so the OS preference applies through the media
+      // query rather than being overridden by an explicit value.
+      delete root.dataset['theme'];
+    } else {
+      root.dataset['theme'] = settings.theme;
+    }
+  }, [settings.theme]);
+
   const update = useCallback((patch: Partial<Settings>) => {
     setSettings((current) => {
       const next = { ...current, ...patch };
