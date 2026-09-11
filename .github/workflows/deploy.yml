@@ -35,10 +35,39 @@ jobs:
 
       - run: npm ci
 
-      # Anonymous OpenSky request. If it fails the committed snapshot is used
-      # instead, so a bad run never publishes an empty one.
+      # Reported routes: the Virtual Radar Server standing data (CC0), about
+      # 26 MB of CSV. Cloned at most once a day and cached between the
+      # quarter-hourly runs; if a clone fails, yesterday's copy is kept.
+      - name: Date for the route data cache
+        id: day
+        run: echo "day=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        id: standing-data
+        with:
+          path: .cache/standing-data
+          key: standing-data-${{ steps.day.outputs.day }}
+          restore-keys: standing-data-
+
+      - name: Refresh route data
+        if: steps.standing-data.outputs.cache-hit != 'true'
+        continue-on-error: true
+        run: |
+          rm -rf .cache/standing-data.new
+          git clone --quiet --depth 1 --filter=blob:none --sparse \
+            https://github.com/vradarserver/standing-data.git .cache/standing-data.new
+          git -C .cache/standing-data.new sparse-checkout set routes/schema-01 airports/schema-01
+          rm -rf .cache/standing-data
+          mv .cache/standing-data.new .cache/standing-data
+
+      # Aircraft near the airport from adsb.lol (ODbL 1.0), keyless. If it
+      # fails the committed snapshot is used instead, so a bad run never
+      # publishes an empty one — and the app will not place aircraft from a
+      # snapshot more than an hour old.
       - name: Refresh flight position snapshot
         continue-on-error: true
+        env:
+          STANDING_DATA_DIR: .cache/standing-data
         run: node scripts/fetch-flight-snapshot.mjs
 
       # Aerodrome observation. Free and keyless, but the Aviation Weather

@@ -1,4 +1,4 @@
-export { snapshotFlightProvider, OPENSKY_ATTRIBUTION } from './snapshotProvider';
+export { snapshotFlightProvider, FLIGHT_DATA_ATTRIBUTION } from './snapshotProvider';
 export { candidateCallsigns, normaliseFlightNumber, knownAirlinePrefixes } from './callsigns';
 export { estimateArrivalFromPosition, ARRIVAL_ESTIMATE } from './arrivalEstimate';
 export { FLIGHT_SCENARIOS, findScenario, scenarioFlightStatus } from './scenarios';

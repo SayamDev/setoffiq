@@ -58,6 +58,10 @@
   color: var(--ink-2);
 }
 
+.origin {
+  color: var(--ink-3);
+}
+
 .callsign {
   font-size: var(--t-xs);
   color: var(--ink-3);

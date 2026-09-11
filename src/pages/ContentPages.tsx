@@ -6,7 +6,7 @@ import { Card } from '../components/ui';
 import styles from './ContentPages.module.css';
 import pageStyles from './PlanPage.module.css';
 
-const VERIFIED = '10 September 2026';
+const VERIFIED = '10–11 September 2026';
 
 export function AboutPage(): React.JSX.Element {
   return (
@@ -28,9 +28,9 @@ export function AboutPage(): React.JSX.Element {
           <h2>What data it uses</h2>
           <ul>
             <li>
-              <strong>Aircraft positions</strong> from The OpenSky Network, via a snapshot refreshed
-              on a schedule. This shows whether an aircraft broadcasting your flight's callsign is
-              currently in the air near Manchester.
+              <strong>Aircraft positions</strong> from adsb.lol, via a snapshot refreshed on a
+              schedule. This shows whether an aircraft broadcasting your flight's callsign is
+              currently in the air near Manchester, and — where one is reported — its route.
             </li>
             <li>
               <strong>Weather</strong> at the airport from Open-Meteo, used to widen the journey
@@ -232,17 +232,30 @@ export function DataSourcesPage(): React.JSX.Element {
             <tbody>
               <tr>
                 <th scope="row">
-                  <a href="https://opensky-network.org/" rel="noreferrer noopener">
-                    The OpenSky Network
+                  <a href="https://www.adsb.lol/" rel="noreferrer noopener">
+                    adsb.lol
                   </a>
                 </th>
                 <td>Positions of aircraft currently in the air near Manchester.</td>
                 <td>
-                  Anonymous access is limited to 400 credits a day and the API only allows browser
-                  requests from its own origin, so SetoffIQ reads a scheduled snapshot instead of
-                  calling it directly. No billing mechanism.
+                  Free and keyless, published under the Open Database Licence (ODbL 1.0), which
+                  permits republishing with attribution. Read from a scheduled snapshot, about four
+                  times an hour, so your browser never calls it. No billing mechanism.
                 </td>
                 <td>The scheduled time you entered is used, and the app says so.</td>
+              </tr>
+              <tr>
+                <th scope="row">
+                  <a href="https://github.com/vradarserver/standing-data" rel="noreferrer noopener">
+                    Virtual Radar Server standing data
+                  </a>
+                </th>
+                <td>The route reported for each callsign, such as Ibiza to Manchester.</td>
+                <td>
+                  Public domain (CC0). Submitted by the Virtual Radar Server community, so a route is
+                  "reported", never a schedule, and can lag a change.
+                </td>
+                <td>Aircraft are shown without a route, and judged on position alone.</td>
               </tr>
               <tr>
                 <th scope="row">

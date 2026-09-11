@@ -13,6 +13,8 @@ export interface InboundAircraft {
   flightNumber: string | null;
   /** Operator name from the callsign's ICAO designator, where it is known. */
   airline: string | null;
+  /** Where it is reported to be coming from, when a route is known. */
+  from: string | null;
   distanceKm: number;
   /** Estimated on-stand time, from position and ground speed. */
   estimatedArrival: Instant | null;
@@ -93,6 +95,7 @@ export async function listInboundAircraft(
       callsign,
       flightNumber: callsignToFlightNumber(callsign),
       airline: operatorName(callsign),
+      from: aircraft.route ? (aircraft.route.from.city ?? aircraft.route.from.name ?? aircraft.route.from.icao) : null,
       distanceKm: Math.round(estimate.distanceKm),
       estimatedArrival: estimate.onStand,
     });

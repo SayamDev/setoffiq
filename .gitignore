@@ -19,3 +19,6 @@ dist-ssr
 *.tsbuildinfo
 coverage
 .claude/
+
+# Route data cloned by the deploy job
+.cache/

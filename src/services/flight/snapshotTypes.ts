@@ -14,8 +14,28 @@ export interface SnapshotAircraft {
    */
   trueTrackDeg?: number | null;
   onGround: boolean;
-  /** Seconds since the epoch, as OpenSky reports it. */
+  /** Seconds since the epoch of the last position report. */
   lastContact: number;
+  /**
+   * The route this callsign is reported to fly, as the leg that matters to the
+   * airport: arriving here if it stops here, otherwise first to last. From the
+   * Virtual Radar Server standing data — community-submitted, so "reported",
+   * never "scheduled". Absent or null when unknown.
+   */
+  route?: SnapshotRoute | null;
+}
+
+export interface SnapshotAirport {
+  icao: string;
+  iata: string | null;
+  city: string | null;
+  name: string | null;
+  country: string | null;
+}
+
+export interface SnapshotRoute {
+  from: SnapshotAirport;
+  to: SnapshotAirport;
 }
 
 export interface FlightSnapshot {
@@ -24,6 +44,9 @@ export interface FlightSnapshot {
   airportIcao: string;
   source: string;
   attribution: string;
+  /** Licence the published file is offered under. */
+  license?: string;
+  routesAttribution?: string | null;
   radiusKm: number;
   aircraft: SnapshotAircraft[];
 }

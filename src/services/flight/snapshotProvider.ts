@@ -18,8 +18,7 @@ import { estimateArrivalFromPosition, notArrivingReason, type NotArrivingReason 
 import { candidateCallsigns, normaliseFlightNumber } from './callsigns';
 import type { FlightSnapshot, SnapshotAircraft } from './snapshotTypes';
 
-export const OPENSKY_ATTRIBUTION =
-  'Aircraft position data from The OpenSky Network (opensky-network.org)';
+export const FLIGHT_DATA_ATTRIBUTION = 'Aircraft data from adsb.lol (ODbL 1.0)';
 
 const SNAPSHOT_PATH = 'data/flights/EGCC-arrivals.json';
 const CACHE_KEY = 'flight-snapshot:EGCC';
@@ -40,7 +39,16 @@ function findAircraft(snapshot: FlightSnapshot, flightNumber: string): SnapshotA
   );
 }
 
+function elsewhereReason(reason: NotArrivingReason, aircraft: SnapshotAircraft): string {
+  if (reason === 'bound-elsewhere' && aircraft.route) {
+    const to = aircraft.route.to;
+    return `its reported route is to ${to.city ?? to.name ?? to.icao}`;
+  }
+  return ELSEWHERE[reason];
+}
+
 const ELSEWHERE: Record<NotArrivingReason, string> = {
+  'bound-elsewhere': 'its reported route is to another airport',
   'too-low': 'it is far too low to be approaching here, so it is most likely landing at another airfield',
   'heading-away': 'it is heading away from the airport',
   'on-ground-elsewhere': 'it is on the ground at another airfield',
@@ -65,13 +73,11 @@ function phaseFor(
 /**
  * Live aircraft positions, via a static snapshot.
  *
- * The OpenSky Network's REST API sends
- * `access-control-allow-origin: https://opensky-network.org`, so a browser on
- * another origin cannot call it — verified 10 September 2026. Rather than
- * proxying through a server (which would mean infrastructure, and a bill), a
- * scheduled GitHub Actions job calls OpenSky anonymously, well inside its
- * documented 400-credit daily allowance, and commits the result as a static
- * JSON file served from the same origin as the app.
+ * A scheduled GitHub Actions job fetches aircraft near the airport from
+ * adsb.lol (ODbL 1.0) about four times an hour, adds each callsign's reported
+ * route from the Virtual Radar Server standing data (CC0), and publishes the
+ * result as a static JSON file on the app's own origin. No visitor's browser
+ * calls a flight-data service, and the request count does not grow with use.
  *
  * What this genuinely provides: whether an aircraft broadcasting the flight's
  * callsign is currently in the air near Manchester, where it is, and an
@@ -81,8 +87,8 @@ function phaseFor(
  */
 export const snapshotFlightProvider: FlightProvider = {
   id: 'flight-snapshot',
-  label: 'OpenSky position snapshot',
-  attribution: OPENSKY_ATTRIBUTION,
+  label: 'adsb.lol position snapshot',
+  attribution: FLIGHT_DATA_ATTRIBUTION,
 
   async getFlightStatus(input: FlightSearchInput, signal): Promise<Observed<FlightStatus>> {
     const now = Date.now();
@@ -117,7 +123,7 @@ export const snapshotFlightProvider: FlightProvider = {
         fetchedAt: null,
         observedAt: null,
         provider: 'flight-snapshot',
-        attribution: OPENSKY_ATTRIBUTION,
+        attribution: FLIGHT_DATA_ATTRIBUTION,
         message: "We couldn't check for live flight positions.",
       };
     }
@@ -176,14 +182,14 @@ export const snapshotFlightProvider: FlightProvider = {
       fetchedAt,
       observedAt,
       provider: 'flight-snapshot',
-      attribution: OPENSKY_ATTRIBUTION,
+      attribution: FLIGHT_DATA_ATTRIBUTION,
       message: tooOld
         ? `The latest flight data is ${formatAge(ageMinutes ?? 0)} old — too old to say where the aircraft is now. Your scheduled time is being used instead.`
         : otherDay && found
           ? `An aircraft broadcasting ${found.callsign.trim()} is in the air, but it is due many hours from the scheduled time you entered, so it is most likely a different day's flight. Your scheduled time is being used instead.`
           : aircraft
             ? elsewhere
-              ? `An aircraft broadcasting ${aircraft.callsign.trim()} was found, but ${ELSEWHERE[elsewhere]}, so it does not look like it is arriving at ${input.airport.name}. Your scheduled time is being used instead.`
+              ? `An aircraft broadcasting ${aircraft.callsign.trim()} was found, but ${elsewhereReason(elsewhere, aircraft)}, so it does not look like it is arriving at ${input.airport.name}. Your scheduled time is being used instead.`
               : null
             : flightNumber
               ? `No aircraft broadcasting ${flightNumber} was in the covered area when this snapshot was taken. Your scheduled time is being used instead.`

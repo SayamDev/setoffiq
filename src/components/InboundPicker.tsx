@@ -82,8 +82,9 @@ export function InboundPicker({
       {state.kind === 'ready' && state.aircraft.length > 0 ? (
         <>
           <p className={ui.hint}>
-            Aircraft in the air near {airport.name} now. Flights that have not taken off yet cannot
-            appear here, and some airlines broadcast a callsign that is not the number on a ticket.
+            Aircraft in the air near {airport.name} now. Where a route is shown it is the one reported
+            for that callsign, not a schedule. Flights that have not taken off yet cannot appear here,
+            and some airlines broadcast a callsign that is not the number on a ticket.
           </p>
           <ul className={styles.list}>
             {state.aircraft.map((aircraft) => (
@@ -99,6 +100,9 @@ export function InboundPicker({
                   <span className={styles.who}>
                     {aircraft.airline ? (
                       <span className={styles.airline}>{aircraft.airline}</span>
+                    ) : null}
+                    {aircraft.from ? (
+                      <span className={styles.origin}>from {aircraft.from}</span>
                     ) : null}
                     {aircraft.flightNumber ? (
                       <span className={styles.callsign}>{aircraft.callsign}</span>

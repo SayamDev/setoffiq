@@ -64,7 +64,7 @@ export const APPROACH_CHECK = {
 /** An aircraft on the ground further out than this is at another airfield. */
 const ON_GROUND_HERE_KM = 8;
 
-export type NotArrivingReason = 'too-low' | 'heading-away' | 'on-ground-elsewhere';
+export type NotArrivingReason = 'bound-elsewhere' | 'too-low' | 'heading-away' | 'on-ground-elsewhere';
 
 export function notArrivingReason(
   aircraft: SnapshotAircraft,
@@ -75,6 +75,10 @@ export function notArrivingReason(
   const distanceKm = haversineKm(there, here);
 
   if (aircraft.onGround) return distanceKm > ON_GROUND_HERE_KM ? 'on-ground-elsewhere' : null;
+
+  // A reported route that ends somewhere else settles it before any geometry.
+  // It is community data, so a route *to* here does not skip the checks below.
+  if (aircraft.route && aircraft.route.to.icao !== airport.icaoCode) return 'bound-elsewhere';
 
   // The higher of the two readings, so an error in either can only make an
   // aircraft look more like an arrival, never less.
