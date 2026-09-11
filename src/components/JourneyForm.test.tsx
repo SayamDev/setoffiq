@@ -84,3 +84,50 @@ describe('a time with no date chosen', () => {
     expect(screen.queryByText(/Taken as tomorrow/)).not.toBeInTheDocument();
   });
 });
+
+describe('planning a drop-off from a flight that usually leaves soon', () => {
+  afterEach(() => clearAll());
+
+  it('fills in the usual take-off, less the time from the gate', async () => {
+    const now = Date.now();
+    const london = (offsetMinutes: number) => {
+      const at = new Date(now + offsetMinutes * 60_000);
+      const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(at);
+      const get = (type: string) => parts.find((p) => p.type === type)!.value;
+      return { date: `${get('year')}-${get('month')}-${get('day')}`, minute: Number(get('hour')) * 60 + Number(get('minute')) };
+    };
+    // Usually takes off three hours from now.
+    const usual = london(180);
+    const past = (days: number) => {
+      const d = new Date(`${london(0).date}T12:00:00Z`);
+      d.setUTCDate(d.getUTCDate() - days);
+      return d.toISOString().slice(0, 10);
+    };
+    writeCache(
+      'arrival-history:EGCC',
+      {
+        generatedAt: new Date(now).toISOString(),
+        recordingSince: past(10),
+        departuresSince: past(10),
+        keepDays: 14,
+        flights: {},
+        departures: {
+          EZY256Q: { to: { icao: 'EGAA', city: 'Belfast', country: 'GB' }, landings: [1, 2, 3].map((d) => ({ date: past(d), minute: usual.minute })) },
+        },
+      },
+      now,
+    );
+    const user = userEvent.setup();
+    render(<JourneyForm kind="dropoff" airport={MANCHESTER} now={now} onSubmit={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: /Dropping off for a flight leaving soon/ }));
+    await user.click(await screen.findByRole('button', { name: /EZY256Q.*easyJet.*to Belfast/s }));
+
+    const gate = london(160);
+    const expected = `${String(Math.floor(gate.minute / 60)).padStart(2, '0')}:${String(gate.minute % 60).padStart(2, '0')}`;
+    expect(screen.getByLabelText('Scheduled departure time')).toHaveValue(expected);
+    expect(screen.getByRole('radio', { name: /Within the UK/ })).toBeChecked();
+    expect(screen.getByText(/less 20 minutes from the gate/)).toBeInTheDocument();
+  });
+});
+

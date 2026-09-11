@@ -13,7 +13,9 @@ import type {
 import { geocodePostcode, isValidPostcodeShape } from '../services/routing';
 import { normaliseFlightNumber } from '../services/flight';
 import { Button, Field, ui } from './ui';
+import { DeparturePicker } from './DeparturePicker';
 import { InboundPicker, type PickedFlight } from './InboundPicker';
+import { GATE_TO_TAKEOFF_MINUTES } from '../domain/assumptions';
 import styles from './JourneyForm.module.css';
 
 interface FormState {
@@ -74,16 +76,35 @@ export function JourneyForm({
    */
   const fillFromPick = (flight: PickedFlight): void => {
     update('flightNumber', flight.flightNumber);
-    if (flight.arriveAt !== null) {
-      update('date', todayInZone(flight.arriveAt, airport.timeZone));
-      update('time', formatClock(flight.arriveAt, airport.timeZone));
+    if (flight.fillAt !== null) {
+      update('date', todayInZone(flight.fillAt, airport.timeZone));
+      update('time', formatClock(flight.fillAt, airport.timeZone));
       setWhenFrom(flight.basis);
       setDateChosen(true);
       setTakenAsTomorrow(false);
     }
-    if (flight.fromCountry) {
-      update('passengerRoute', flight.fromCountry === 'GB' ? 'domestic' : 'international');
+    if (flight.otherEndCountry) {
+      update('passengerRoute', flight.otherEndCountry === 'GB' ? 'domestic' : 'international');
     }
+  };
+
+  /** The line under the date and time: where they came from. */
+  const whenNote = (): string => {
+    switch (whenFrom) {
+      case 'position':
+        return "Filled in from the aircraft's position. Change them if the booking says otherwise.";
+      case 'usual':
+        return 'Filled in from when this flight usually lands. Check the time on the booking.';
+      case 'usual-departure':
+        return `Filled in from when this flight usually takes off, less ${GATE_TO_TAKEOFF_MINUTES} minutes from the gate. Check the time on the booking.`;
+      default:
+        break;
+    }
+    if (takenAsTomorrow) {
+      const when = parseLocalDateTime(state.date, state.time, airport.timeZone) ?? now;
+      return `Taken as tomorrow, ${formatDate(when, airport.timeZone)}, because ${state.time} today has already passed. Change the date if you meant another day.`;
+    }
+    return 'The date and time on your booking.';
   };
 
   const timeLabel = kind === 'pickup' ? 'Scheduled arrival time' : 'Scheduled departure time';
@@ -187,7 +208,11 @@ export function JourneyForm({
         the recommendation works.
       </p>
 
-      {kind === 'pickup' ? <InboundPicker airport={airport} onPick={fillFromPick} /> : null}
+      {kind === 'pickup' ? (
+        <InboundPicker airport={airport} onPick={fillFromPick} />
+      ) : (
+        <DeparturePicker airport={airport} onPick={fillFromPick} />
+      )}
 
       <div className={ui.stackTight}>
         <div className={styles.grid}>
@@ -241,13 +266,7 @@ export function JourneyForm({
         {/* One note for the pair, below it: a hint inside only the time field
             pushed that box lower than the date box beside it. */}
         <p className={ui.hint} id={`${baseId}-when-note`}>
-          {whenFrom === 'position'
-            ? "Filled in from the aircraft's position. Change them if the booking says otherwise."
-            : whenFrom === 'usual'
-              ? 'Filled in from when this flight usually lands. Check the time on the booking.'
-              : takenAsTomorrow
-              ? `Taken as tomorrow, ${formatDate(parseLocalDateTime(state.date, state.time, airport.timeZone) ?? now, airport.timeZone)}, because ${state.time} today has already passed. Change the date if you meant another day.`
-              : 'The date and time on your booking.'}
+          {whenNote()}
         </p>
       </div>
 

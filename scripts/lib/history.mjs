@@ -108,35 +108,86 @@ export function detectArrivals(aircraft, airport) {
   return found;
 }
 
-/**
- * Fold this run's arrivals into the record, one landing per callsign per
- * local day (from the sighting closest to the airport), and drop days older
- * than KEEP_DAYS.
- */
-export function mergeHistory(previous, arrivals, nowMs, timeZone, airportIcao) {
-  const flights = structuredClone(previous?.flights ?? {});
+/** Climbing away, low and close, is a take-off from here: nothing else is. */
+const CLIMB_OUT_KM = 15;
+const CLIMB_OUT_BELOW_M = 1500;
+/** Routed from here and climbing within this distance: recently departed. */
+const OUTBOUND_KM = 60;
+const OUTBOUND_BELOW_M = 6000;
 
-  for (const arrival of arrivals) {
-    const { date, minute } = localDayAndMinute(arrival.at, timeZone);
-    const record = (flights[arrival.callsign] ??= { from: null, landings: [] });
-    if (arrival.route?.from) {
-      const from = arrival.route.from;
-      record.from = { icao: from.icao, city: from.city ?? null, country: from.country ?? null };
-    }
-    // One landing a day; the sighting nearest the airport gives the best time.
-    const sameDay = record.landings.find((landing) => landing.date === date);
-    if (!sameDay) record.landings.push({ date, minute, km: arrival.km });
-    else if (arrival.km < (sameDay.km ?? Number.POSITIVE_INFINITY)) {
+/**
+ * Aircraft in this snapshot that have just taken off from here, with an
+ * approximate take-off time worked back from distance and speed.
+ *
+ * The mirror of detectArrivals. On the ground is not counted: an aircraft
+ * taxiing out has not left, and nothing says when it will.
+ */
+export function detectDepartures(aircraft, airport) {
+  const found = [];
+  for (const entry of aircraft) {
+    if (entry.onGround) continue;
+    const height = entry.baroAltitudeM ?? entry.geoAltitudeM;
+    const climbing = entry.verticalRateMps !== null && entry.verticalRateMps > 1;
+    if (height === null || !climbing) continue;
+
+    const distanceKm = haversineKm(entry, airport);
+    const routedFromHere = entry.route?.from?.icao === airport.icao;
+    const justOff = height < CLIMB_OUT_BELOW_M && distanceKm <= CLIMB_OUT_KM;
+    const onTheWayOut = routedFromHere && height < OUTBOUND_BELOW_M && distanceKm <= OUTBOUND_KM;
+    if (!justOff && !onTheWayOut) continue;
+
+    const speedKph = (entry.groundSpeedMps && entry.groundSpeedMps > 30 ? entry.groundSpeedMps : 90) * 3.6;
+    const minutesSinceTakeoff = ((distanceKm * 1.1) / speedKph) * 60;
+    found.push({
+      callsign: entry.callsign,
+      at: entry.lastContact * 1000 - Math.round(minutesSinceTakeoff * 60_000),
+      route: entry.route ?? null,
+      km: Math.round(distanceKm),
+    });
+  }
+  return found;
+}
+
+function foldSightings(records, sightings, timeZone, endKey) {
+  for (const sighting of sightings) {
+    const { date, minute } = localDayAndMinute(sighting.at, timeZone);
+    const record = (records[sighting.callsign] ??= { [endKey]: null, landings: [] });
+    const end = sighting.route?.[endKey];
+    if (end) record[endKey] = { icao: end.icao, city: end.city ?? null, country: end.country ?? null };
+    // One a day; the sighting nearest the airport gives the best time.
+    const sameDay = record.landings.find((entry) => entry.date === date);
+    if (!sameDay) record.landings.push({ date, minute, km: sighting.km });
+    else if (sighting.km < (sameDay.km ?? Number.POSITIVE_INFINITY)) {
       sameDay.minute = minute;
-      sameDay.km = arrival.km;
+      sameDay.km = sighting.km;
     }
   }
+}
+
+function prune(records, oldest) {
+  for (const [callsign, record] of Object.entries(records)) {
+    record.landings = record.landings.filter((entry) => entry.date >= oldest).sort((a, b) => (a.date < b.date ? -1 : 1));
+    if (record.landings.length === 0) delete records[callsign];
+  }
+}
+
+/**
+ * Fold this run's arrivals and departures into the record, one a day per
+ * callsign (timed from the sighting closest to the airport), and drop days
+ * older than KEEP_DAYS.
+ */
+export function mergeHistory(previous, arrivals, nowMs, timeZone, airportIcao, departures = []) {
+  const flights = structuredClone(previous?.flights ?? {});
+  // Departures use the same shape, keyed on where they go rather than come
+  // from; "landings" is the list of days seen, whichever way the flight went.
+  const outbound = structuredClone(previous?.departures ?? {});
+
+  foldSightings(flights, arrivals, timeZone, 'from');
+  foldSightings(outbound, departures, timeZone, 'to');
 
   const oldest = localDayAndMinute(nowMs - KEEP_DAYS * 86_400_000, timeZone).date;
-  for (const [callsign, record] of Object.entries(flights)) {
-    record.landings = record.landings.filter((landing) => landing.date >= oldest).sort((a, b) => (a.date < b.date ? -1 : 1));
-    if (record.landings.length === 0) delete flights[callsign];
-  }
+  prune(flights, oldest);
+  prune(outbound, oldest);
 
   return {
     generatedAt: new Date(nowMs).toISOString(),
@@ -148,5 +199,8 @@ export function mergeHistory(previous, arrivals, nowMs, timeZone, airportIcao) {
     license: 'ODbL-1.0',
     attribution: 'Derived by SetoffIQ from adsb.lol aircraft data (ODbL 1.0)',
     flights,
+    // Recording of departures began later than arrivals.
+    departuresSince: previous?.departuresSince ?? localDayAndMinute(nowMs, timeZone).date,
+    departures: outbound,
   };
 }

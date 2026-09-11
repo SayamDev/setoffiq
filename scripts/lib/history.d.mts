@@ -17,10 +17,16 @@ export function detectArrivals(
   airport: { icao: string; latitude: number; longitude: number },
 ): DetectedArrival[];
 
+export function detectDepartures(
+  aircraft: SnapshotAircraft[],
+  airport: { icao: string; latitude: number; longitude: number },
+): DetectedArrival[];
+
 export function mergeHistory(
   previous: ArrivalHistory | null,
   arrivals: DetectedArrival[],
   nowMs: number,
   timeZone: string,
   airportIcao: string,
+  departures?: DetectedArrival[],
 ): ArrivalHistory & { flights: Record<string, { landings: { date: string; minute: number; km?: number }[] }> };

@@ -39,6 +39,16 @@ export const OFFLINE_ROUTE_ESTIMATE = {
   averageSpeedKph: 50,
 } as const;
 
+/**
+ * From the gate to take-off. A booking shows the gate departure, but SetoffIQ
+ * can only observe take-off, which comes after pushback and taxiing out —
+ * typically ten to twenty minutes at a large airport. When a drop-off time is
+ * filled in from a flight's usual take-off, this much is taken off, and the
+ * cautious end is used: a time too early costs a wait at the airport, a time
+ * too late costs the flight. A SetoffIQ assumption, not an airport figure.
+ */
+export const GATE_TO_TAKEOFF_MINUTES = 20;
+
 /** Flight data older than this is shown as stale and lowers confidence. */
 export const FLIGHT_SNAPSHOT_STALE_AFTER_MINUTES = 30;
 

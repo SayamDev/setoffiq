@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { MANCHESTER } from '../../domain/airports';
-import { detectArrivals, localDayAndMinute, mergeHistory } from '../../../scripts/lib/history.mjs';
+import { detectArrivals, detectDepartures, localDayAndMinute, mergeHistory } from '../../../scripts/lib/history.mjs';
 import {
   circularMeanMinute,
   minutesAgainstUsual,
   usualArrivals,
+  usualDepartures,
   usualTimeFor,
   type ArrivalHistory,
 } from './history';
@@ -138,3 +139,46 @@ describe('what usually lands', () => {
     expect(minutesAgainstUsual(history, 'RYR61UR', AT_1900 + 10 * 60_000, MANCHESTER, 6)).toBeNull();
   });
 });
+
+describe('departures', () => {
+  const climbing = (overrides: Partial<SnapshotAircraft>) =>
+    aircraft({ onGround: false, baroAltitudeM: 900, verticalRateMps: 8, groundSpeedMps: 90, latitude: 53.4, longitude: -2.3, route: fromManchester, ...overrides });
+
+  it('notices a take-off, and times it before the sighting', () => {
+    const [departure] = detectDepartures([climbing({ callsign: 'EZY95FW' })], EGCC);
+    expect(departure?.at).toBeLessThan(AT_1900);
+    expect(AT_1900 - departure!.at).toBeLessThan(3 * 60_000);
+  });
+
+  it('notices one further out when it is routed from here, and not otherwise', () => {
+    const out = climbing({ latitude: 53.7, longitude: -2.6, baroAltitudeM: 4000 });
+    expect(detectDepartures([out], EGCC)).toHaveLength(1);
+    expect(detectDepartures([{ ...out, route: toManchester }], EGCC)).toHaveLength(0);
+  });
+
+  it('does not count an aircraft still on the ground', () => {
+    expect(detectDepartures([aircraft({ route: fromManchester })], EGCC)).toHaveLength(0);
+  });
+
+  it('are kept apart from arrivals, with their destination', () => {
+    const departure = { callsign: 'EZY95FW', at: AT_1900, route: fromManchester, km: 4 };
+    const history = mergeHistory(null, [], AT_1900, ZONE, 'EGCC', [departure]);
+    expect(history.flights).toEqual({});
+    expect(history.departures?.EZY95FW?.to).toEqual({ icao: 'EHAM', city: 'Amsterdam', country: 'NL' });
+    expect(history.departuresSince).toBe('2026-09-11');
+  });
+
+  it('lists what usually leaves in the next twelve hours', () => {
+    const history: ArrivalHistory = {
+      ...historyWith({}),
+      departuresSince: '2026-09-01',
+      departures: {
+        EZY95FW: { to: { icao: 'EHAM', city: 'Amsterdam', country: 'NL' }, landings: days(21 * 60, '2026-09-08', '2026-09-09', '2026-09-10') },
+        EZY256Q: { to: { icao: 'EGAA', city: 'Belfast', country: 'GB' }, landings: days(21 * 60, '2026-09-10') },
+      },
+    };
+    const list = usualDepartures(history, MANCHESTER, AT_1900);
+    expect(list.map((f) => [f.callsign, f.to, f.status])).toEqual([['EZY95FW', 'Amsterdam', 'expected']]);
+  });
+});
+

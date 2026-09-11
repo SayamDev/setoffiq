@@ -6,17 +6,31 @@ import { callsignToFlightNumber } from './callsigns';
 import { isCargoOperator, operatorName } from './operators';
 
 /** SetoffIQ's own record of landings, written by the snapshot job. */
+type Place = { icao: string; city: string | null; country: string | null };
+type Sightings = { date: string; minute: number; km?: number }[];
+
 export interface ArrivalHistory {
   generatedAt: string;
   recordingSince: string;
   keepDays: number;
-  flights: Record<
-    string,
-    {
-      from: { icao: string; city: string | null; country: string | null } | null;
-      landings: { date: string; minute: number; km?: number }[];
-    }
-  >;
+  flights: Record<string, { from: Place | null; landings: Sightings }>;
+  /** Departures, recorded from a later date; "landings" there are take-offs. */
+  departuresSince?: string;
+  departures?: Record<string, { to: Place | null; landings: Sightings }>;
+}
+
+/** A flight that usually leaves from here: the drop-off side of the record. */
+export interface UsualDeparture {
+  callsign: string;
+  flightNumber: string | null;
+  airline: string | null;
+  to: string | null;
+  toCountry: string | null;
+  /** The next take-off time if it keeps to its pattern. */
+  usualAt: Instant;
+  daysSeen: number;
+  daysConsidered: number;
+  status: UsualStatus;
 }
 
 export type UsualStatus =
@@ -88,12 +102,25 @@ function clock(minute: number): string {
 }
 
 /** How many of the recent days a pattern can be judged over, given when recording began. */
-function daysAvailable(history: ArrivalHistory, today: string): number {
+function daysAvailable(since: string, today: string): number {
   let days = 0;
   for (let back = 1; back <= LOOKBACK_DAYS; back += 1) {
-    if (shiftDate(today, -back) >= history.recordingSince) days += 1;
+    if (shiftDate(today, -back) >= since) days += 1;
   }
   return days;
+}
+
+function usualFrom(
+  sightings: Sightings | undefined,
+  since: string,
+  today: string,
+): { minute: number; daysSeen: number; daysConsidered: number } | null {
+  const daysConsidered = daysAvailable(since, today);
+  if (!sightings || daysConsidered === 0) return null;
+  const earliest = shiftDate(today, -LOOKBACK_DAYS);
+  const recent = sightings.filter((entry) => entry.date >= earliest && entry.date < today);
+  if (recent.length < USUAL_MIN_DAYS) return null;
+  return { minute: circularMeanMinute(recent.map((entry) => entry.minute)), daysSeen: recent.length, daysConsidered };
 }
 
 export function usualTimeFor(
@@ -101,13 +128,59 @@ export function usualTimeFor(
   callsign: string,
   today: string,
 ): { minute: number; daysSeen: number; daysConsidered: number } | null {
-  const record = history.flights[callsign];
-  const daysConsidered = daysAvailable(history, today);
-  if (!record || daysConsidered === 0) return null;
-  const earliest = shiftDate(today, -LOOKBACK_DAYS);
-  const recent = record.landings.filter((landing) => landing.date >= earliest && landing.date < today);
-  if (recent.length < USUAL_MIN_DAYS) return null;
-  return { minute: circularMeanMinute(recent.map((landing) => landing.minute)), daysSeen: recent.length, daysConsidered };
+  return usualFrom(history.flights[callsign]?.landings, history.recordingSince, today);
+}
+
+/**
+ * Where a usual time falls relative to now: still to come today, recently
+ * passed without a sighting, or — once that window has gone — tomorrow.
+ */
+function place(
+  minute: number,
+  today: string,
+  now: Instant,
+  timeZone: string,
+): { usualAt: Instant; status: UsualStatus } | null {
+  const onToday = parseLocalDateTime(today, clock(minute), timeZone);
+  if (onToday === null) return null;
+  const minutesSince = (now - onToday) / 60_000;
+  if (minutesSince < NOT_SEEN_WINDOW_MINUTES.from) return { usualAt: onToday, status: 'expected' };
+  if (minutesSince <= NOT_SEEN_WINDOW_MINUTES.to) return { usualAt: onToday, status: 'not-seen-yet' };
+  const tomorrow = parseLocalDateTime(shiftDate(today, 1), clock(minute), timeZone);
+  return tomorrow === null ? null : { usualAt: tomorrow, status: 'expected' };
+}
+
+/**
+ * Flights that usually take off from here in the next twelve hours, and those
+ * whose usual take-off has recently passed without them being seen leaving.
+ */
+export function usualDepartures(history: ArrivalHistory, airport: AirportProfile, now: Instant): UsualDeparture[] {
+  const today = todayInZone(now, airport.timeZone);
+  const since = history.departuresSince;
+  if (!since || !history.departures) return [];
+  const results: UsualDeparture[] = [];
+
+  for (const [callsign, record] of Object.entries(history.departures)) {
+    if (isCargoOperator(callsign)) continue;
+    const usual = usualFrom(record.landings, since, today);
+    if (!usual) continue;
+    if (record.landings.some((entry) => entry.date === today)) continue;
+    const placed = place(usual.minute, today, now, airport.timeZone);
+    if (!placed) continue;
+    if (placed.status === 'expected' && placed.usualAt - now > LOOK_AHEAD_HOURS * 3_600_000) continue;
+    results.push({
+      callsign,
+      flightNumber: callsignToFlightNumber(callsign),
+      airline: operatorName(callsign),
+      to: record.to?.city ?? record.to?.icao ?? null,
+      toCountry: record.to?.country ?? null,
+      usualAt: placed.usualAt,
+      daysSeen: usual.daysSeen,
+      daysConsidered: usual.daysConsidered,
+      status: placed.status,
+    });
+  }
+  return results.sort((a, b) => a.usualAt - b.usualAt);
 }
 
 /**
@@ -132,24 +205,9 @@ export function usualArrivals(
     if (!usual) continue;
     if (record.landings.some((landing) => landing.date === today)) continue;
 
-    const onToday = parseLocalDateTime(today, clock(usual.minute), airport.timeZone);
-    if (onToday === null) continue;
-    const minutesSince = (now - onToday) / 60_000;
-
-    let usualAt: Instant;
-    let status: UsualStatus;
-    if (minutesSince >= NOT_SEEN_WINDOW_MINUTES.from && minutesSince <= NOT_SEEN_WINDOW_MINUTES.to) {
-      usualAt = onToday;
-      status = 'not-seen-yet';
-    } else if (minutesSince < NOT_SEEN_WINDOW_MINUTES.from) {
-      usualAt = onToday;
-      status = 'expected';
-    } else {
-      const tomorrow = parseLocalDateTime(shiftDate(today, 1), clock(usual.minute), airport.timeZone);
-      if (tomorrow === null) continue;
-      usualAt = tomorrow;
-      status = 'expected';
-    }
+    const placed = place(usual.minute, today, now, airport.timeZone);
+    if (!placed) continue;
+    const { usualAt, status } = placed;
     if (status === 'expected' && usualAt - now > LOOK_AHEAD_HOURS * 3_600_000) continue;
 
     results.push({

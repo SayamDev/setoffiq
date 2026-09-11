@@ -200,6 +200,25 @@ of the picker: nobody is collected from them.
   of landings before it appears; until then the section says when recording
   started.
 
+### Departures, for drop-offs
+
+The same record keeps take-offs, so the drop-off form can offer *"usually
+leaving in the next twelve hours"*. Recording began on the evening of
+11 September 2026.
+
+- **How a take-off is noticed:** climbing, below 1,500 m and within 15 km (no
+  route needed — nothing else climbs away that low and close); or climbing
+  within 60 km with a reported route from here. Take-off is worked back from
+  distance and speed. An aircraft on the ground is not counted: taxiing out is
+  not leaving, and nothing says when it will.
+- **Take-off is not the time on a booking.** A booking shows the gate
+  departure; take-off follows pushback and taxiing. So the time filled in is the
+  usual take-off **less 20 minutes** — the cautious end of the usual ten to
+  twenty, because a time too early costs a wait and a time too late costs the
+  flight. The form says so, and asks for the booking time to be checked.
+- There is no live list for drop-offs: a departure is not in the air until it
+  has gone.
+
 ## NOAA Aviation Weather Center
 
 - **Official documentation:** https://aviationweather.gov/data/api/
@@ -568,6 +587,13 @@ Domestic 90–120 minutes, international 120–180 minutes.
 arrive with enough time to complete check-in and security."* These buffers are
 therefore SetoffIQ's assumptions, and the app tells the user their airline sets
 the actual deadlines.
+
+### From the gate to take-off
+
+20 minutes, used only when a drop-off time is filled in from a flight's usual
+take-off. Typical gate-to-take-off at a large airport is ten to twenty minutes;
+the cautious end is used. Kept in `src/domain/assumptions.ts` as
+`GATE_TO_TAKEOFF_MINUTES`.
 
 ### Arrival estimation from position
 

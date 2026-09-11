@@ -19,11 +19,15 @@ import styles from './InboundPicker.module.css';
 /** What a pick gives the form. */
 export interface PickedFlight {
   flightNumber: string;
-  /** Touchdown or on-stand time to fill in, when there is one. */
-  arriveAt: Instant | null;
-  fromCountry: string | null;
-  /** Where the time came from: a live position, or the recorded pattern. */
-  basis: 'position' | 'usual';
+  /** The time to fill in, when there is one. */
+  fillAt: Instant | null;
+  /** Country at the other end of the flight, when known. */
+  otherEndCountry: string | null;
+  /**
+   * Where the time came from: a live position, the recorded landing pattern,
+   * or the recorded take-off pattern less the gate-to-take-off allowance.
+   */
+  basis: 'position' | 'usual' | 'usual-departure';
 }
 
 type Live =
@@ -83,8 +87,8 @@ export function InboundPicker({
   const pickLive = (aircraft: InboundAircraft): void => {
     onPick({
       flightNumber: aircraft.flightNumber ?? aircraft.callsign,
-      arriveAt: aircraft.estimatedArrival,
-      fromCountry: aircraft.fromCountry,
+      fillAt: aircraft.estimatedArrival,
+      otherEndCountry: aircraft.fromCountry,
       basis: 'position',
     });
     setState({
@@ -99,8 +103,8 @@ export function InboundPicker({
   const pickUsual = (flight: UsualArrival): void => {
     onPick({
       flightNumber: flight.flightNumber ?? flight.callsign,
-      arriveAt: flight.usualAt,
-      fromCountry: flight.fromCountry,
+      fillAt: flight.usualAt,
+      otherEndCountry: flight.fromCountry,
       basis: 'usual',
     });
     setState({
@@ -267,6 +271,6 @@ export function InboundPicker({
   );
 }
 
-function describe(identifier: string, airline: string | null, from: string | null): string {
+export function describe(identifier: string, airline: string | null, from: string | null): string {
   return [identifier, airline ? `· ${airline}` : null, from ? `from ${from}` : null].filter(Boolean).join(' ');
 }

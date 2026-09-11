@@ -22,7 +22,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { haversineKm, keepInSnapshot, NEAR_RADIUS_KM, toSnapshotAircraft } from './lib/adsblol.mjs';
-import { detectArrivals, mergeHistory } from './lib/history.mjs';
+import { detectArrivals, detectDepartures, mergeHistory } from './lib/history.mjs';
 import { createRouteLookup } from './lib/routes.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -128,7 +128,8 @@ async function loadPreviousHistory() {
 async function recordArrivals(aircraft, nowMs) {
   const previous = await loadPreviousHistory();
   const arrivals = detectArrivals(aircraft, AIRPORT);
-  const history = mergeHistory(previous, arrivals, nowMs, TIME_ZONE, AIRPORT.icao);
+  const departures = detectDepartures(aircraft, AIRPORT);
+  const history = mergeHistory(previous, arrivals, nowMs, TIME_ZONE, AIRPORT.icao, departures);
   const body = `${JSON.stringify(history)}\n`;
   await writeFile(HISTORY_OUTPUT, body);
   if (process.env.HISTORY_CACHE_FILE) {
@@ -136,7 +137,7 @@ async function recordArrivals(aircraft, nowMs) {
     await writeFile(process.env.HISTORY_CACHE_FILE, body);
   }
   console.log(
-    `Arrival record: ${arrivals.length} landing now, ${Object.keys(history.flights).length} callsigns since ${history.recordingSince}`,
+    `Arrival record: ${arrivals.length} landing and ${departures.length} leaving now; ${Object.keys(history.flights).length} arrivals since ${history.recordingSince}, ${Object.keys(history.departures).length} departures since ${history.departuresSince}`,
   );
 }
 
