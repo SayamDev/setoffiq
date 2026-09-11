@@ -78,7 +78,9 @@ table explaining it.
   time. No randomness, no model deciding what time you leave.
 - **Live aircraft positions** where they exist, via a scheduled snapshot from
   adsb.lol, matched to your flight number by callsign — or picked from a list of
-  aircraft inbound right now, each with its airline and reported origin.
+  aircraft inbound right now, each with its airline and reported origin, or from
+  flights that *usually* land in the next twelve hours, from SetoffIQ's own
+  record of landings.
 - **Real routing** to the terminal itself over OpenStreetMap data, plus the
   aerodrome's own weather observation and live road closures, all feeding the
   journey estimate.

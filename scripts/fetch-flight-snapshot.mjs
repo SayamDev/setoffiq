@@ -18,14 +18,18 @@
  * The published file is a derived database of adsb.lol data and is therefore
  * itself offered under ODbL 1.0.
  */
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { haversineKm, keepInSnapshot, NEAR_RADIUS_KM, toSnapshotAircraft } from './lib/adsblol.mjs';
+import { detectArrivals, mergeHistory } from './lib/history.mjs';
 import { createRouteLookup } from './lib/routes.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUTPUT = resolve(HERE, '../public/data/flights/EGCC-arrivals.json');
+const HISTORY_OUTPUT = resolve(HERE, '../public/data/flights/EGCC-history.json');
+const HISTORY_URL = 'https://sayamdev.github.io/setoffiq/data/flights/EGCC-history.json';
+const TIME_ZONE = 'Europe/London';
 
 const AIRPORT = { icao: 'EGCC', latitude: 53.3537, longitude: -2.275 };
 /**
@@ -87,9 +91,52 @@ async function main() {
 
   await mkdir(dirname(OUTPUT), { recursive: true });
   await writeFile(OUTPUT, `${JSON.stringify(snapshot, null, 2)}\n`);
+  await recordArrivals(aircraft, nowMs);
+
   const withRoutes = aircraft.filter((entry) => entry.route).length;
   console.log(
     `Wrote ${aircraft.length} aircraft (${withRoutes} with a reported route${routes.available ? '' : '; route data unavailable'}) to ${OUTPUT}`,
+  );
+}
+
+/**
+ * The arrival record lives on the published site and is carried forward run to
+ * run. Every copy that can be found is read — the live site, the CI cache, and
+ * the one in the repository — and the newest wins, so a single failed fetch
+ * cannot wipe two weeks of history.
+ */
+async function loadPreviousHistory() {
+  const candidates = [];
+  try {
+    const response = await fetch(`${HISTORY_URL}?t=${Date.now()}`, { signal: AbortSignal.timeout(15_000) });
+    if (response.ok) candidates.push(await response.json());
+  } catch {
+    // Fall back to the local copies below.
+  }
+  for (const path of [process.env.HISTORY_CACHE_FILE, HISTORY_OUTPUT].filter(Boolean)) {
+    try {
+      candidates.push(JSON.parse(await readFile(path, 'utf8')));
+    } catch {
+      // Missing or unreadable: not this one.
+    }
+  }
+  const valid = candidates.filter((entry) => entry && typeof entry.flights === 'object' && entry.generatedAt);
+  valid.sort((a, b) => Date.parse(b.generatedAt) - Date.parse(a.generatedAt));
+  return valid[0] ?? null;
+}
+
+async function recordArrivals(aircraft, nowMs) {
+  const previous = await loadPreviousHistory();
+  const arrivals = detectArrivals(aircraft, AIRPORT);
+  const history = mergeHistory(previous, arrivals, nowMs, TIME_ZONE, AIRPORT.icao);
+  const body = `${JSON.stringify(history)}\n`;
+  await writeFile(HISTORY_OUTPUT, body);
+  if (process.env.HISTORY_CACHE_FILE) {
+    await mkdir(dirname(process.env.HISTORY_CACHE_FILE), { recursive: true });
+    await writeFile(process.env.HISTORY_CACHE_FILE, body);
+  }
+  console.log(
+    `Arrival record: ${arrivals.length} landing now, ${Object.keys(history.flights).length} callsigns since ${history.recordingSince}`,
   );
 }
 

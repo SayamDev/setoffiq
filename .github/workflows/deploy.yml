@@ -60,6 +60,16 @@ jobs:
           rm -rf .cache/standing-data
           mv .cache/standing-data.new .cache/standing-data
 
+      # SetoffIQ's own record of arrivals. The published copy on the site is
+      # the main one; this cache is a second, so one failed fetch of the live
+      # file cannot reset two weeks of history. A new key every run, restored
+      # from the most recent.
+      - uses: actions/cache@v4
+        with:
+          path: .cache/history
+          key: arrival-history-${{ github.run_id }}
+          restore-keys: arrival-history-
+
       # Aircraft near the airport from adsb.lol (ODbL 1.0), keyless. If it
       # fails the committed snapshot is used instead, so a bad run never
       # publishes an empty one — and the app will not place aircraft from a
@@ -68,6 +78,7 @@ jobs:
         continue-on-error: true
         env:
           STANDING_DATA_DIR: .cache/standing-data
+          HISTORY_CACHE_FILE: .cache/history/EGCC-history.json
         run: node scripts/fetch-flight-snapshot.mjs
 
       # Aerodrome observation. Free and keyless, but the Aviation Weather

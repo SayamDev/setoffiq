@@ -38,7 +38,7 @@ describe('planning a pickup from an aircraft in the air', () => {
     const user = userEvent.setup();
     render(<JourneyForm kind="pickup" airport={MANCHESTER} now={Date.now()} onSubmit={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: /Collecting from a flight that's in the air/ }));
+    await user.click(screen.getByRole('button', { name: /Collecting from a flight landing soon/ }));
     await user.click(await screen.findByRole('button', { name: /RYR61UR.*Ryanair.*from Ibiza/s }));
 
     expect(screen.getByLabelText('Flight number (optional)')).toHaveValue('RYR61UR');

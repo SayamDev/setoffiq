@@ -125,6 +125,21 @@
   color: var(--ink-3);
 }
 
+/* "Later than usual", "Not seen yet": the one thing on a row worth noticing. */
+.notice {
+  color: var(--amber-2);
+  font-weight: 600;
+}
+
+.sectionTitle {
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-top: var(--space-3);
+}
+
 .callsign {
   font-size: var(--t-xs);
   color: var(--ink-3);

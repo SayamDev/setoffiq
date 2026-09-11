@@ -161,6 +161,45 @@ of the picker: nobody is collected from them.
 
 ---
 
+## SetoffIQ's own record of arrivals
+
+- **What it is:** a rolling two-week log of which callsigns landed at
+  Manchester on which days, and at roughly what time, written by the snapshot
+  job and published as `data/flights/EGCC-history.json`. It is derived from
+  adsb.lol data, so it is offered under ODbL 1.0 like the snapshot.
+- **Why it exists:** no free source says what lands *later today* — every
+  schedule API either meters usage or forbids this use. But the job already
+  sees every aircraft near the airport four times an hour, and airlines fly
+  much the same timetable day after day. So the picker can say *"usually lands
+  around 21:40 — seen on 6 of the last 7 days"*, and that is a measurement, not
+  a guess.
+- **How a landing is noticed** (`scripts/lib/history.mjs`, tested):
+  on the ground at the airport with a reported route here; or descending, low
+  and within 15 km (on final — no route needed); or descending within 60 km
+  with a reported route here, with touchdown predicted from distance and speed.
+  The 60 km zone matters: a final approach lasts about four minutes and the job
+  runs every fifteen, so final alone would miss most landings. One landing per
+  callsign per local day is kept, timed from the sighting nearest the airport.
+- **Precision:** about a quarter of an hour, set by the job's cadence. The app
+  says "around" and "usually".
+- **What counts as usual:** seen landing on at least three of the last seven
+  days. The time is the average on a clock face, so 23:55 and 00:05 average to
+  midnight, not noon.
+- **Delays and cancellations — what can and cannot be said.**
+  - An aircraft in the air whose position puts it 15 minutes or more off its
+    usual time says so: *"~25 min later than usual"*. That is measured.
+  - A flight whose usual time passed 20 minutes to 3 hours ago, not seen in the
+    air or landing, says *"Not seen yet — late, cancelled or not flying
+    today"*. SetoffIQ cannot tell those apart, and does not pretend to.
+  - **It cannot see cancellations.** No free source publishes them. The list
+    says so and points to the airline.
+- **Persistence:** each run reads the previous record from the live site, the
+  CI cache and the copy in the repository, and the newest wins, so one failed
+  fetch cannot wipe two weeks of history.
+- **Warm-up:** recording began on 11 September 2026. A flight needs three days
+  of landings before it appears; until then the section says when recording
+  started.
+
 ## NOAA Aviation Weather Center
 
 - **Official documentation:** https://aviationweather.gov/data/api/

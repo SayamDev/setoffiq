@@ -11,9 +11,9 @@ import type {
   PickupMode,
 } from '../domain/types';
 import { geocodePostcode, isValidPostcodeShape } from '../services/routing';
-import { normaliseFlightNumber, type InboundAircraft } from '../services/flight';
+import { normaliseFlightNumber } from '../services/flight';
 import { Button, Field, ui } from './ui';
-import { InboundPicker } from './InboundPicker';
+import { InboundPicker, type PickedFlight } from './InboundPicker';
 import styles from './JourneyForm.module.css';
 
 interface FormState {
@@ -46,8 +46,8 @@ export function JourneyForm({
   const errorRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
-  /** Whether the date and time came from a picked aircraft rather than a booking. */
-  const [whenFromAircraft, setWhenFromAircraft] = useState(false);
+  /** Where the date and time came from, when not typed from a booking. */
+  const [whenFrom, setWhenFrom] = useState<PickedFlight['basis'] | null>(null);
   /** Whether someone chose the date, rather than leaving the default. */
   const [dateChosen, setDateChosen] = useState(false);
   /** Whether a time already past today was taken to mean tomorrow. */
@@ -68,21 +68,21 @@ export function JourneyForm({
   };
 
   /*
-   * Picking an aircraft that is already in the air gives everything the time
-   * field was for: the flight number, and an arrival from its position. The
-   * route's origin settles domestic or international where it is known.
+   * A picked flight gives everything the time field was for: the flight
+   * number, and an arrival — from a live position, or from when it usually
+   * lands. The route's origin settles domestic or international where known.
    */
-  const fillFromAircraft = (aircraft: InboundAircraft): void => {
-    update('flightNumber', aircraft.flightNumber ?? aircraft.callsign);
-    if (aircraft.estimatedArrival !== null) {
-      update('date', todayInZone(aircraft.estimatedArrival, airport.timeZone));
-      update('time', formatClock(aircraft.estimatedArrival, airport.timeZone));
-      setWhenFromAircraft(true);
+  const fillFromPick = (flight: PickedFlight): void => {
+    update('flightNumber', flight.flightNumber);
+    if (flight.arriveAt !== null) {
+      update('date', todayInZone(flight.arriveAt, airport.timeZone));
+      update('time', formatClock(flight.arriveAt, airport.timeZone));
+      setWhenFrom(flight.basis);
       setDateChosen(true);
       setTakenAsTomorrow(false);
     }
-    if (aircraft.fromCountry) {
-      update('passengerRoute', aircraft.fromCountry === 'GB' ? 'domestic' : 'international');
+    if (flight.fromCountry) {
+      update('passengerRoute', flight.fromCountry === 'GB' ? 'domestic' : 'international');
     }
   };
 
@@ -187,7 +187,7 @@ export function JourneyForm({
         the recommendation works.
       </p>
 
-      {kind === 'pickup' ? <InboundPicker airport={airport} onPick={fillFromAircraft} /> : null}
+      {kind === 'pickup' ? <InboundPicker airport={airport} onPick={fillFromPick} /> : null}
 
       <div className={ui.stackTight}>
         <div className={styles.grid}>
@@ -204,7 +204,7 @@ export function JourneyForm({
               min={earliestSelectableDate(kind, now, airport.timeZone)}
               onChange={(event) => {
                 update('date', event.target.value);
-                setWhenFromAircraft(false);
+                setWhenFrom(null);
                 setDateChosen(true);
                 setTakenAsTomorrow(false);
               }}
@@ -223,7 +223,7 @@ export function JourneyForm({
               onChange={(event) => {
                 const time = event.target.value;
                 update('time', time);
-                setWhenFromAircraft(false);
+                setWhenFrom(null);
                 // A time already gone today, with the date left at its default,
                 // almost always means tomorrow: 01:05 typed at 19:00.
                 if (!dateChosen) {
@@ -241,9 +241,11 @@ export function JourneyForm({
         {/* One note for the pair, below it: a hint inside only the time field
             pushed that box lower than the date box beside it. */}
         <p className={ui.hint} id={`${baseId}-when-note`}>
-          {whenFromAircraft
+          {whenFrom === 'position'
             ? "Filled in from the aircraft's position. Change them if the booking says otherwise."
-            : takenAsTomorrow
+            : whenFrom === 'usual'
+              ? 'Filled in from when this flight usually lands. Check the time on the booking.'
+              : takenAsTomorrow
               ? `Taken as tomorrow, ${formatDate(parseLocalDateTime(state.date, state.time, airport.timeZone) ?? now, airport.timeZone)}, because ${state.time} today has already passed. Change the date if you meant another day.`
               : 'The date and time on your booking.'}
         </p>

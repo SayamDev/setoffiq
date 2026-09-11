@@ -7,3 +7,5 @@ export type { FlightSnapshot, SnapshotAircraft } from './snapshotTypes';
 export { listInboundAircraft, SnapshotTooOldError } from './inbound';
 export type { InboundAircraft } from './inbound';
 export { callsignToFlightNumber } from './callsigns';
+export { loadArrivalHistory, minutesAgainstUsual, usualArrivals, USUAL_MIN_DAYS } from './history';
+export type { ArrivalHistory, UsualArrival } from './history';
