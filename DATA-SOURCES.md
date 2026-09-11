@@ -143,19 +143,32 @@ this feed:
   because it is genuinely ambiguous, not because it is settled.
 - **¶17** permits immediate termination for abuse, explicitly including
   *"inadvertent disruption of NH's systems due to incorrect operation or design
-  of Your interface"*. SetoffIQ makes two requests per scheduled run on a
-  fifteen-minute cadence, caps pagination at four pages, and treats a 429 as a
-  hard failure — roughly eight calls an hour against a limit of ten a minute.
+  of Your interface"*. The snapshot job is built to stay comfortably clear of
+  the limit rather than merely under it: at most three pages per closure type,
+  six seconds apart, the two types fetched in sequence rather than in parallel,
+  and a 429 treated as a hard failure that publishes nothing. Worst case is six
+  requests spread across about thirty seconds, once every fifteen minutes —
+  roughly 24 calls an hour against a documented limit of 600.
 - **¶2** allows the licence to be revised at any time without notice, with
   continued use counting as acceptance. This is why the feed sits behind a
   provider interface and can be removed without touching the engine.
 - **¶20(b)** requires NH's trademarks and branding to be respected. SetoffIQ
   displays the attribution text only and uses no National Highways logo.
 
-The six-month notice clause is the one thing to keep an eye on. It does not
-create billing risk today — a charge would require actively agreeing to pay —
-but it is the reason the provider sits behind an interface rather than being
-wired directly into the engine.
+### If National Highways ever announces charges
+
+Clause 13 requires a minimum of six months' notice, sent to the registered
+email, with the proposed charges. Nothing can bill silently: there is no payment
+method on file and no billing mechanism in the licence.
+
+If that notice arrives, **delete the `NATIONAL_HIGHWAYS_KEY` repository
+secret.** The next scheduled run writes no file, the app returns to reporting
+road disruption as "not checked", and nothing else in the product changes. That
+is the whole migration path, and it is why this feed sits behind a provider
+interface rather than being wired into the engine.
+
+There is no penalty or indemnity clause in the licence. The remedies available
+to NH under ¶14–17 are suspension or termination of supply.
 
 The endpoint is `https://api.data.nationalhighways.co.uk/roads/v2.0/closures`,
 confirmed to exist because it answers `401 Invalid Subscription Key` rather than

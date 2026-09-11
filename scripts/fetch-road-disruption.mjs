@@ -36,6 +36,24 @@ const SEARCH_RADIUS_KM = 40;
 /** How far ahead planned works are worth knowing about for one airport run. */
 const LOOK_AHEAD_HOURS = 6;
 
+/** Deliberately well inside the documented 10 calls per minute per key. */
+const MAX_PAGES = 3;
+const REQUEST_SPACING_MS = 6_000;
+
+function pause(ms, signal) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(timer);
+        reject(new Error('aborted'));
+      },
+      { once: true },
+    );
+  });
+}
+
 const KEY = process.env.NATIONAL_HIGHWAYS_KEY ?? '';
 const BASE =
   process.env.ROAD_DISRUPTION_URL ?? 'https://api.data.nationalhighways.co.uk/roads/v2.0/closures';
@@ -99,8 +117,16 @@ async function collect(closureType, now, signal) {
   const collected = [];
   let pageCursor;
 
-  // Bounded: the rate limit is 10 calls a minute, and this runs twice.
-  for (let page = 0; page < 4; page += 1) {
+  /*
+   * Bounded and spaced. Clause 17 allows immediate termination for
+   * "inadvertent disruption of NH's systems due to incorrect operation or
+   * design of Your interface", so this stays comfortably clear of the
+   * documented 10-calls-per-minute limit rather than merely under it: at most
+   * three pages per closure type, six seconds apart, two types in sequence.
+   * Worst case is six requests spread over about thirty seconds.
+   */
+  for (let page = 0; page < MAX_PAGES; page += 1) {
+    if (page > 0) await pause(REQUEST_SPACING_MS, signal);
     const payload = await fetchPage({ closureType, startDateTime, endDateTime, pageCursor, signal });
     const parsed = parseClosures(payload, {
       now,
@@ -130,14 +156,15 @@ async function main() {
 
   const now = Date.now();
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 40_000);
+  const timeout = setTimeout(() => controller.abort(), 120_000);
 
   let disruptions = [];
   try {
-    const [planned, unplanned] = await Promise.all([
-      collect('planned', now, controller.signal),
-      collect('unplanned', now, controller.signal),
-    ]);
+    // Sequential, not parallel: two concurrent paginated fetches would double
+    // the instantaneous rate for no benefit on a fifteen-minute schedule.
+    const unplanned = await collect('unplanned', now, controller.signal);
+    await pause(REQUEST_SPACING_MS, controller.signal);
+    const planned = await collect('planned', now, controller.signal);
 
     const byId = new Map();
     for (const entry of [...unplanned, ...planned]) {
