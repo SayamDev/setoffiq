@@ -3,7 +3,8 @@
 Every external service SetoffIQ uses, what it actually provides, and its terms
 as verified against the provider's own primary documentation.
 
-**All entries verified: 10 September 2026.**
+**All entries verified: 10 September 2026, with aerodrome observations and the
+road-data assessment added 11 September 2026.**
 
 ---
 
@@ -56,6 +57,67 @@ be matched — no attempt is made to fake it.
 
 - **Fallback:** the user's scheduled time, clearly labelled as such, with
   reduced confidence.
+
+---
+
+## NOAA Aviation Weather Center
+
+- **Official documentation:** https://aviationweather.gov/data/api/
+- **Purpose:** Conditions at the aerodrome itself — a different question from
+  the forecast along the drive.
+- **Data returned:** METAR observations (wind, visibility, cloud layers,
+  temperature, altimeter, flight category) and TAF forecasts, by ICAO code.
+- **Authentication:** None. No API key.
+- **Rate limit:** None published. SetoffIQ fetches once per scheduled run.
+- **Free-use conditions:** United States government data, in the public domain.
+  No account, no payment method, no billing mechanism.
+- **Attribution:** "Aerodrome observations from the NOAA Aviation Weather Center
+  (aviationweather.gov)" — shown in the application footer.
+- **CORS:** The API sends **no** `access-control-allow-origin` header — verified
+  11 September 2026 — so a browser on another origin cannot call it. It is
+  fetched by the scheduled job and published as a static file, the same pattern
+  used for aircraft positions.
+- **What it genuinely adds:** an observation of the airport rather than a
+  forecast point some miles away, in the terms that govern how quickly arrivals
+  are landed. Low visibility and low cloud genuinely reduce landing rates.
+- **What it does not do:** predict a delay. SetoffIQ says poor conditions *can*
+  slow arrivals and widens its uncertainty accordingly; it never claims to know
+  a particular flight will be late.
+- **Fallback:** the recommendation is calculated without an airport-conditions
+  signal, and the table says it is unavailable.
+
+---
+
+## Road disruption and roadworks — assessed and not used
+
+Live road disruption would be genuinely valuable, and three sources were
+examined on 11 September 2026. None is currently used, for reasons worth
+recording rather than glossing.
+
+| Source | Finding |
+| --- | --- |
+| [National Highways closures API](https://api.data.nationalhighways.co.uk/) | Returns `401 {"message":"Invalid Subscription Key"}`. Requires registration and a subscription key. |
+| [WebTRIS](https://webtris.nationalhighways.co.uk/api/swagger/ui/index) | Free, keyless and CORS-enabled — but it serves **MIDAS traffic-count sensor archives** (20,076 loop sites), not closures or incidents. It is the wrong dataset for this question. |
+| [Street Manager](https://www.gov.uk/guidance/find-and-use-roadworks-data) | GOV.UK states plainly: "You need to create an account to access the roadworks API service." Registration required. |
+
+**On keyed sources.** Requiring a key does not by itself rule a source out. A
+key can be held in repository secrets and used by the scheduled job, exactly as
+the flight and conditions snapshots work — the key never reaches a browser, and
+no visitor is ever asked for one or charged anything. `deploy.yml` carries a
+commented step showing where such a source would go.
+
+Two things must be true before one is switched on:
+
+1. **Its terms must be verified against the £0 rule.** Free registration is not
+   the same as free at volume, and a source that can bill at scale fails the
+   requirement that a usage mistake cannot create a cost.
+2. **The app must be no worse without it.** Anyone forking this repository will
+   not have the owner's key, so a keyed source can only ever add a signal — it
+   can never become load-bearing.
+
+Neither National Highways nor Street Manager has been registered or verified, so
+neither is enabled. SetoffIQ does not claim to know about road disruption, and
+the journey estimate widens its upper bound for traffic generally instead.
 
 ---
 

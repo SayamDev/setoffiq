@@ -3,7 +3,7 @@ import { MANCHESTER } from '../airports';
 import { formatClock, minutesBetween } from '../time';
 import { calculateDropoffRecommendation } from './dropoff';
 import type { DropoffEngineInput } from './inputs';
-import { flight, manTime, noRoute, okRoute, weather } from '../../test/factories';
+import { flight, manTime, noRoute, okRoute, weather, conditions } from '../../test/factories';
 
 const at = (instant: number): string => formatClock(instant, MANCHESTER.timeZone);
 
@@ -20,6 +20,7 @@ function dropoffInput(overrides: Partial<DropoffEngineInput> = {}): DropoffEngin
     flight: flight({ scheduledDeparture }),
     route: okRoute(45),
     weather: weather('clear', scheduledDeparture),
+    airportConditions: conditions('VFR', scheduledDeparture),
     ...overrides,
   };
 }

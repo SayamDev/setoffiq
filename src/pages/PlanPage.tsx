@@ -9,6 +9,8 @@ import { JourneyForm } from '../components/JourneyForm';
 import { JourneyTimeline } from '../components/JourneyTimeline';
 import { RecommendationCard } from '../components/RecommendationCard';
 import { ReasoningPanel } from '../components/ReasoningPanel';
+import { SignalTable } from '../components/SignalTable';
+import { ReadinessStages } from '../components/ReadinessStages';
 import { WeatherCard } from '../components/WeatherCard';
 import { Button, Callout, Card, Skeleton, ui } from '../components/ui';
 import { useJourneyPlan } from '../hooks/useJourneyPlan';
@@ -134,6 +136,27 @@ export function PlanPage({
                 open.
               </p>
             </RecommendationCard>
+
+            <section className={styles.section} aria-labelledby="affecting-heading">
+              <h2 className={styles.sectionTitle} id="affecting-heading">
+                What's affecting your timing?
+              </h2>
+              <SignalTable
+                signals={plan.recommendation.signals}
+                confidence={plan.recommendation.confidence}
+                now={now}
+                timeZone={airport.timeZone}
+              />
+            </section>
+
+            {plan.recommendation.kind === 'pickup' ? (
+              <section className={styles.section} aria-labelledby="progress-heading">
+                <h2 className={styles.sectionTitle} id="progress-heading">
+                  Where your passenger is
+                </h2>
+                <ReadinessStages progress={plan.recommendation.progress} />
+              </section>
+            ) : null}
 
             <section className={styles.section} aria-labelledby="why-heading">
               <h2 className={styles.sectionTitle} id="why-heading">

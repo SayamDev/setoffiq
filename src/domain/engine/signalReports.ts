@@ -1,0 +1,143 @@
+import { FLIGHT_SNAPSHOT_STALE_AFTER_MINUTES } from '../assumptions';
+import type { SignalImpact, SignalReport, SignalState } from '../signals';
+import { formatMinuteRange, minutesBetween } from '../time';
+import type { MinuteRange } from '../types';
+import type { JourneyEngineInput } from './inputs';
+import type { JourneyEstimate } from './journeyWindow';
+
+function ageState(observedAt: number | null, now: number): SignalState {
+  if (observedAt === null) return { kind: 'assumed' };
+  const ageMinutes = -minutesBetween(now, observedAt);
+  return ageMinutes > FLIGHT_SNAPSHOT_STALE_AFTER_MINUTES
+    ? { kind: 'stale', observedAt, ageMinutes }
+    : { kind: 'live', observedAt };
+}
+
+/**
+ * Describe each input to the recommendation in its own terms.
+ *
+ * This is what the user sees under "What's affecting your timing?", and it is
+ * also what confidence is derived from — so the score can never disagree with
+ * the table explaining it.
+ */
+export function buildSignalReports(
+  input: JourneyEngineInput,
+  journey: JourneyEstimate,
+  processing: MinuteRange,
+): SignalReport[] {
+  const reports: SignalReport[] = [];
+
+  // --- The flight -----------------------------------------------------------
+  const flight = input.flight.value;
+  if (input.flight.state === 'unavailable' || !flight) {
+    reports.push({
+      id: 'flight',
+      label: 'Flight',
+      state: { kind: 'unavailable', reason: 'No live flight information could be retrieved.' },
+      summary:
+        input.journeyKind === 'pickup'
+          ? 'Working from the scheduled time you entered.'
+          : 'Working from the departure time on your booking.',
+      impact: input.journeyKind === 'pickup' ? 'high' : 'none',
+    });
+  } else if (flight.position && flight.estimatedArrivalSource === 'live-position') {
+    reports.push({
+      id: 'flight',
+      label: 'Flight',
+      state: ageState(input.flight.observedAt, input.now),
+      summary: `Aircraft seen ${flight.position.distanceToAirportKm} km out; arrival estimated from its position.`,
+      impact: 'none',
+    });
+  } else if (flight.estimatedArrivalSource === 'scenario') {
+    reports.push({
+      id: 'flight',
+      label: 'Flight',
+      state: { kind: 'assumed' },
+      summary: 'Simulated by a test scenario. This is not live information.',
+      impact: 'moderate',
+    });
+  } else {
+    reports.push({
+      id: 'flight',
+      label: 'Flight',
+      state: { kind: 'user-supplied' },
+      summary:
+        input.journeyKind === 'pickup'
+          ? 'No aircraft found for this flight number, so your scheduled time is used as-is.'
+          : 'The departure time on your booking.',
+      impact: input.journeyKind === 'pickup' ? 'moderate' : 'none',
+    });
+  }
+
+  // --- Conditions at the airport -------------------------------------------
+  const conditions = input.airportConditions?.value ?? null;
+  if (!conditions) {
+    reports.push({
+      id: 'airport-conditions',
+      label: 'Airport conditions',
+      state: { kind: 'unavailable', reason: 'No airport observation available.' },
+      summary: 'Conditions at the airport could not be checked.',
+      impact: 'low',
+    });
+  } else {
+    const poor = conditions.flightCategory === 'IFR' || conditions.flightCategory === 'LIFR';
+    reports.push({
+      id: 'airport-conditions',
+      label: 'Airport conditions',
+      state: ageState(input.airportConditions?.observedAt ?? null, input.now),
+      summary: poor
+        ? `${conditions.summary}. Low-visibility conditions can slow the rate arrivals are landed.`
+        : conditions.summary,
+      impact: poor ? 'moderate' : 'none',
+    });
+  }
+
+  // --- Weather on the journey ----------------------------------------------
+  const weather = input.weather.value;
+  if (!weather) {
+    reports.push({
+      id: 'journey-weather',
+      label: 'Weather',
+      state: { kind: 'unavailable', reason: 'Forecast unavailable.' },
+      summary: 'Not reflected in the journey estimate.',
+      impact: 'low',
+    });
+  } else {
+    reports.push({
+      id: 'journey-weather',
+      label: 'Weather',
+      state: ageState(input.weather.observedAt, input.now),
+      summary:
+        weather.severity === 'clear'
+          ? `${weather.description}. Not adding to the journey estimate.`
+          : `${weather.description}. Widening the slower end of the drive.`,
+      impact: weather.severity === 'poor' ? 'moderate' : weather.severity === 'moderate' ? 'low' : 'none',
+    });
+  }
+
+  // --- The drive ------------------------------------------------------------
+  const spread = journey.baseMinutes > 0
+    ? (journey.range.maxMinutes - journey.range.minMinutes) / journey.baseMinutes
+    : 0;
+  const routeImpact: SignalImpact = !journey.routed ? 'high' : spread > 0.3 ? 'moderate' : 'low';
+  reports.push({
+    id: 'route',
+    label: 'Route',
+    state: journey.routed ? { kind: 'live', observedAt: input.now } : { kind: 'assumed' },
+    summary: journey.routed
+      ? `${formatMinuteRange(journey.range)}, routed over real roads. No live traffic data exists in this source, so the slower end carries that allowance.`
+      : `${formatMinuteRange(journey.range)}, estimated from straight-line distance because no routing service answered.`,
+    impact: routeImpact,
+  });
+
+  // --- Getting through the airport -----------------------------------------
+  reports.push({
+    id: 'processing',
+    label: 'Passenger processing',
+    state: { kind: 'assumed' },
+    summary: `${formatMinuteRange(processing)} — a SetoffIQ assumption. No source publishes live border, baggage or security queues.`,
+    impact: 'moderate',
+  });
+
+  return reports;
+}

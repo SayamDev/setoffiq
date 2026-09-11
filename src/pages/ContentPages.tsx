@@ -241,6 +241,20 @@ export function DataSourcesPage(): React.JSX.Element {
               </tr>
               <tr>
                 <th scope="row">
+                  <a href="https://aviationweather.gov/data/api/" rel="noreferrer noopener">
+                    NOAA Aviation Weather Center
+                  </a>
+                </th>
+                <td>Conditions at the airport itself, from the aerodrome observation.</td>
+                <td>
+                  United States government data, in the public domain. No key and no billing
+                  mechanism. It sends no CORS header, so SetoffIQ reads a scheduled snapshot rather
+                  than calling it from your browser.
+                </td>
+                <td>The recommendation is calculated without an airport-conditions signal.</td>
+              </tr>
+              <tr>
+                <th scope="row">
                   <a href="https://open-meteo.com/" rel="noreferrer noopener">
                     Open-Meteo
                   </a>
@@ -316,6 +330,14 @@ export function DataSourcesPage(): React.JSX.Element {
               <strong>Address autocomplete.</strong> The open geocoder that would allow it asks
               applications not to implement client-side autocomplete against it, so SetoffIQ asks
               for a postcode instead.
+            </li>
+            <li>
+              <strong>Live road closures and roadworks.</strong> The National Highways closures
+              feed and the Street Manager roadworks API both require a registered key, and the one
+              free keyless National Highways service — WebTRIS — serves historical traffic-sensor
+              archives rather than closures. SetoffIQ therefore does not claim to know about road
+              disruption; the journey estimate widens its upper bound for traffic generally
+              instead.
             </li>
             <li>
               <strong>Analytics and trackers.</strong> None, by design.

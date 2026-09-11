@@ -84,6 +84,26 @@ function stubNetwork(): void {
       if (url.includes('data/flights')) {
         return json(snapshot());
       }
+      if (url.includes('data/airport')) {
+        return json({
+          generatedAt: new Date().toISOString(),
+          icaoCode: 'EGCC',
+          source: 'test',
+          attribution: 'test',
+          conditions: {
+            icaoCode: 'EGCC',
+            observedAt: Date.now(),
+            temperatureC: 16,
+            windDirectionDeg: 260,
+            windSpeedKt: 6,
+            visibility: '6+',
+            ceilingFt: 4200,
+            flightCategory: 'VFR',
+            raw: 'METAR EGCC 110820Z 26006KT 9999 SCT042 16/14 Q1018',
+            summary: 'Clear and unrestricted',
+          },
+        });
+      }
       throw new Error(`unexpected request: ${url}`);
     }),
   );

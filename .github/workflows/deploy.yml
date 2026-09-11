@@ -41,6 +41,37 @@ jobs:
         continue-on-error: true
         run: node scripts/fetch-flight-snapshot.mjs
 
+      # Aerodrome observation. Free and keyless, but the Aviation Weather
+      # Center sends no CORS header, so it is fetched here rather than in the
+      # browser — the same pattern as the flight snapshot.
+      - name: Refresh airport conditions snapshot
+        continue-on-error: true
+        run: node scripts/fetch-airport-conditions.mjs
+
+      # ---------------------------------------------------------------------
+      # Where a keyed source would go.
+      #
+      # A free API that requires registration is still usable, as long as the
+      # key never reaches the browser. This job is the right place for it: the
+      # key lives in repository secrets, the request happens here, and the
+      # browser only ever reads the static JSON that results.
+      #
+      # National Highways' closures feed and the Street Manager roadworks API
+      # both work this way. Neither is enabled, because neither has been
+      # registered and their terms have not been verified against the £0 rule —
+      # free registration is not the same as free at volume.
+      #
+      # To enable one: add the secret, drop the `if:` guard, and the app picks
+      # up the extra file. Without it the recommendation is unchanged, just
+      # without a road-disruption signal.
+      #
+      # - name: Refresh road disruption snapshot
+      #   if: ${{ secrets.NATIONAL_HIGHWAYS_KEY != '' }}
+      #   continue-on-error: true
+      #   env:
+      #     NATIONAL_HIGHWAYS_KEY: ${{ secrets.NATIONAL_HIGHWAYS_KEY }}
+      #   run: node scripts/fetch-road-disruption.mjs
+
       - run: npm run build
 
       - uses: actions/configure-pages@v5

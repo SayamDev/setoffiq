@@ -1,3 +1,5 @@
+import type { ReadinessProgress, SignalReport } from './signals';
+
 /**
  * SetoffIQ domain model.
  *
@@ -214,6 +216,41 @@ export interface WeatherSnapshot {
   validFor: Instant;
 }
 
+/**
+ * Conditions at the airport itself, from an aviation routine weather report.
+ *
+ * This is a different question from the weather on the drive: a METAR
+ * describes the aerodrome, in aviation terms, and is the better signal for
+ * whether arrivals are being slowed. It says nothing about traffic, and
+ * nothing about queues inside the terminal.
+ */
+export interface AirportConditions {
+  icaoCode: string;
+  observedAt: Instant;
+  temperatureC: number | null;
+  windDirectionDeg: number | null;
+  windSpeedKt: number | null;
+  /** As reported, e.g. "6+" statute miles. Kept verbatim rather than parsed. */
+  visibility: string | null;
+  ceilingFt: number | null;
+  /** Aviation flight category, when the source supplies one. */
+  flightCategory: 'VFR' | 'MVFR' | 'IFR' | 'LIFR' | null;
+  /** The untouched observation, so nothing is hidden behind our parsing. */
+  raw: string;
+  /** A plain-language line built at normalisation time. */
+  summary: string;
+}
+
+export interface AirportConditionsProvider {
+  readonly id: string;
+  readonly label: string;
+  readonly attribution: string | null;
+  getConditions(
+    airport: AirportProfile,
+    signal?: AbortSignal,
+  ): Promise<Observed<AirportConditions>>;
+}
+
 export interface GeoPoint {
   latitude: number;
   longitude: number;
@@ -280,7 +317,14 @@ export interface RecommendationFactor {
   basis: 'live-data' | 'user-supplied' | 'assumption' | 'unavailable';
 }
 
-export type AdvisoryKind = 'plan' | 'wait' | 'leave-now' | 'running-late' | 'blocked';
+export type AdvisoryKind =
+  | 'plan'
+  | 'wait'
+  /** The departure window opens shortly — time to get ready. */
+  | 'get-ready'
+  | 'leave-now'
+  | 'running-late'
+  | 'blocked';
 
 export interface Advisory {
   kind: AdvisoryKind;
@@ -302,12 +346,16 @@ interface RecommendationBase {
   journey: MinuteRange;
   confidence: ConfidenceAssessment;
   factors: RecommendationFactor[];
+  /** Every input, described in its own terms. Confidence is derived from these. */
+  signals: SignalReport[];
   advisory: Advisory;
 }
 
 export interface PickupRecommendation extends RecommendationBase {
   kind: 'pickup';
   readiness: PassengerReadinessEstimate;
+  /** How far along the passenger is, and whether that was observed or inferred. */
+  progress: ReadinessProgress;
   mode: PickupMode;
 }
 

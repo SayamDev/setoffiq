@@ -8,6 +8,7 @@ const SIGNAL_CLASS: Record<AdvisoryKind, string> = {
   'leave-now': styles.signalGo!,
   wait: styles.signalWait!,
   plan: styles.signalWait!,
+  'get-ready': styles.signalReady!,
   'running-late': styles.signalLate!,
   blocked: styles.signalLate!,
 };

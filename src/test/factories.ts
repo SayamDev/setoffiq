@@ -1,7 +1,13 @@
 import { MANCHESTER } from '../domain/airports';
 import { zonedTimeToInstant } from '../domain/time';
 import type { ProviderInput } from '../domain/engine';
-import type { FlightStatus, Instant, RouteResult, WeatherSnapshot } from '../domain/types';
+import type {
+  AirportConditions,
+  FlightStatus,
+  Instant,
+  RouteResult,
+  WeatherSnapshot,
+} from '../domain/types';
 
 const ZONE = MANCHESTER.timeZone;
 
@@ -80,6 +86,34 @@ export function flight(
 }
 
 export const noFlight: ProviderInput<FlightStatus> = {
+  value: null,
+  state: 'unavailable',
+  observedAt: null,
+};
+
+export function conditions(
+  flightCategory: AirportConditions['flightCategory'],
+  observedAt: Instant,
+): ProviderInput<AirportConditions> {
+  return {
+    value: {
+      icaoCode: 'EGCC',
+      observedAt,
+      temperatureC: 16,
+      windDirectionDeg: 260,
+      windSpeedKt: 6,
+      visibility: flightCategory === 'LIFR' ? '0.5' : '6+',
+      ceilingFt: flightCategory === 'LIFR' ? 200 : 4200,
+      flightCategory,
+      raw: 'METAR EGCC 110820Z 26006KT 9999 SCT009 SCT042 16/14 Q1018',
+      summary: flightCategory === 'VFR' ? 'Clear and unrestricted' : 'Low cloud and reduced visibility',
+    },
+    state: 'ok',
+    observedAt,
+  };
+}
+
+export const noConditions: ProviderInput<AirportConditions> = {
   value: null,
   state: 'unavailable',
   observedAt: null,

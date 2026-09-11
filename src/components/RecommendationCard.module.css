@@ -51,6 +51,11 @@
   background: var(--ink-4);
 }
 
+.signalReady {
+  composes: signal;
+  background: var(--amber-2);
+}
+
 .signalLate {
   composes: signal;
   background: var(--amber-2);

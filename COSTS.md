@@ -15,6 +15,7 @@ Verified 10 September 2026 against each provider's own documentation. See
 | Provider | Purpose | Cost | Billing risk | Terms |
 | --- | --- | ---: | --- | --- |
 | The OpenSky Network | Aircraft positions | **£0** | None — anonymous access, no account, no payment method | 400 credits/day anonymous |
+| NOAA Aviation Weather Center | Aerodrome observations (METAR) | **£0** | None — US government public-domain data, no account | No published limit |
 | Open-Meteo | Weather | **£0** | None — no key, no account, no payment method | 10,000 calls/day, non-commercial, CC BY 4.0 |
 | OSRM (FOSSGIS + project instances) | Driving times | **£0** | None — public instances, no key, no account | Fair use; no live traffic |
 | postcodes.io | UK postcode → coordinates | **£0** | None — open service, no key, no account | MIT; ONS/OS open data |
@@ -58,9 +59,24 @@ because visitors read a static file rather than calling the API.
 | Google Maps / Mapbox routing and geocoding | Pay-as-you-go with automatic billing. |
 | Hosted LLM APIs for explanations | Metered per token. The rule-based explanation is deterministic anyway, which is better for this use. |
 | Serverless proxy for the OpenSky CORS problem | Would need a platform account, and most free tiers either require a card or overflow into paid. Solved with a scheduled Actions job and a static file instead. |
+| National Highways closures, Street Manager roadworks | Both require a registered key. Usable in principle — a key in repository secrets never reaches a browser and costs a visitor nothing — but neither has been registered, and their terms have not been verified against the rule that a usage mistake cannot create a bill. See DATA-SOURCES.md. |
 | Hosted database for saved journeys | Unnecessary and worse for privacy. Journeys belong in the browser. |
 | SMS or hosted email notifications | Both cost money per message. Browser notifications are free and sufficient. |
 | Hosted analytics | Costs money at volume, and privacy-first is part of the product. |
+
+## On keys, and who would hold one
+
+A free API that requires registration is not automatically disqualified. What
+the £0 rule actually forbids is a credential in frontend code, a visitor being
+asked for a key, and a service that can bill.
+
+A key held in repository secrets and used by the scheduled snapshot job breaks
+none of those: the request happens in CI, the key never ships, and visitors only
+ever download a static file. **No visitor needs an account, a key, or a payment
+method for anything, ever.**
+
+That option is documented and deliberately unused. Every source currently
+shipping is keyless.
 
 ## Secrets
 

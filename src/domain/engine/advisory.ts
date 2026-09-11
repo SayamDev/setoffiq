@@ -21,11 +21,21 @@ export function buildPickupAdvisory(
     };
   }
 
-  if (minutesAway > 10) {
+  if (minutesAway > 25) {
     return {
       kind: 'wait',
       headline: "Don't leave yet",
       detail: `Your passenger is unlikely to be ready before ${formatClock(readiness.earliest, timeZone)}. Leaving at ${formatClock(departure, timeZone)} means less time waiting at the airport.`,
+    };
+  }
+
+  // The window is close enough that the useful instruction is "get ready",
+  // not "wait" — waiting implies there is nothing to do yet.
+  if (minutesAway > 10) {
+    return {
+      kind: 'get-ready',
+      headline: 'Get ready to leave',
+      detail: `Your departure time is in ${minutesAway} minutes, at ${formatClock(departure, timeZone)}.`,
     };
   }
 
@@ -60,11 +70,19 @@ export function buildDropoffAdvisory(
     };
   }
 
-  if (minutesAway > 10) {
+  if (minutesAway > 25) {
     return {
       kind: 'wait',
       headline: `Leave at ${formatClock(departure, timeZone)}`,
       detail: `That is ${formatDuration(minutesAway)} from now, and puts your passenger at the terminal by about ${formatClock(terminalArrival.latest, timeZone)}.`,
+    };
+  }
+
+  if (minutesAway > 10) {
+    return {
+      kind: 'get-ready',
+      headline: 'Get ready to leave',
+      detail: `Your departure time is in ${minutesAway} minutes, at ${formatClock(departure, timeZone)}.`,
     };
   }
 

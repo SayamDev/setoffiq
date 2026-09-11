@@ -1,4 +1,5 @@
 import type {
+  AirportConditions,
   AirportProfile,
   DataState,
   DropoffMode,
@@ -36,7 +37,10 @@ export interface JourneyEngineInput {
   distanceKm: number;
   flight: ProviderInput<FlightStatus>;
   route: ProviderInput<RouteResult>;
+  /** Forecast conditions along the drive. */
   weather: ProviderInput<WeatherSnapshot>;
+  /** Observed conditions at the aerodrome itself. A different question. */
+  airportConditions: ProviderInput<AirportConditions>;
 }
 
 export interface PickupEngineInput extends JourneyEngineInput {

@@ -10,6 +10,8 @@ import { JourneyTimeline } from '../components/JourneyTimeline';
 import { RecommendationCard } from '../components/RecommendationCard';
 import { ScenarioSwitcher } from '../components/ScenarioSwitcher';
 import { ReasoningPanel } from '../components/ReasoningPanel';
+import { SignalTable } from '../components/SignalTable';
+import { ReadinessStages } from '../components/ReadinessStages';
 import { WeatherCard } from '../components/WeatherCard';
 import { Badge, Button, Callout, Card, Skeleton, ui } from '../components/ui';
 import { useMonitoredJourney } from '../hooks/useMonitoredJourney';
@@ -183,6 +185,27 @@ export function JourneyPage({
             </h2>
             <JourneyTimeline recommendation={recommendation} timeZone={zone} now={now} />
           </section>
+
+          <section className={styles.section} aria-labelledby="affecting-heading">
+            <h2 className={styles.sectionTitle} id="affecting-heading">
+              What's affecting your timing?
+            </h2>
+            <SignalTable
+              signals={recommendation.signals}
+              confidence={recommendation.confidence}
+              now={now}
+              timeZone={zone}
+            />
+          </section>
+
+          {recommendation.kind === 'pickup' ? (
+            <section className={styles.section} aria-labelledby="progress-heading">
+              <h2 className={styles.sectionTitle} id="progress-heading">
+                Where your passenger is
+              </h2>
+              <ReadinessStages progress={recommendation.progress} />
+            </section>
+          ) : null}
 
           <section className={styles.section} aria-labelledby="why-heading">
             <h2 className={styles.sectionTitle} id="why-heading">

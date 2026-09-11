@@ -2,6 +2,7 @@ import { DEFAULT_AIRPORT, findAirport } from '../domain/airports';
 import { calculateDropoffRecommendation, calculatePickupRecommendation } from '../domain/engine';
 import type { ProviderInput } from '../domain/engine';
 import type {
+  AirportConditions,
   FlightStatus,
   JourneyInput,
   Observed,
@@ -9,6 +10,7 @@ import type {
   RouteResult,
   WeatherSnapshot,
 } from '../domain/types';
+import { metarConditionsProvider } from './conditions';
 import { snapshotFlightProvider } from './flight';
 import { findScenario, scenarioFlightStatus } from './flight/scenarios';
 import { haversineKm } from './geo';
@@ -19,7 +21,10 @@ export interface JourneyPlan {
   recommendation: RecommendationResult;
   flight: Observed<FlightStatus>;
   route: Observed<RouteResult>;
+  /** Forecast along the drive. */
   weather: Observed<WeatherSnapshot>;
+  /** Observed at the aerodrome. A different question from the forecast. */
+  airportConditions: Observed<AirportConditions>;
   computedAt: number;
 }
 
@@ -71,10 +76,11 @@ export async function planJourney(
         signal,
       );
 
-  const [flight, route, weather] = await Promise.all([
+  const [flight, route, weather, airportConditions] = await Promise.all([
     flightPromise,
     osrmRoutingProvider.calculateRoute({ origin: input.origin, destination }, signal),
     openMeteoProvider.getWeather(destination, input.scheduledTime, signal),
+    metarConditionsProvider.getConditions(airport, signal),
   ]);
 
   const distanceKm = haversineKm(input.origin, destination);
@@ -87,6 +93,7 @@ export async function planJourney(
     flight: toProviderInput(flight),
     route: toProviderInput(route),
     weather: toProviderInput(weather),
+    airportConditions: toProviderInput(airportConditions),
   };
 
   const recommendation =
@@ -102,5 +109,5 @@ export async function planJourney(
           mode: input.dropoffMode ?? 'drop-off',
         });
 
-  return { recommendation, flight, route, weather, computedAt: now };
+  return { recommendation, flight, route, weather, airportConditions, computedAt: now };
 }

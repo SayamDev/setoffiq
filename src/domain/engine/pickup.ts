@@ -12,6 +12,8 @@ import { buildPickupAdvisory } from './advisory';
 import { assessConfidence } from './confidence';
 import type { PickupEngineInput } from './inputs';
 import { estimateJourney } from './journeyWindow';
+import { buildSignalReports } from './signalReports';
+import { assessReadinessStage } from './stages';
 
 /**
  * The pickup calculation.
@@ -86,6 +88,8 @@ export function calculatePickupRecommendation(input: PickupEngineInput): Recomme
     latest: addMinutes(recommendedDeparture, journey.range.maxMinutes),
   };
 
+  const signals = buildSignalReports(input, journey, processing);
+
   return {
     kind: 'pickup',
     computedAt: now,
@@ -94,7 +98,9 @@ export function calculatePickupRecommendation(input: PickupEngineInput): Recomme
     airportArrivalWindow,
     journey: journey.range,
     readiness,
-    confidence: assessConfidence(input, journey, landing),
+    progress: assessReadinessStage(flight ?? null, landing, processing, now),
+    signals,
+    confidence: assessConfidence(signals, now, landing),
     advisory: buildPickupAdvisory(now, recommendedDeparture, readiness.window, airport.timeZone),
     factors: buildFactors(input, journey.uncertaintyReasons, option),
   } satisfies PickupRecommendation;

@@ -11,6 +11,7 @@ import { buildDropoffAdvisory } from './advisory';
 import { assessConfidence } from './confidence';
 import type { DropoffEngineInput } from './inputs';
 import { estimateJourney } from './journeyWindow';
+import { buildSignalReports } from './signalReports';
 
 /**
  * The drop-off calculation.
@@ -62,6 +63,8 @@ export function calculateDropoffRecommendation(input: DropoffEngineInput): Recom
     latest: addMinutes(airportArrivalWindow.latest, option.terminalBufferMinutes),
   };
 
+  const signals = buildSignalReports(input, journey, buffer);
+
   return {
     kind: 'dropoff',
     computedAt: now,
@@ -72,7 +75,8 @@ export function calculateDropoffRecommendation(input: DropoffEngineInput): Recom
     terminalArrivalWindow,
     departureBuffer: buffer,
     journey: journey.range,
-    confidence: assessConfidence(input, journey, flightDeparture),
+    signals,
+    confidence: assessConfidence(signals, now, flightDeparture),
     advisory: buildDropoffAdvisory(
       now,
       recommendedDeparture,

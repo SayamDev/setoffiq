@@ -1,0 +1,18 @@
+{
+  "generatedAt": "2026-09-11T08:57:56.472Z",
+  "icaoCode": "EGCC",
+  "source": "NOAA Aviation Weather Center — /api/data/metar",
+  "attribution": "Aerodrome observations from the NOAA Aviation Weather Center (aviationweather.gov)",
+  "conditions": {
+    "icaoCode": "EGCC",
+    "observedAt": 1789116600000,
+    "temperatureC": 16,
+    "windDirectionDeg": 270,
+    "windSpeedKt": 6,
+    "visibility": "6+",
+    "ceilingFt": 4500,
+    "flightCategory": "VFR",
+    "raw": "METAR EGCC 110850Z 27006KT 9999 FEW011 SCT017 BKN045 16/14 Q1018",
+    "summary": "Clear and unrestricted"
+  }
+}
