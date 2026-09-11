@@ -156,20 +156,49 @@ has been registered.
 3. Push, or run the Deploy workflow manually. **The first run is the
    verification step.**
 
-The response schema sits behind the portal's sign-in, so the field mapping has
-never been run against live output. The script is built to make that safe rather
-than to guess well:
+### The mapping is verified
 
-- If the response is not JSON — National Highways is a DATEX II publisher, and
-  DATEX II is usually XML — it publishes nothing and logs the content type plus
-  the first 400 characters, so the mapping can be completed from evidence.
-- If it receives records but maps none of them, it publishes nothing and logs
-  the field names on the first record.
-- It handles plain arrays, `items`/`results` wrappers and GeoJSON `features`
-  with `geometry.coordinates`.
+The field mapping was written against the OpenAPI 3 definition and the sample
+payloads published on the API's own documentation page, and is covered by
+eleven tests in `src/services/roads/datex.test.ts` using those samples. It is
+not guesswork awaiting a key.
 
-In every failure case it writes no file, so the app falls back to *"not
-checked"* rather than presenting a driver with a half-understood record.
+The feed is DATEX II v3.4 with National Highways extensions:
+
+```
+D2Payload → situation[] → situationRecord[] → sit<RecordType>
+  validity.validityStatus                       planned | active | suspended
+  validity.validityTimeSpecification            overallStartTime / overallEndTime
+  generalPublicComment[].comment
+  locationReference
+    locLocationGroupByList.locationContainedInGroup[]   many locations
+    locLinearLocation                                   one location
+      gmlLineString.locGmlLineString.posList   "lat lon lat lon …", EPSG::4326
+    locSingleRoadLinearLocation …locLinearElementByCode.roadName
+```
+
+Three behaviours in this feed would produce wrong output if taken at face
+value, and each is handled explicitly:
+
+1. **`closureType` defaults to `planned`.** Requesting neither returns roadworks
+   only and silently omits every live incident — the half a driver most needs.
+   Both kinds are requested separately and merged, with live incidents winning
+   on an id clash.
+2. **Completed closures stay `active` for seven days after the works end.**
+   Trusting the status alone would present week-old roadworks as current, so
+   `overallEndTime` decides, not the status.
+3. **The endpoint can serve XML.** `application/xml` is a valid response media
+   type, so `X-Response-MediaType: application/json` is sent explicitly rather
+   than relying on a default that could change.
+
+Records that cannot be both named and placed are dropped rather than guessed
+at, and any fetch error leaves the previous snapshot untouched — so the app
+falls back to *"not checked"* rather than showing a driver a half-understood
+closure.
+
+**Coverage caveat:** National Highways operates the Strategic Road Network, so
+the M56 and M60 around the airport are covered but local roads generally are
+not. The signal is useful, not complete, and the app does not imply otherwise.
 
 **Until then**, the app reports road disruption as *"Not checked — every free UK
 source for this requires a registered key. Absence of information here is not

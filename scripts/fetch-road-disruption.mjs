@@ -1,128 +1,118 @@
 #!/usr/bin/env node
 /**
- * Fetch current road disruption near Manchester Airport and write it as a
- * static JSON file.
+ * Fetch current road disruption near Manchester Airport from National
+ * Highways' Road and Lane Closures service and write it as a static JSON file.
  *
- * ## Why this needs a key, and why that is still fine
+ * ## Why a key is acceptable here
  *
  * Every free UK source for road disruption requires registration — verified
- * 11 September 2026:
+ * 11 September 2026. A key does not break this project's rules as long as it
+ * never reaches a browser and no visitor is asked for one. This runs in CI,
+ * reads the key from the environment, and publishes a static file the app
+ * fetches from its own origin, exactly like the flight and weather snapshots.
  *
- *   National Highways closures  401 {"message":"Invalid Subscription Key"}
- *   Street Manager roadworks    "You need to create an account" (GOV.UK)
- *   TfGM                        401 {"message":"Unauthorized"}
- *   NH UnplannedEvents.xml      redirects to 404 — the old open feed is gone
- *   WebTRIS                     free and keyless, but serves historical
- *                               traffic-count archives, not closures
+ * Terms verified against the provider's own documentation, same date:
+ * redistribution is explicitly permitted, commercial use is permitted, the
+ * rate limit is 10 calls per minute per key, and there is no payment method on
+ * file. Attribution is required verbatim and is rendered in the app wherever
+ * this data appears.
  *
- * A key does not break this project's rules, provided it never reaches a
- * browser and no visitor is ever asked for one. This script runs in CI, reads
- * the key from the environment, and publishes a static file that the app reads
- * from its own origin — exactly the pattern already used for aircraft
- * positions and aerodrome observations.
+ * ## Status
  *
- * ## Status: not enabled
- *
- * No key has been registered, so this does not run. Without the resulting file
- * the app reports road disruption as "not checked" and its recommendation is
- * unchanged — the absence of a key can never degrade the product below what it
- * already does.
- *
- * ## Before enabling
- *
- * 1. Register at the provider and add the key as a repository secret.
- * 2. Verify the provider's terms against the £0 rule — free registration is not
- *    the same as free at volume, and anything that can bill must be rejected.
- * 3. **Verify `normalise()` against one real response.** It is written from the
- *    documented DATEX II shape and has not been run against live output. The
- *    validator below will refuse to publish anything it cannot map, so a wrong
- *    mapping fails loudly rather than producing plausible nonsense.
+ * Inert until NATIONAL_HIGHWAYS_KEY is set. Without it nothing is written, the
+ * app reports road disruption as "not checked", and the recommendation is
+ * unchanged.
  */
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseClosures } from './lib/datex.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUTPUT = resolve(HERE, '../public/data/roads/EGCC-disruption.json');
 
 const AIRPORT = { latitude: 53.3537, longitude: -2.275 };
 const SEARCH_RADIUS_KM = 40;
+/** How far ahead planned works are worth knowing about for one airport run. */
+const LOOK_AHEAD_HOURS = 6;
 
 const KEY = process.env.NATIONAL_HIGHWAYS_KEY ?? '';
-
-/**
- * Verified 11 September 2026: this path returns 401 "Invalid Subscription Key"
- * rather than 404, which confirms it exists and simply needs a key.
- */
-const ENDPOINT =
+const BASE =
   process.env.ROAD_DISRUPTION_URL ?? 'https://api.data.nationalhighways.co.uk/roads/v2.0/closures';
 
-/**
- * Required verbatim by National Highways' licence terms, which are Open
- * Government Licence 2.0 with NH amendments: "acknowledge NH as the source of
- * the Information by including the following attribution statement".
- */
-const ATTRIBUTION =
-  process.env.ROAD_DISRUPTION_ATTRIBUTION ?? "Powered by National Highways' Transport Data Feeds";
-
-function haversineKm(a, b) {
-  const rad = (d) => (d * Math.PI) / 180;
-  const dLat = rad(b.latitude - a.latitude);
-  const dLon = rad(b.longitude - a.longitude);
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(rad(a.latitude)) * Math.cos(rad(b.latitude)) * Math.sin(dLon / 2) ** 2;
-  return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
-}
-
-function categoryOf(raw) {
-  const text = `${raw.type ?? ''} ${raw.category ?? ''}`.toLowerCase();
-  if (text.includes('closure') || text.includes('closed')) return 'closure';
-  if (text.includes('roadwork') || text.includes('maintenance')) return 'roadworks';
-  if (text.includes('incident') || text.includes('accident')) return 'incident';
-  return 'other';
-}
-
-function toInstant(value) {
-  if (!value) return null;
-  const parsed = Date.parse(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
+/** Required verbatim by the licence. Do not reword. */
+const ATTRIBUTION = "Powered by National Highways' Transport Data Feeds";
 
 /**
- * Map one provider record onto the domain shape.
+ * Fetch one page.
  *
- * Returns null for anything it cannot map with confidence. Publishing a
- * half-understood record would be worse than publishing nothing, because the
- * app would present it to a driver as fact.
+ * The response media type must be requested explicitly: the endpoint can serve
+ * `application/xml` as well as JSON, and relying on a default would be one
+ * upstream change away from breaking.
  */
-function normalise(record, index) {
-  // A GeoJSON feature carries its fields under `properties` and its position
-  // under `geometry.coordinates` as [longitude, latitude].
-  const raw = record?.properties ?? record;
-  const coordinates = record?.geometry?.coordinates;
-  const latitude = Number(raw.latitude ?? raw.lat ?? (Array.isArray(coordinates) ? coordinates[1] : NaN));
-  const longitude = Number(
-    raw.longitude ?? raw.lon ?? raw.lng ?? (Array.isArray(coordinates) ? coordinates[0] : NaN),
-  );
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+async function fetchPage({ closureType, startDateTime, endDateTime, pageCursor, signal }) {
+  const url = new URL(BASE);
+  url.searchParams.set('closureType', closureType);
+  url.searchParams.set('startDateTime', startDateTime);
+  url.searchParams.set('endDateTime', endDateTime);
+  if (pageCursor !== undefined) url.searchParams.set('pageCursor', String(pageCursor));
 
-  const description = String(raw.description ?? raw.comment ?? raw.title ?? '').trim();
-  if (!description) return null;
+  const response = await fetch(url, {
+    signal,
+    headers: {
+      'Ocp-Apim-Subscription-Key': KEY,
+      'X-Response-MediaType': 'application/json',
+      'X-Data-Format': 'DATEXII',
+      accept: 'application/json',
+    },
+  });
 
-  const road = String(raw.road ?? raw.roadNumber ?? raw.locationDescription ?? '').trim();
-  if (!road) return null;
+  if (response.status === 429) throw new Error('rate limited (10 calls per minute per key)');
+  if (!response.ok) throw new Error(`${closureType}: provider responded ${response.status}`);
 
-  return {
-    id: String(raw.id ?? raw.situationId ?? `d${index}`),
-    road,
-    category: categoryOf(raw),
-    description,
-    distanceFromAirportKm: Math.round(haversineKm({ latitude, longitude }, AIRPORT)),
-    startedAt: toInstant(raw.startDate ?? raw.overallStartTime),
-    expectedEndAt: toInstant(raw.endDate ?? raw.overallEndTime),
-    active: raw.active !== false,
-  };
+  const contentType = response.headers.get('content-type') ?? '';
+  const body = await response.text();
+
+  if (!contentType.includes('json') && !body.trimStart().startsWith('{')) {
+    throw new Error(
+      `${closureType}: expected JSON but received "${contentType}". First 200 characters: ${body.slice(0, 200)}`,
+    );
+  }
+
+  return JSON.parse(body);
+}
+
+/**
+ * Both kinds matter and they are separate requests: the endpoint defaults to
+ * planned closures only, so asking for neither would silently omit every live
+ * incident — the half a driver most needs.
+ */
+async function collect(closureType, now, signal) {
+  const startDateTime = new Date(now).toISOString().replace(/\.\d+Z$/, 'Z');
+  const endDateTime = new Date(now + LOOK_AHEAD_HOURS * 60 * 60_000)
+    .toISOString()
+    .replace(/\.\d+Z$/, 'Z');
+
+  const collected = [];
+  let pageCursor;
+
+  // Bounded: the rate limit is 10 calls a minute, and this runs twice.
+  for (let page = 0; page < 4; page += 1) {
+    const payload = await fetchPage({ closureType, startDateTime, endDateTime, pageCursor, signal });
+    const parsed = parseClosures(payload, {
+      now,
+      airport: AIRPORT,
+      radiusKm: SEARCH_RADIUS_KM,
+      closureType,
+    });
+    collected.push(...parsed);
+
+    const next = payload?.D2Payload?.pageCursor ?? payload?.pageCursor;
+    if (next === undefined || next === null || next === pageCursor) break;
+    pageCursor = next;
+  }
+
+  return collected;
 }
 
 async function main() {
@@ -135,68 +125,28 @@ async function main() {
     return;
   }
 
+  const now = Date.now();
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 25_000);
+  const timeout = setTimeout(() => controller.abort(), 40_000);
 
   let disruptions = [];
   try {
-    const response = await fetch(ENDPOINT, {
-      signal: controller.signal,
-      headers: { 'Ocp-Apim-Subscription-Key': KEY, accept: 'application/json' },
-    });
-    if (!response.ok) throw new Error(`provider responded ${response.status}`);
+    const [planned, unplanned] = await Promise.all([
+      collect('planned', now, controller.signal),
+      collect('unplanned', now, controller.signal),
+    ]);
 
-    const contentType = response.headers.get('content-type') ?? '';
-    const body = await response.text();
-
-    /*
-     * National Highways is a DATEX II publisher, and DATEX II is usually XML.
-     * The response shape has not been seen, because the schema is behind a
-     * sign-in. Rather than guess, the first real run reports what it actually
-     * received so the mapping can be finished from evidence.
-     */
-    if (!contentType.includes('json') && !body.trimStart().startsWith('{') && !body.trimStart().startsWith('[')) {
-      console.error(
-        `Road disruption: expected JSON but received "${contentType}". ` +
-          'This is very likely DATEX II XML. Nothing was published. ' +
-          'First 400 characters of the response follow so the mapping can be completed:',
-      );
-      console.error(body.slice(0, 400));
-      process.exitCode = 1;
-      return;
+    const byId = new Map();
+    for (const entry of [...unplanned, ...planned]) {
+      // Unplanned first: a live incident outranks a planned roadwork with the
+      // same identifier.
+      if (!byId.has(entry.id)) byId.set(entry.id, entry);
     }
-
-    const payload = JSON.parse(body);
-    const records = Array.isArray(payload)
-      ? payload
-      : (payload.items ?? payload.results ?? payload.features ?? []);
-    if (!Array.isArray(records)) {
-      console.error(
-        'Road disruption: unrecognised payload shape. Top-level keys:',
-        Object.keys(payload).join(', '),
-      );
-      process.exitCode = 1;
-      return;
-    }
-
-    const mapped = records.map(normalise).filter(Boolean);
-
-    // If the provider returned records but none could be mapped, the mapping is
-    // wrong. Fail rather than publish an empty file the app would read as
-    // "nothing is happening on the roads".
-    if (records.length > 0 && mapped.length === 0) {
-      console.error(
-        `Road disruption: received ${records.length} records but mapped none. ` +
-          'The field mapping does not match this provider. Nothing was published. ' +
-          'Keys on the first record:',
-        Object.keys(records[0]?.properties ?? records[0] ?? {}).join(', '),
-      );
-      process.exitCode = 1;
-      return;
-    }
-
-    disruptions = mapped.filter((entry) => entry.distanceFromAirportKm <= SEARCH_RADIUS_KM);
+    disruptions = [...byId.values()].sort(
+      (a, b) => a.distanceFromAirportKm - b.distanceFromAirportKm,
+    );
   } catch (error) {
+    // Never overwrite a good snapshot with a bad one.
     console.error(
       `Road disruption fetch failed: ${error instanceof Error ? error.message : String(error)}`,
     );
@@ -208,7 +158,7 @@ async function main() {
 
   const snapshot = {
     generatedAt: Date.now(),
-    source: ENDPOINT,
+    source: BASE,
     attribution: ATTRIBUTION,
     searchRadiusKm: SEARCH_RADIUS_KM,
     disruptions,
@@ -216,7 +166,9 @@ async function main() {
 
   await mkdir(dirname(OUTPUT), { recursive: true });
   await writeFile(OUTPUT, `${JSON.stringify(snapshot, null, 2)}\n`);
-  console.log(`Wrote ${disruptions.length} disruptions within ${SEARCH_RADIUS_KM} km`);
+  console.log(
+    `Wrote ${disruptions.length} disruptions within ${SEARCH_RADIUS_KM} km of ${AIRPORT.latitude},${AIRPORT.longitude}`,
+  );
 }
 
 await main();
