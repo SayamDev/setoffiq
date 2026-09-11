@@ -83,7 +83,6 @@ Responses from external services are treated as untrusted input:
   - `default-src 'self'`, `script-src 'self'`, `object-src 'none'`
   - `connect-src` is limited to the four data services actually used, plus
     localhost for the optional local model
-  - `frame-ancestors 'none'` prevents the app being framed
   - `base-uri 'self'` and `form-action 'none'`
 - `style-src` permits `'unsafe-inline'` because a handful of components set
   layout values inline. No user-controlled value is ever used in a style.
@@ -110,12 +109,18 @@ Responses from external services are treated as untrusted input:
 
 ## Secure headers
 
-GitHub Pages does not allow custom response headers, so protections that can be
-expressed in the document are set there:
+GitHub Pages does not allow custom response headers, so only protections that
+can be expressed inside the document are available:
 
 - Content Security Policy, as above
 - `referrer` policy
-- `frame-ancestors 'none'` in place of `X-Frame-Options`
+
+**Framing cannot be prevented.** `frame-ancestors` is ignored by browsers when
+delivered in a `<meta>` element, and `X-Frame-Options` is a response header that
+GitHub Pages will not set — so neither is used, rather than being included for
+appearance. The exposure is low: the application has no session, no login and no
+privileged action, so there is nothing for a clickjacking attempt to hijack.
+Hosting that permits custom headers would close this properly.
 
 The site is served over HTTPS by GitHub Pages.
 
