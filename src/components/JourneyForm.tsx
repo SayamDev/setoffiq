@@ -205,7 +205,7 @@ export function JourneyForm({
         label="Flight number (optional)"
         hint={
           kind === 'pickup'
-            ? 'Used to look for the aircraft in the air, which lets SetoffIQ estimate landing from its actual position. SetoffIQ has no access to airline schedules, so leaving this blank simply means the scheduled time you entered is used as-is.'
+            ? "Lets SetoffIQ track the aircraft once it's in the air. Leave blank to use the scheduled time."
             : // Nothing is looked up for a drop-off — the departure time on the
               // ticket is the whole input — so the field is labelled for what it
               // actually does rather than implying a lookup that never happens.
@@ -235,7 +235,7 @@ export function JourneyForm({
       <Field
         id={`${baseId}-postcode`}
         label="Setting off from"
-        hint="A UK postcode. SetoffIQ does not offer address search, because the free geocoder that would allow it asks applications not to."
+        hint="Your UK postcode, e.g. M1 4BT."
         error={errors.postcode ?? null}
       >
         <input
