@@ -147,7 +147,13 @@ export function JourneyPage({
                 Delete journey
               </Button>
             </div>
-            <p className={ui.hint} aria-live="polite">
+            {/* What the last check found: a press of "Check now" must answer. */}
+            <p className={styles.outcome} role="status">
+              {monitor.status === 'checking'
+                ? 'Checking…'
+                : (monitor.outcome?.message ?? '')}
+            </p>
+            <p className={ui.hint}>
               {journey.lastCheckedAt
                 ? `Last checked ${formatRelative(journey.lastCheckedAt, now)}.`
                 : 'Not checked yet.'}{' '}

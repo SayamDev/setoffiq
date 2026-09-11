@@ -19,12 +19,19 @@ export interface MonitorChange {
   reason: string;
 }
 
+/** What the last check found, so "Check now" visibly answers. */
+export interface MonitorOutcome {
+  at: Instant;
+  message: string;
+}
+
 export interface MonitorState {
   status: 'idle' | 'checking' | 'ready' | 'error';
   plan: JourneyPlan | null;
   error: string | null;
   change: MonitorChange | null;
   nextCheckAt: Instant | null;
+  outcome: MonitorOutcome | null;
 }
 
 /**
@@ -50,6 +57,7 @@ export function useMonitoredJourney(
     error: null,
     change: null,
     nextCheckAt: null,
+    outcome: null,
   });
 
   const journeyRef = useRef(journey);
@@ -74,12 +82,18 @@ export function useMonitoredJourney(
 
       let updated: SavedJourney = { ...current, lastCheckedAt: now };
       let change: MonitorChange | null = null;
+      // The time is in the message: pressing "Check now" twice must visibly
+      // answer twice, even when the answer is the same — so to the second,
+      // since two presses a few seconds apart share a minute.
+      const stamp = formatClockToSecond(now, airport.timeZone);
+      let outcome = `Checked at ${stamp} — nothing changed.`;
 
       if (plan.recommendation.kind === 'unavailable') {
         // A cancellation or diversion is exactly when monitoring should stop
         // rather than keep polling a flight that is not coming.
         updated = setMonitoring(updated, 'stopped', now);
         updated = appendEvent(updated, 'flight-updated', plan.recommendation.headline, now);
+        outcome = `Checked at ${stamp} — ${plan.recommendation.headline.toLowerCase()}. Monitoring stopped.`;
       } else {
         const previous = latestVersion(current);
         const comparison = previous
@@ -96,6 +110,7 @@ export function useMonitoredJourney(
             updated,
             toVersion(plan.recommendation, phase, plan.flight.observedAt, null, newId(now)),
           );
+          outcome = `Checked at ${stamp} — leave at ${formatClock(plan.recommendation.recommendedDeparture, airport.timeZone)}.`;
         } else if (comparison?.meaningful) {
           updated = appendVersion(
             updated,
@@ -118,6 +133,7 @@ export function useMonitoredJourney(
             nextDeparture: plan.recommendation.recommendedDeparture,
             reason: comparison.reason,
           };
+          outcome = `Checked at ${stamp} — departure moved to ${formatClock(plan.recommendation.recommendedDeparture, airport.timeZone)}. ${comparison.reason}`;
 
           if (settingsRef.current.notificationsEnabled) {
             const advice = advisoryAt(plan.recommendation, now, airport.timeZone);
@@ -146,6 +162,7 @@ export function useMonitoredJourney(
             `Checked — nothing meaningful changed. Departure stays at ${formatClock(plan.recommendation.recommendedDeparture, airport.timeZone)}.`,
             now,
           );
+          outcome = `Checked at ${stamp} — nothing changed. Departure stays at ${formatClock(plan.recommendation.recommendedDeparture, airport.timeZone)}.`;
         }
       }
 
@@ -159,6 +176,7 @@ export function useMonitoredJourney(
         error: null,
         change,
         nextCheckAt: delay === null ? null : now + delay * 60_000,
+        outcome: { at: now, message: outcome },
       });
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
@@ -177,6 +195,10 @@ export function useMonitoredJourney(
         ...previous,
         status: 'error',
         error: "We couldn't refresh this journey just now.",
+        outcome: {
+          at: Date.now(),
+          message: `The check at ${formatClockToSecond(Date.now(), airport.timeZone)} failed — the last recommendation is still shown.`,
+        },
       }));
     } finally {
       runningRef.current = false;
@@ -215,3 +237,15 @@ export function useMonitoredJourney(
   // "Check now" is a deliberate act, so it bypasses the snapshot cache.
   return { ...state, check: () => void check(true), dismissChange };
 }
+
+/** Clock time to the second, for a line that must change on every press. */
+function formatClockToSecond(instant: Instant, timeZone: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(new Date(instant));
+}
+

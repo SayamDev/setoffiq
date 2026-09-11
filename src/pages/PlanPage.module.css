@@ -145,14 +145,67 @@
   padding-top: var(--space-3);
 }
 
+
+/*
+ * Disclosures have to look like controls. `display: flex` removes the
+ * browser's own marker, so the chevron is drawn here — and the label is
+ * underlined, because in this interface green text alone is not a strong
+ * enough signal that something can be opened.
+ */
 .proseSummary {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-1) 0;
   min-height: 44px;
-  font-size: var(--t-sm);
-  color: var(--signal);
+  font-size: var(--t-body);
+  font-weight: 600;
+  color: var(--signal-2);
   cursor: pointer;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.proseSummary::marker,
+.proseSummary::-webkit-details-marker {
+  content: '';
+  display: none;
+}
+
+.proseSummary::after {
+  content: '';
+  width: 0.4em;
+  height: 0.4em;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg) translate(-0.1em, -0.1em);
+  transition: transform var(--dur-out) var(--ease);
+}
+
+details[open] > .proseSummary::after {
+  transform: rotate(45deg) translate(-0.05em, -0.05em);
+}
+
+.proseSummary:hover {
+  color: var(--signal);
+  text-decoration-thickness: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proseSummary::after {
+    transition: none;
+  }
+}
+
+/* The answer to "Check now": empty until there is something to report. */
+.outcome {
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+  min-height: 1.4em;
+}
+
+.outcome:empty {
+  display: none;
 }
 

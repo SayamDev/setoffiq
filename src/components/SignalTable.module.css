@@ -121,19 +121,58 @@
   margin-top: var(--space-2);
 }
 
+
+/*
+ * Disclosures have to look like controls. `display: flex` removes the
+ * browser's own marker, so the chevron is drawn here — and the label is
+ * underlined, because in this interface green text alone is not a strong
+ * enough signal that something can be opened.
+ */
 .moreSummary {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  font-size: var(--t-xs);
-  color: var(--signal);
+  gap: var(--space-2);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--signal-2);
   cursor: pointer;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
   /* A larger target than the text alone, without moving the row. */
   padding: var(--space-1) 0;
+  min-height: 36px;
 }
 
-.moreSummary::marker {
-  color: var(--ink-4);
+.moreSummary::marker,
+.moreSummary::-webkit-details-marker {
+  content: '';
+  display: none;
+}
+
+.moreSummary::after {
+  content: '';
+  width: 0.4em;
+  height: 0.4em;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg) translate(-0.1em, -0.1em);
+  transition: transform var(--dur-out) var(--ease);
+}
+
+details[open] > .moreSummary::after {
+  transform: rotate(45deg) translate(-0.05em, -0.05em);
+}
+
+.moreSummary:hover {
+  color: var(--signal);
+  text-decoration-thickness: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .moreSummary::after {
+    transition: none;
+  }
 }
 
 .moreBody {
