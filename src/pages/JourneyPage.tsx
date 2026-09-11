@@ -195,6 +195,11 @@ export function JourneyPage({
               confidence={recommendation.confidence}
               now={now}
               timeZone={zone}
+              attributions={
+                monitor.plan?.roadDisruption.attribution
+                  ? [monitor.plan.roadDisruption.attribution]
+                  : []
+              }
             />
           </section>
 

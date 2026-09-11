@@ -47,11 +47,14 @@ export function SignalTable({
   confidence,
   now,
   timeZone,
+  attributions = [],
 }: {
   signals: SignalReport[];
   confidence: ConfidenceAssessment;
   now: Instant;
   timeZone: string;
+  /** Licence attributions required by sources actually in use here. */
+  attributions?: string[];
 }): React.JSX.Element {
   return (
     <div>
@@ -71,6 +74,10 @@ export function SignalTable({
         SetoffIQ heuristic reflecting how much current information was available — not a validated
         statistical probability.
       </p>
+
+      {attributions.length > 0 ? (
+        <p className={styles.attribution}>{attributions.join(' · ')}</p>
+      ) : null}
     </div>
   );
 }

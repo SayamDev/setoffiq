@@ -49,9 +49,21 @@ const AIRPORT = { latitude: 53.3537, longitude: -2.275 };
 const SEARCH_RADIUS_KM = 40;
 
 const KEY = process.env.NATIONAL_HIGHWAYS_KEY ?? '';
-const ENDPOINT = process.env.ROAD_DISRUPTION_URL ?? '';
+
+/**
+ * Verified 11 September 2026: this path returns 401 "Invalid Subscription Key"
+ * rather than 404, which confirms it exists and simply needs a key.
+ */
+const ENDPOINT =
+  process.env.ROAD_DISRUPTION_URL ?? 'https://api.data.nationalhighways.co.uk/roads/v2.0/closures';
+
+/**
+ * Required verbatim by National Highways' licence terms, which are Open
+ * Government Licence 2.0 with NH amendments: "acknowledge NH as the source of
+ * the Information by including the following attribution statement".
+ */
 const ATTRIBUTION =
-  process.env.ROAD_DISRUPTION_ATTRIBUTION ?? 'Road disruption data from National Highways';
+  process.env.ROAD_DISRUPTION_ATTRIBUTION ?? "Powered by National Highways' Transport Data Feeds";
 
 function haversineKm(a, b) {
   const rad = (d) => (d * Math.PI) / 180;
@@ -84,9 +96,15 @@ function toInstant(value) {
  * half-understood record would be worse than publishing nothing, because the
  * app would present it to a driver as fact.
  */
-function normalise(raw, index) {
-  const latitude = Number(raw.latitude ?? raw.lat);
-  const longitude = Number(raw.longitude ?? raw.lon ?? raw.lng);
+function normalise(record, index) {
+  // A GeoJSON feature carries its fields under `properties` and its position
+  // under `geometry.coordinates` as [longitude, latitude].
+  const raw = record?.properties ?? record;
+  const coordinates = record?.geometry?.coordinates;
+  const latitude = Number(raw.latitude ?? raw.lat ?? (Array.isArray(coordinates) ? coordinates[1] : NaN));
+  const longitude = Number(
+    raw.longitude ?? raw.lon ?? raw.lng ?? (Array.isArray(coordinates) ? coordinates[0] : NaN),
+  );
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
 
   const description = String(raw.description ?? raw.comment ?? raw.title ?? '').trim();
@@ -108,10 +126,11 @@ function normalise(raw, index) {
 }
 
 async function main() {
-  if (!KEY || !ENDPOINT) {
+  if (!KEY) {
     console.log(
-      'Road disruption: no key or endpoint configured, so nothing was fetched. ' +
-        'The app will report road disruption as "not checked". See DATA-SOURCES.md.',
+      'Road disruption: no NATIONAL_HIGHWAYS_KEY set, so nothing was fetched. ' +
+        'The app reports road disruption as "not checked" and its recommendation is ' +
+        'unchanged. See DATA-SOURCES.md to enable it.',
     );
     return;
   }
@@ -126,10 +145,39 @@ async function main() {
       headers: { 'Ocp-Apim-Subscription-Key': KEY, accept: 'application/json' },
     });
     if (!response.ok) throw new Error(`provider responded ${response.status}`);
-    const payload = await response.json();
 
-    const records = Array.isArray(payload) ? payload : (payload.items ?? payload.results ?? []);
-    if (!Array.isArray(records)) throw new Error('unrecognised payload shape');
+    const contentType = response.headers.get('content-type') ?? '';
+    const body = await response.text();
+
+    /*
+     * National Highways is a DATEX II publisher, and DATEX II is usually XML.
+     * The response shape has not been seen, because the schema is behind a
+     * sign-in. Rather than guess, the first real run reports what it actually
+     * received so the mapping can be finished from evidence.
+     */
+    if (!contentType.includes('json') && !body.trimStart().startsWith('{') && !body.trimStart().startsWith('[')) {
+      console.error(
+        `Road disruption: expected JSON but received "${contentType}". ` +
+          'This is very likely DATEX II XML. Nothing was published. ' +
+          'First 400 characters of the response follow so the mapping can be completed:',
+      );
+      console.error(body.slice(0, 400));
+      process.exitCode = 1;
+      return;
+    }
+
+    const payload = JSON.parse(body);
+    const records = Array.isArray(payload)
+      ? payload
+      : (payload.items ?? payload.results ?? payload.features ?? []);
+    if (!Array.isArray(records)) {
+      console.error(
+        'Road disruption: unrecognised payload shape. Top-level keys:',
+        Object.keys(payload).join(', '),
+      );
+      process.exitCode = 1;
+      return;
+    }
 
     const mapped = records.map(normalise).filter(Boolean);
 
@@ -137,9 +185,14 @@ async function main() {
     // wrong. Fail rather than publish an empty file the app would read as
     // "nothing is happening on the roads".
     if (records.length > 0 && mapped.length === 0) {
-      throw new Error(
-        `received ${records.length} records but mapped none — verify normalise() against this provider`,
+      console.error(
+        `Road disruption: received ${records.length} records but mapped none. ` +
+          'The field mapping does not match this provider. Nothing was published. ' +
+          'Keys on the first record:',
+        Object.keys(records[0]?.properties ?? records[0] ?? {}).join(', '),
       );
+      process.exitCode = 1;
+      return;
     }
 
     disruptions = mapped.filter((entry) => entry.distanceFromAirportKm <= SEARCH_RADIUS_KM);

@@ -115,6 +115,29 @@ Two things must be true before one is switched on:
    not have the owner's key, so a keyed source can only ever add a signal — it
    can never become load-bearing.
 
+### National Highways — terms verified 11 September 2026
+
+The provider's own terms were checked rather than assumed, and it passes on all
+four counts that matter here.
+
+| Check | Finding |
+| --- | --- |
+| **Cost** | *"Whilst the Information is currently supplied to You without charge, NH reserves the right to charge for the supply of Information at a future date."* A minimum of **six months' notice** is committed to before any charge. There is no payment method on file, so nothing can bill automatically. |
+| **Redistribution** | **Permitted.** *"You are free to: copy, publish, distribute and transmit the Information."* Publishing the snapshot as a static file alongside the app is within licence. |
+| **Commercial use** | Permitted — *"exploit the Information commercially and non-commercially"*. Less restrictive than Open-Meteo. |
+| **Rate limit** | *"The APIs have a rate limit of 10 calls per subscription key per minute."* A fifteen-minute schedule uses about 0.07% of that. |
+| **Licence** | Open Government Licence 2.0 with National Highways amendments. |
+| **Attribution** | Required verbatim: **"Powered by National Highways' Transport Data Feeds"**. SetoffIQ renders this beneath the signal table whenever the data is actually in use. |
+
+The six-month notice clause is the one thing to keep an eye on. It does not
+create billing risk today — a charge would require actively agreeing to pay —
+but it is the reason the provider sits behind an interface rather than being
+wired directly into the engine.
+
+The endpoint is `https://api.data.nationalhighways.co.uk/roads/v2.0/closures`,
+confirmed to exist because it answers `401 Invalid Subscription Key` rather than
+`404`.
+
 ### Status: built, not enabled
 
 The integration exists and is tested — a provider, a normalisation layer, a
@@ -123,18 +146,30 @@ has been registered.
 
 **To enable it:**
 
-1. Register with a provider (National Highways' API portal or Street Manager)
-   and obtain a key. This is an account creation, so it is the repository
-   owner's to do.
-2. Check the provider's terms against the £0 rule. Free registration is not the
-   same as free at volume; reject anything that can bill.
-3. Add the key as the repository secret `NATIONAL_HIGHWAYS_KEY` and the endpoint
-   as the repository variable `ROAD_DISRUPTION_URL`.
-4. Verify `normalise()` in `scripts/fetch-road-disruption.mjs` against one real
-   response. It is written from the documented shape and has never been run
-   against live output. The script refuses to publish if it maps no records from
-   a non-empty response, so a wrong mapping fails loudly rather than producing
-   plausible nonsense.
+1. Register at
+   [developer.data.nationalhighways.co.uk](https://developer.data.nationalhighways.co.uk/)
+   and subscribe to the closures data service. This is an account creation, so
+   it is the repository owner's to do.
+2. Add the key as the repository secret **`NATIONAL_HIGHWAYS_KEY`**. Nothing
+   else is needed — the endpoint and the required attribution are already
+   defaulted in the script.
+3. Push, or run the Deploy workflow manually. **The first run is the
+   verification step.**
+
+The response schema sits behind the portal's sign-in, so the field mapping has
+never been run against live output. The script is built to make that safe rather
+than to guess well:
+
+- If the response is not JSON — National Highways is a DATEX II publisher, and
+  DATEX II is usually XML — it publishes nothing and logs the content type plus
+  the first 400 characters, so the mapping can be completed from evidence.
+- If it receives records but maps none of them, it publishes nothing and logs
+  the field names on the first record.
+- It handles plain arrays, `items`/`results` wrappers and GeoJSON `features`
+  with `geometry.coordinates`.
+
+In every failure case it writes no file, so the app falls back to *"not
+checked"* rather than presenting a driver with a half-understood record.
 
 **Until then**, the app reports road disruption as *"Not checked — every free UK
 source for this requires a registered key. Absence of information here is not

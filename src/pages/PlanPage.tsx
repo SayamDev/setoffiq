@@ -146,6 +146,9 @@ export function PlanPage({
                 confidence={plan.recommendation.confidence}
                 now={now}
                 timeZone={airport.timeZone}
+                attributions={
+                  plan.roadDisruption.attribution ? [plan.roadDisruption.attribution] : []
+                }
               />
             </section>
 
