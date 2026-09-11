@@ -6,6 +6,7 @@ import { clearAll } from '../services/storage';
 import { resetHttpState } from '../services/http';
 import { formatClock, todayInZone } from '../domain/time';
 import { MANCHESTER } from '../domain/airports';
+import { CHECK_COOLDOWN_SECONDS } from '../components/CheckNowButton';
 
 /**
  * The whole product, end to end:
@@ -166,12 +167,20 @@ describe('planning and monitoring a pickup', () => {
 
     // 4. Start monitoring.
     await user.click(screen.getByRole('button', { name: /Monitor this journey/i }));
-    expect(await screen.findByRole('button', { name: /Check now/i })).toBeInTheDocument();
+    // Just checked, so the manual check is in its cooldown rather than
+    // inviting a press that could achieve nothing.
+    expect(await screen.findByRole('button', { name: /Check again in \d+s/i })).toBeDisabled();
 
     // 5. The flight moves: the aircraft is now much further out, so it will
-    //    arrive later and the driver should leave later.
+    //    arrive later and the driver should leave later. Only a deliberate
+    //    check bypasses the snapshot cache, so wait out the cooldown.
     aircraftLatitude = 57.4;
-    await user.click(screen.getByRole('button', { name: /Check now/i }));
+    const checkNow = await screen.findByRole(
+      'button',
+      { name: /Check now/i },
+      { timeout: (CHECK_COOLDOWN_SECONDS + 5) * 1000 },
+    );
+    await user.click(checkNow);
 
     // 6. The user is told what changed, and the recommendation really moved.
     const notice = await screen.findByText(/Your departure time changed/i, undefined, {

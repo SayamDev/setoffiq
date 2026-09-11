@@ -198,14 +198,43 @@ details[open] > .proseSummary::after {
   }
 }
 
-/* The answer to "Check now": empty until there is something to report. */
+/*
+ * The answer to "Check now". It carries the brand's edge and lights up briefly
+ * each time it is replaced, because the whole complaint about the old line was
+ * that a press looked like nothing had happened.
+ */
 .outcome {
-  font-size: var(--t-sm);
-  color: var(--ink-2);
-  min-height: 1.4em;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--signal);
+  border-radius: 0 var(--r-2) var(--r-2) 0;
+  background: var(--surface-2);
+  font-size: var(--t-body);
+  color: var(--ink);
+  animation: noticed var(--dur-in) var(--ease) both;
 }
 
-.outcome:empty {
-  display: none;
+.outcomeMark {
+  color: var(--signal-2);
+  font-weight: 700;
+}
+
+@keyframes noticed {
+  from {
+    background: var(--signal-wash);
+    transform: translateY(-2px);
+  }
+  to {
+    background: var(--surface-2);
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .outcome {
+    animation: none;
+  }
 }
 

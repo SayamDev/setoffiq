@@ -8,6 +8,7 @@ import { ExplanationPanel } from '../components/ExplanationPanel';
 import { JourneyTimeline } from '../components/JourneyTimeline';
 import { RecommendationCard } from '../components/RecommendationCard';
 import { ScenarioSwitcher } from '../components/ScenarioSwitcher';
+import { CheckNowButton } from '../components/CheckNowButton';
 import { SignalTable } from '../components/SignalTable';
 import { signalDetails } from '../components/signalDetails';
 import { ReadinessStages } from '../components/ReadinessStages';
@@ -137,9 +138,11 @@ export function JourneyPage({
         <>
           <RecommendationCard recommendation={recommendation} airport={airport} now={now}>
             <div className={styles.actions}>
-              <Button variant="secondary" onClick={monitor.check} disabled={monitor.status === 'checking'}>
-                {monitor.status === 'checking' ? 'Checking…' : 'Check now'}
-              </Button>
+              <CheckNowButton
+                onCheck={monitor.check}
+                checking={monitor.status === 'checking'}
+                lastCheckedAt={journey.lastCheckedAt}
+              />
               <Button variant="secondary" onClick={toggleMonitoring}>
                 {journey.monitoring === 'active' ? 'Pause monitoring' : 'Resume monitoring'}
               </Button>
@@ -147,12 +150,25 @@ export function JourneyPage({
                 Delete journey
               </Button>
             </div>
-            {/* What the last check found: a press of "Check now" must answer. */}
-            <p className={styles.outcome} role="status">
-              {monitor.status === 'checking'
-                ? 'Checking…'
-                : (monitor.outcome?.message ?? '')}
-            </p>
+            {/*
+              * What the last check found. Keyed on the moment of the check so
+              * the highlight replays on every press: a quiet line that never
+              * moves reads as a button that does nothing.
+              */}
+            {monitor.status === 'checking' || monitor.outcome ? (
+              <p
+                className={styles.outcome}
+                role="status"
+                key={monitor.status === 'checking' ? 'checking' : monitor.outcome?.at}
+              >
+                <span className={styles.outcomeMark} aria-hidden="true">
+                  {monitor.status === 'checking' ? '…' : monitor.status === 'error' ? '!' : '✓'}
+                </span>
+                <span>
+                  {monitor.status === 'checking' ? 'Checking…' : (monitor.outcome?.message ?? '')}
+                </span>
+              </p>
+            ) : null}
             <p className={ui.hint}>
               {journey.lastCheckedAt
                 ? `Last checked ${formatRelative(journey.lastCheckedAt, now)}.`
