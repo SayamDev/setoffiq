@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { compareRecommendations, nextPollDelayMinutes, toVersion } from '../domain/engine';
+import {
+  advisoryAt,
+  compareRecommendations,
+  nextPollDelayMinutes,
+  notificationTitle,
+  toVersion,
+} from '../domain/engine';
 import { formatClock } from '../domain/time';
 import type { AirportProfile, Instant, SavedJourney } from '../domain/types';
 import { planJourney, type JourneyPlan } from '../services/plan';
@@ -104,7 +110,7 @@ export function useMonitoredJourney(
           updated = appendEvent(
             updated,
             'recommendation-changed',
-            `Departure moved from ${formatClock(previous.departure, airport.timeZone)} to ${formatClock(plan.recommendation.recommendedDeparture, airport.timeZone)}. ${comparison.reason}`,
+            `Departure moved from ${formatClock(previous.departure, airport.timeZone)} to ${formatClock(plan.recommendation.recommendedDeparture, airport.timeZone)}${plan.recommendation.recommendedDeparture < now ? ', which has already passed' : ''}. ${comparison.reason}`,
             now,
           );
           change = {
@@ -114,12 +120,22 @@ export function useMonitoredJourney(
           };
 
           if (settingsRef.current.notificationsEnabled) {
+            const advice = advisoryAt(plan.recommendation, now, airport.timeZone);
             const shown = await showNotification({
               id: newId(now),
               journeyId: current.id,
               at: now,
-              title: `Leave at ${formatClock(plan.recommendation.recommendedDeparture, airport.timeZone)}`,
-              body: comparison.reason,
+              title: notificationTitle(
+                advice,
+                plan.recommendation.recommendedDeparture,
+                airport.timeZone,
+              ),
+              // Behind schedule, the news that it moved matters less than
+              // how far behind: say both.
+              body:
+                advice.kind === 'running-late'
+                  ? `${comparison.reason} ${advice.detail}`
+                  : comparison.reason,
             });
             if (shown) updated = appendEvent(updated, 'notified', 'You were notified of this change.', now);
           }

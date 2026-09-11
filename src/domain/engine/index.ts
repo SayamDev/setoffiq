@@ -7,3 +7,4 @@ export { estimateJourney, estimateMinutesWithoutRouting } from './journeyWindow'
 export type { JourneyEstimate } from './journeyWindow';
 export type { DropoffEngineInput, PickupEngineInput, JourneyEngineInput, ProviderInput } from './inputs';
 export { nextPollDelayMinutes } from './polling';
+export { advisoryAt, notificationTitle } from './advisory';

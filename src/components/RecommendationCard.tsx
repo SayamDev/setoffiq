@@ -1,3 +1,4 @@
+import { advisoryAt } from '../domain/engine';
 import { formatClock, formatClockRange, formatDate, formatMinuteRange } from '../domain/time';
 import type { AdvisoryKind, AirportProfile, Instant, Recommendation } from '../domain/types';
 import { ConfidenceBadge } from './ConfidenceBadge';
@@ -32,10 +33,13 @@ export function RecommendationCard({
 }): React.JSX.Element {
   const zone = airport.timeZone;
   const sameDay = formatDate(recommendation.recommendedDeparture, zone) === formatDate(now, zone);
+  // Rederived as the clock moves: the stored advisory is only as fresh as the
+  // last check, and "get ready" goes on being shown long after it stops being true.
+  const advisory = advisoryAt(recommendation, now, zone);
 
   return (
     <section className={styles.card} aria-labelledby="recommendation-heading">
-      <div className={SIGNAL_CLASS[recommendation.advisory.kind]} aria-hidden="true" />
+      <div className={SIGNAL_CLASS[advisory.kind]} aria-hidden="true" />
 
       <div className={styles.head}>
         <p className={styles.eyebrow} id="recommendation-heading">
@@ -56,8 +60,8 @@ export function RecommendationCard({
         </div>
 
         <div className={styles.advice}>
-          <p className={styles.adviceHeadline}>{recommendation.advisory.headline}</p>
-          <p className={styles.adviceDetail}>{recommendation.advisory.detail}</p>
+          <p className={styles.adviceHeadline}>{advisory.headline}</p>
+          <p className={styles.adviceDetail}>{advisory.detail}</p>
         </div>
       </div>
 

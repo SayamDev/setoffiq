@@ -1,5 +1,5 @@
 import { formatClock, minutesBetween } from '../time';
-import type { Advisory, Instant, TimeWindow } from '../types';
+import type { Advisory, Instant, Recommendation, TimeWindow } from '../types';
 
 /**
  * Turns "leave at 18:05" into the thing the user actually wants to be told
@@ -99,6 +99,30 @@ export function buildDropoffAdvisory(
     headline: 'Leave as soon as you can',
     detail: `The suggested departure was ${formatDuration(-minutesAway)} ago. Check your airline's bag-drop deadline before setting off.`,
   };
+}
+
+/**
+ * The advice for a recommendation as of `now`, not as of when it was
+ * calculated.
+ *
+ * A recommendation is recalculated only when monitoring checks — up to an hour
+ * apart — so the advisory stored on it goes stale while the page sits open. A
+ * card still saying "get ready, 12 minutes to go" twenty minutes later, or a
+ * notification saying "Leave at 16:18" at 16:54, is an instruction the clock
+ * has already overtaken. The departure and windows do not change between
+ * checks; only the advice about them does, so it is rederived here.
+ */
+export function advisoryAt(recommendation: Recommendation, now: Instant, timeZone: string): Advisory {
+  return recommendation.kind === 'pickup'
+    ? buildPickupAdvisory(now, recommendation.recommendedDeparture, recommendation.readiness.window, timeZone)
+    : buildDropoffAdvisory(now, recommendation.recommendedDeparture, recommendation.terminalArrivalWindow, timeZone);
+}
+
+/** Wording for a notification: past a departure, "Leave at 16:18" is not advice. */
+export function notificationTitle(advisory: Advisory, departure: Instant, timeZone: string): string {
+  return advisory.kind === 'running-late' || advisory.kind === 'leave-now'
+    ? advisory.headline
+    : `Leave at ${formatClock(departure, timeZone)}`;
 }
 
 function formatDuration(minutes: number): string {
