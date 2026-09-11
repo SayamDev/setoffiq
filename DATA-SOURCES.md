@@ -65,6 +65,53 @@ be matched — no attempt is made to fake it.
 - **Fallback:** the user's scheduled time, clearly labelled as such, with
   reduced confidence.
 
+### Airline names in the inbound picker
+
+The picker names each aircraft's operator from the three-letter ICAO
+designator at the start of its callsign (`EZY` easyJet, `CFE` BA CityFlyer),
+using a table in `src/services/flight/operators.ts`. The names were checked on
+11 September 2026 against Wikipedia's current
+[list of airline codes](https://en.wikipedia.org/wiki/List_of_airline_codes),
+not OpenFlights' `airlines.dat`, which predates several reassignments — it
+still gives `EAI` to a Togolese airline (now Emerald Airlines, flying as Aer
+Lingus Regional) and `TOM` to Thomsonfly (now TUI Airways). An unknown
+designator shows no name rather than a guess.
+
+Freight-only operators (FedEx, UPS, DHL, West Atlantic and others) are left out
+of the picker: nobody is collected from them.
+
+### Where an aircraft is coming from — assessed and not used
+
+Showing each inbound aircraft's origin was examined on 11 September 2026.
+
+**The snapshot cannot answer it.** OpenSky's state vectors carry an
+`origin_country`, but it is the aircraft's **country of registration**, not
+where the flight departed. Many easyJet aircraft are registered in Austria, so
+it would label a flight from Spain "Austria". It is not used for this.
+
+**A route database can, but its terms forbid republishing.**
+[adsbdb](https://github.com/mrjackwills/adsbdb) offers callsign-to-route
+lookups: free, keyless, and CORS-open (`access-control-allow-origin: *`). A
+sample of live callsigns returned plausible routes, and usefully showed two
+aircraft the picker was offering were not coming to Manchester at all
+(`EZY81DL` Edinburgh–Birmingham, `CFE18M` Edinburgh–London City). But its README
+states:
+
+> "The flight route data is the work of David Taylor, Edinburgh and Jim Mason,
+> Glasgow, and may not be copied, published, or incorporated into other
+> databases without the explicit permission of David J Taylor, Edinburgh."
+
+Publishing routes in the static snapshot would be exactly that. Looking them up
+from each visitor's browser instead would avoid storing them, but showing them
+on a public page is arguably still publishing, it would add a third party that
+every visitor's browser contacts, and adsbdb publishes no rate limit to stay
+within. The data is also community-maintained and least reliable for the
+alphanumeric callsigns easyJet and Ryanair use.
+
+So the picker shows airline and distance, not origin. If permission were ever
+granted, the natural use is in the snapshot job: an origin label, and a
+destination check that drops aircraft bound elsewhere.
+
 ---
 
 ## NOAA Aviation Weather Center
