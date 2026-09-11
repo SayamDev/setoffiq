@@ -33,7 +33,12 @@ export interface JourneyPlan {
 }
 
 function toProviderInput<T>(observed: Observed<T>): ProviderInput<T> {
-  return { value: observed.value, state: observed.state, observedAt: observed.observedAt };
+  return {
+    value: observed.value,
+    state: observed.state,
+    observedAt: observed.observedAt,
+    fetchedAt: observed.fetchedAt,
+  };
 }
 
 /**

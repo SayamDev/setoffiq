@@ -183,4 +183,38 @@ describe('staleness is judged per source', () => {
     const conditions = reports.find((report) => report.id === 'airport-conditions');
     expect(conditions?.state.kind).toBe('live');
   });
+
+  it('names the processing signal for the journey it belongs to', async () => {
+    const { buildSignalReports } = await import('../../domain/engine/signalReports');
+    const { MANCHESTER } = await import('../../domain/airports');
+    const factories = await import('../../test/factories');
+    const now = factories.manTime(18, 0);
+
+    const base = {
+      now,
+      airport: MANCHESTER,
+      passengerRoute: 'international' as const,
+      distanceKm: 30,
+      flight: factories.flight({}),
+      route: factories.okRoute(42),
+      weather: factories.weather('clear', now),
+      airportConditions: factories.conditions('VFR', now),
+      roadDisruption: factories.noRoadDisruption,
+    };
+    const journey = {
+      range: { minMinutes: 42, maxMinutes: 51 },
+      baseMinutes: 42,
+      routed: true,
+      uncertaintyReasons: [],
+    };
+    const processing = { minMinutes: 24, maxMinutes: 67 };
+
+    const pickup = buildSignalReports({ ...base, journeyKind: 'pickup' }, journey, processing);
+    const dropoff = buildSignalReports({ ...base, journeyKind: 'dropoff' }, journey, processing);
+
+    // The same signal means different things either side of the journey.
+    expect(pickup.find((r) => r.id === 'processing')?.label).toBe('Getting out of the airport');
+    expect(dropoff.find((r) => r.id === 'processing')?.label).toBe('Time at the terminal');
+    expect(dropoff.find((r) => r.id === 'processing')?.summary).toMatch(/bag drop and security/i);
+  });
 });

@@ -21,7 +21,10 @@ import type {
 export interface ProviderInput<T> {
   value: T | null;
   state: DataState;
+  /** When the source measured it. Meaningless for a forecast. */
   observedAt: Instant | null;
+  /** When this application retrieved it. The right basis for a forecast. */
+  fetchedAt: Instant | null;
 }
 
 export interface JourneyEngineInput {

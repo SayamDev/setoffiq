@@ -28,6 +28,7 @@ export function okRoute(minutes: number, km = 30): ProviderInput<RouteResult> {
     },
     state: 'ok',
     observedAt: null,
+    fetchedAt: null,
   };
 }
 
@@ -35,6 +36,7 @@ export const noRoute: ProviderInput<RouteResult> = {
   value: null,
   state: 'unavailable',
   observedAt: null,
+  fetchedAt: null,
 };
 
 export function weather(
@@ -55,6 +57,8 @@ export function weather(
     },
     state: 'ok',
     observedAt: validFor,
+    // A forecast's freshness is when it was retrieved, not the hour it covers.
+    fetchedAt: validFor,
   };
 }
 
@@ -62,6 +66,7 @@ export const noWeather: ProviderInput<WeatherSnapshot> = {
   value: null,
   state: 'unavailable',
   observedAt: null,
+  fetchedAt: null,
 };
 
 export function flight(
@@ -84,6 +89,7 @@ export function flight(
     },
     state,
     observedAt,
+    fetchedAt: observedAt,
   };
 }
 
@@ -91,6 +97,7 @@ export const noFlight: ProviderInput<FlightStatus> = {
   value: null,
   state: 'unavailable',
   observedAt: null,
+  fetchedAt: null,
 };
 
 export function conditions(
@@ -112,6 +119,7 @@ export function conditions(
     },
     state: 'ok',
     observedAt,
+    fetchedAt: observedAt,
   };
 }
 
@@ -119,6 +127,7 @@ export const noConditions: ProviderInput<AirportConditions> = {
   value: null,
   state: 'unavailable',
   observedAt: null,
+  fetchedAt: null,
 };
 
 /** No road source configured — the default, and the shipped behaviour. */
@@ -126,6 +135,7 @@ export const noRoadDisruption: ProviderInput<RoadDisruptionSnapshot> = {
   value: null,
   state: 'unavailable',
   observedAt: null,
+  fetchedAt: null,
 };
 
 export function roadDisruption(
@@ -152,5 +162,6 @@ export function roadDisruption(
     },
     state: 'ok',
     observedAt,
+    fetchedAt: observedAt,
   };
 }

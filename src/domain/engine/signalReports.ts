@@ -137,7 +137,10 @@ export function buildSignalReports(
     reports.push({
       id: 'journey-weather',
       label: 'Weather',
-      state: ageState(input.weather.observedAt, input.now, STALE_AFTER_MINUTES.weather),
+      // A forecast is fresh by when it was retrieved, not by the hour it
+      // describes — that hour is in the future, and showing it as an
+      // observation time reads as a timestamp from the future.
+      state: ageState(input.weather.fetchedAt, input.now, STALE_AFTER_MINUTES.weather),
       summary:
         weather.severity === 'clear'
           ? `${weather.description}. Not adding to the journey estimate.`
@@ -202,11 +205,20 @@ export function buildSignalReports(
   }
 
   // --- Getting through the airport -----------------------------------------
+  /*
+   * The same signal means different things either side of the journey: on
+   * arrival it is border control, bags and the walk out; on departure it is bag
+   * drop and security. Reusing the arrival wording on a drop-off named the
+   * wrong thing.
+   */
+  const isPickup = input.journeyKind === 'pickup';
   reports.push({
     id: 'processing',
-    label: 'Passenger processing',
+    label: isPickup ? 'Getting out of the airport' : 'Time at the terminal',
     state: { kind: 'assumed' },
-    summary: `${formatMinuteRange(processing)} — a SetoffIQ assumption. No source publishes live border, baggage or security queues.`,
+    summary: isPickup
+      ? `${formatMinuteRange(processing)} — a SetoffIQ assumption. No source publishes live border or baggage queues.`
+      : `${formatMinuteRange(processing)} — a SetoffIQ assumption for bag drop and security. Your airline sets the actual deadlines.`,
     impact: 'moderate',
   });
 
