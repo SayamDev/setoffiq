@@ -4,8 +4,57 @@
   white-space: nowrap;
 }
 
+/* "off" leans forward, the way you lean when you leave. */
+.off {
+  font-style: italic;
+  letter-spacing: -0.02em;
+  /* Italic "ff" overhangs to the right; keep it off the upright I. */
+  padding-right: 0.07em;
+}
+
+/* The "o", drawn as the app icon's dial. Sized to the x-height and sat on the
+ * baseline, with the slight overshoot a round letter has. */
+.dial {
+  display: inline-block;
+  width: 0.54em;
+  height: 0.54em;
+  vertical-align: -0.02em;
+  /* Clear the crossbar of the t on the left. */
+  margin: 0 0.01em 0 0.05em;
+}
+
+.dial svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  /* Leans with the italic letters beside it. Pivoting on the centre, as an
+   * italic glyph does, keeps it from drifting away from the t. */
+  transform: skewX(-10deg);
+}
+
+.ring {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3.8;
+}
+
 /* The same green the app icon is painted with, so the mark and the icon read
  * as one thing. In dark mode the token lightens for legibility. */
+.hand {
+  fill: none;
+  stroke: var(--signal);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .mark {
   color: var(--signal);
+}
+
+@media (forced-colors: active) {
+  .hand {
+    stroke: CanvasText;
+  }
 }
