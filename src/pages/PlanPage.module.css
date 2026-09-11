@@ -109,3 +109,10 @@
   display: flex;
   flex-direction: column;
 }
+
+/* Holds the result so it can take focus when it arrives; it must not draw a
+ * focus ring of its own, because the user did not tab to it. */
+.result:focus {
+  outline: none;
+}
+

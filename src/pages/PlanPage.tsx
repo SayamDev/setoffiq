@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DEFAULT_AIRPORT } from '../domain/airports';
 import { formatClock, formatDate } from '../domain/time';
 import type { JourneyInput, JourneyKind } from '../domain/types';
@@ -40,6 +40,22 @@ export function PlanPage({
   const now = useNow(30_000);
   const [input, setInput] = useState<JourneyInput | null>(null);
   const { status, plan, error, refresh } = useJourneyPlan(input);
+  const resultRef = useRef<HTMLDivElement>(null);
+
+  /*
+   * Calculating replaces the form below the fold with a result above it. On a
+   * phone that leaves you looking at whatever was under your thumb, so the
+   * page goes back to the top, and the recommendation takes focus once it is
+   * there — which scrolls it into view and announces it to a screen reader.
+   */
+  const show = (next: JourneyInput | null): void => {
+    setInput(next);
+    window.scrollTo({ top: 0, behavior: scrollBehaviour() });
+  };
+
+  useEffect(() => {
+    if (status === 'ready' && resultRef.current) resultRef.current.focus({ preventScroll: true });
+  }, [status]);
 
   const startMonitoring = (): void => {
     if (!input || !plan || plan.recommendation.kind === 'unavailable') return;
@@ -82,7 +98,7 @@ export function PlanPage({
       </header>
 
       {input === null ? (
-        <JourneyForm kind={kind} airport={airport} now={now} onSubmit={setInput} />
+        <JourneyForm kind={kind} airport={airport} now={now} onSubmit={show} />
       ) : null}
 
       {status === 'loading' ? (
@@ -107,6 +123,8 @@ export function PlanPage({
         </Callout>
       ) : null}
 
+      {/* Focused when a result arrives; -1 keeps it out of the tab order. */}
+      <div ref={resultRef} tabIndex={-1} className={styles.result}>
       {status === 'ready' && plan ? (
         plan.recommendation.kind === 'unavailable' ? (
           <>
@@ -114,7 +132,7 @@ export function PlanPage({
               <p>{plan.recommendation.detail}</p>
             </Callout>
             <div className={styles.actions}>
-              <Button variant="secondary" onClick={() => setInput(null)}>
+              <Button variant="secondary" onClick={() => show(null)}>
                 Change the details
               </Button>
             </div>
@@ -124,7 +142,7 @@ export function PlanPage({
             <RecommendationCard recommendation={plan.recommendation} airport={airport} now={now}>
               <div className={styles.actions}>
                 <Button onClick={startMonitoring}>Monitor this journey</Button>
-                <Button variant="secondary" onClick={() => setInput(null)}>
+                <Button variant="secondary" onClick={() => show(null)}>
                   Change the details
                 </Button>
                 <Button variant="quiet" onClick={refresh}>
@@ -245,6 +263,12 @@ export function PlanPage({
           </>
         )
       ) : null}
+      </div>
     </>
   );
+}
+
+/** Jumping is kinder than a long smooth scroll when the page has changed. */
+function scrollBehaviour(): ScrollBehavior {
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
 }
