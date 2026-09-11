@@ -1,20 +1,28 @@
 .header {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding-bottom: var(--space-5);
+  gap: var(--space-3);
+  padding-bottom: var(--space-6);
   border-bottom: 1px solid var(--rule-strong);
 }
 
+@media (min-width: 48rem) {
+  .header {
+    padding-bottom: var(--space-7);
+  }
+}
+
 .title {
-  font-size: var(--t-2xl);
-  letter-spacing: -0.032em;
+  font-size: var(--t-page-title);
+  font-weight: 640;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
 }
 
 .subtitle {
   color: var(--ink-3);
-  max-width: 52ch;
-  font-size: var(--t-sm);
+  max-width: 50ch;
+  font-size: var(--t-lg);
 }
 
 .back {
@@ -50,12 +58,12 @@
 
 /* Section headings are set as rules with a label, like a printed schedule. */
 .sectionTitle {
-  font-size: var(--t-label);
-  font-weight: 600;
-  letter-spacing: var(--track-label);
+  font-size: var(--t-sm);
+  font-weight: 620;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--ink-3);
-  padding-bottom: var(--space-2);
+  color: var(--ink-2);
+  padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--rule-strong);
 }
 

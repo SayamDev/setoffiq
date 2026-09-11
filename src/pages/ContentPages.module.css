@@ -4,13 +4,16 @@
   gap: var(--space-4);
   max-width: 66ch;
   color: var(--ink-2);
+  font-size: var(--t-lg);
+  line-height: 1.65;
 }
 
 .prose h2 {
-  margin-top: var(--space-5);
+  margin-top: var(--space-6);
   color: var(--ink);
-  font-size: var(--t-lg);
-  padding-bottom: var(--space-2);
+  font-size: var(--t-xl);
+  letter-spacing: -0.024em;
+  padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--rule);
 }
 

@@ -80,8 +80,12 @@
   --t-display: clamp(4.25rem, 17vw, 6.75rem);
   /* The home hero. Scales hard with the viewport so a desktop gets presence
    * rather than a phone layout stretched across a wide screen. */
-  --t-hero: clamp(2.75rem, 7.5vw, 5.5rem);
-  --t-hero-tagline: clamp(1.25rem, 2.6vw, 2.125rem);
+  --t-hero: clamp(3.25rem, 9vw, 8.5rem);
+  --t-hero-tagline: clamp(1.5rem, 3.2vw, 3rem);
+  /* Every other page's title. Smaller than the home hero, but still a title. */
+  --t-page-title: clamp(2rem, 4.6vw, 3.25rem);
+  /* The two choices on the home screen, and equivalent headline links. */
+  --t-choice: clamp(1.5rem, 2.9vw, 2.25rem);
 
   --track-label: 0.14em;
   --track-display: -0.045em;

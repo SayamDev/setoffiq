@@ -12,7 +12,7 @@
 
 /* Generous air above the mark on a large screen; none of it on a phone, where
  * the fold is the scarce resource. */
-@media (min-width: 60rem) {
+@media (min-width: 48rem) {
   .hero {
     padding-top: var(--space-6);
     padding-bottom: var(--space-8);
@@ -39,13 +39,20 @@
 
 .lede {
   color: var(--ink-3);
-  max-width: 52ch;
+  max-width: 50ch;
   margin-top: var(--space-3);
   font-size: var(--t-lg);
 }
 
+@media (min-width: 48rem) {
+  .lede {
+    font-size: var(--t-xl);
+    line-height: 1.5;
+  }
+}
+
 .question {
-  font-size: var(--t-label);
+  font-size: var(--t-sm);
   font-weight: 600;
   letter-spacing: var(--track-label);
   text-transform: uppercase;
@@ -63,8 +70,8 @@
 .choice {
   display: grid;
   grid-template-rows: auto 1fr auto;
-  gap: var(--space-2);
-  padding: var(--space-5) 0;
+  gap: var(--space-3);
+  padding: var(--space-6) 0;
   border-top: 1px solid var(--rule);
   text-decoration: none;
   color: inherit;
@@ -79,31 +86,38 @@
 
 @media (min-width: 38rem) {
   .choices > .choice:nth-child(even) {
-    padding-left: var(--space-5);
+    padding-left: var(--space-6);
     border-left: 1px solid var(--rule);
   }
 
   .choices > .choice:nth-child(odd) {
-    padding-right: var(--space-5);
+    padding-right: var(--space-6);
   }
 }
 
 .choiceTitle {
-  font-size: var(--t-xl);
-  font-weight: 600;
-  letter-spacing: -0.028em;
+  font-size: var(--t-choice);
+  font-weight: 620;
+  letter-spacing: -0.032em;
+  line-height: 1.1;
   text-wrap: balance;
 }
 
 .choiceBody {
   color: var(--ink-3);
-  font-size: var(--t-sm);
-  max-width: 36ch;
+  font-size: var(--t-base, 1rem);
+  max-width: 34ch;
+}
+
+@media (min-width: 48rem) {
+  .choiceBody {
+    font-size: var(--t-lg);
+  }
 }
 
 .choiceGo {
-  color: var(--signal-2);
-  font-size: var(--t-label);
+  color: var(--signal);
+  font-size: var(--t-sm);
   font-weight: 600;
   letter-spacing: var(--track-label);
   text-transform: uppercase;

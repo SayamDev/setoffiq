@@ -99,16 +99,29 @@
   gap: var(--space-7);
 }
 
-/* Wider canvas on a large screen. Individual text blocks keep their own
- * max-widths, so this adds room rather than long unreadable lines. */
+/*
+ * The canvas widens in steps with the viewport. Individual text blocks keep
+ * their own max-widths, so this buys room for the layout — the two choices,
+ * the ruled headings, the signal table — without ever lengthening a line of
+ * prose past what is comfortable to read.
+ */
 @media (min-width: 64rem) {
-  .main {
-    max-width: 62rem;
-  }
-
+  .main,
   .headerInner,
   .footerInner {
     max-width: 62rem;
+  }
+}
+
+@media (min-width: 90rem) {
+  .main,
+  .headerInner,
+  .footerInner {
+    max-width: 74rem;
+  }
+
+  .main {
+    padding-top: var(--space-8);
   }
 }
 
@@ -130,11 +143,12 @@
 .footerLinks {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2) var(--space-5);
-  font-size: var(--t-label);
+  gap: var(--space-3) var(--space-6);
+  font-size: var(--t-sm);
   font-weight: 600;
-  letter-spacing: var(--track-label);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  padding-bottom: var(--space-2);
 }
 
 .footerLinks a {
@@ -149,16 +163,16 @@
 .attribution {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  font-size: var(--t-xs);
+  gap: var(--space-2);
+  font-size: var(--t-sm);
   color: var(--ink-3);
   border-top: 1px solid var(--rule);
-  padding-top: var(--space-4);
+  padding-top: var(--space-5);
 }
 
 .disclaimer {
   max-width: 68ch;
-  font-size: var(--t-xs);
+  font-size: var(--t-sm);
   color: var(--ink-3);
 }
 
