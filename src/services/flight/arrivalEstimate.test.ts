@@ -31,9 +31,27 @@ describe('estimateArrivalFromPosition', () => {
     expect(estimate!.onStand).toBe(OBSERVED_AT * 1000 + estimate!.minutesRemaining * 60_000);
   });
 
-  it('uses a fixed final-approach allowance once the aircraft is close', () => {
+  it('scales the final approach with distance rather than using a constant', () => {
+    // A flat constant gave an aircraft on short final and one fifteen miles out
+    // the same arrival time, which is visibly wrong as soon as several are
+    // listed together.
+    const close = estimateArrivalFromPosition(
+      aircraft({ latitude: 53.36, longitude: -2.29, baroAltitudeM: 300, groundSpeedMps: 70 }),
+      MANCHESTER,
+    );
+    const further = estimateArrivalFromPosition(
+      aircraft({ latitude: 53.52, longitude: -2.34, baroAltitudeM: 1500, groundSpeedMps: 100 }),
+      MANCHESTER,
+    );
+    expect(close!.minutesRemaining).toBeLessThan(further!.minutesRemaining);
+    expect(close!.minutesRemaining).toBeGreaterThanOrEqual(
+      ARRIVAL_ESTIMATE.minimumApproachMinutes + ARRIVAL_ESTIMATE.taxiMinutes,
+    );
+  });
+
+  it('falls back to the fixed allowance when approach speed is unusable', () => {
     const estimate = estimateArrivalFromPosition(
-      aircraft({ latitude: 53.45, longitude: -2.3, baroAltitudeM: 900, groundSpeedMps: 90 }),
+      aircraft({ latitude: 53.45, longitude: -2.3, baroAltitudeM: 900, groundSpeedMps: 5 }),
       MANCHESTER,
     );
     expect(estimate!.minutesRemaining).toBe(

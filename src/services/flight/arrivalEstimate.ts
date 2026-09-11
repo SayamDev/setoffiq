@@ -18,6 +18,10 @@ export const ARRIVAL_ESTIMATE = {
   maximumUsefulKm: 600,
   /** Ground speed below this is treated as unusable. */
   minimumGroundSpeedMps: 40,
+  /** Approach speeds are lower than cruise, so the cruise floor is too strict. */
+  minimumApproachSpeedMps: 25,
+  /** Even on short final there is a runway roll before the taxi begins. */
+  minimumApproachMinutes: 2,
   /**
    * Climb rate above which an aircraft near the airport is departing rather
    * than arriving. A single snapshot cannot show whether the distance is
@@ -76,7 +80,20 @@ export function estimateArrivalFromPosition(
 
   let minutesRemaining: number;
   if (distanceKm <= ARRIVAL_ESTIMATE.finalApproachKm) {
-    minutesRemaining = ARRIVAL_ESTIMATE.finalApproachMinutes;
+    /*
+     * Established on the approach, so the track is direct — no vectoring
+     * allowance. A flat constant here gave an aircraft two miles out and one
+     * fifteen miles out the same arrival time, which is visibly wrong the
+     * moment several are listed together.
+     */
+    const speedMps = aircraft.groundSpeedMps ?? 0;
+    minutesRemaining =
+      speedMps >= ARRIVAL_ESTIMATE.minimumApproachSpeedMps
+        ? Math.max(
+            ARRIVAL_ESTIMATE.minimumApproachMinutes,
+            (distanceKm / ((speedMps * 3600) / 1000)) * 60,
+          )
+        : ARRIVAL_ESTIMATE.finalApproachMinutes;
   } else {
     const speedMps = aircraft.groundSpeedMps ?? 0;
     if (speedMps < ARRIVAL_ESTIMATE.minimumGroundSpeedMps) return null;
