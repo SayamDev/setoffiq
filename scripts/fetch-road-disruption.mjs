@@ -94,7 +94,18 @@ async function fetchPage({ closureType, startDateTime, endDateTime, pageCursor, 
   });
 
   if (response.status === 429) throw new Error('rate limited (10 calls per minute per key)');
-  if (!response.ok) throw new Error(`${closureType}: provider responded ${response.status}`);
+  if (!response.ok) {
+    // The error schema carries a human-readable `message`; without it a 4xx
+    // says nothing about which parameter the provider objected to.
+    let detail = '';
+    try {
+      const problem = await response.json();
+      if (problem?.message) detail = ` — ${problem.message}`;
+    } catch {
+      /* body was not the documented error shape */
+    }
+    throw new Error(`${closureType}: provider responded ${response.status}${detail}`);
+  }
 
   const contentType = response.headers.get('content-type') ?? '';
   const body = await response.text();
@@ -113,11 +124,28 @@ async function fetchPage({ closureType, startDateTime, endDateTime, pageCursor, 
  * planned closures only, so asking for neither would silently omit every live
  * incident — the half a driver most needs.
  */
+/**
+ * The provider's date format is `YYYY-MM-DDThh:mm:ss` with no timezone suffix.
+ * Sending an ISO string with a trailing `Z` fails validation with a 422.
+ */
+function apiDateTime(instant) {
+  return new Date(instant).toISOString().slice(0, 19);
+}
+
 async function collect(closureType, now, signal) {
-  const startDateTime = new Date(now).toISOString().replace(/\.\d+Z$/, 'Z');
-  const endDateTime = new Date(now + LOOK_AHEAD_HOURS * 60 * 60_000)
-    .toISOString()
-    .replace(/\.\d+Z$/, 'Z');
+  /*
+   * The two closure types need opposite windows. 'planned' covers future and
+   * active roadworks, so it looks forward; 'unplanned' covers closures already
+   * in force, so it looks back — which is what the provider's own worked
+   * example does.
+   */
+  const window =
+    closureType === 'unplanned'
+      ? { from: now - LOOK_AHEAD_HOURS * 60 * 60_000, to: now }
+      : { from: now, to: now + LOOK_AHEAD_HOURS * 60 * 60_000 };
+
+  const startDateTime = apiDateTime(window.from);
+  const endDateTime = apiDateTime(window.to);
 
   const collected = [];
   let pageCursor;
