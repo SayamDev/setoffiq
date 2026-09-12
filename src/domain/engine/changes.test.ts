@@ -120,3 +120,32 @@ describe('adaptive polling', () => {
     expect(nextPollDelayMinutes(now, now + 5 * 60 * 60_000, 'diverted')).toBeNull();
   });
 });
+
+describe('losing sight of a flight', () => {
+  // An overnight watch notified "the flight went from scheduled to an unknown
+  // status" at 08:15, for a departure that had not moved: the aircraft was
+  // simply not in the snapshot yet. That is a statement about SetoffIQ.
+  it('is not worth interrupting anyone for', () => {
+    const next = recommendation(manTime(18, 20));
+    const previous = versionOf(next.recommendedDeparture, 'scheduled');
+    const change = compareRecommendations(previous, next, 'unknown');
+    expect(change.meaningful).toBe(false);
+    expect(change.reason).not.toMatch(/unknown/);
+  });
+
+  it('still tells someone when the aircraft is seen, lands or is cancelled', () => {
+    const next = recommendation(manTime(18, 20));
+    const previous = versionOf(next.recommendedDeparture, 'unknown');
+    for (const phase of ['airborne', 'landed', 'cancelled'] as const) {
+      expect(compareRecommendations(previous, next, phase).meaningful).toBe(true);
+    }
+  });
+
+  it('still tells someone when the time itself moves', () => {
+    const next = recommendation(manTime(18, 20));
+    const previous = versionOf(next.recommendedDeparture - 30 * 60_000, 'scheduled');
+    const change = compareRecommendations(previous, next, 'unknown');
+    expect(change.meaningful).toBe(true);
+    expect(change.reason).toMatch(/30 minutes later/);
+  });
+});

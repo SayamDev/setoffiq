@@ -11,6 +11,20 @@ export interface RecommendationChange {
 }
 
 /**
+ * Phases worth interrupting someone for. Losing sight of a flight is not one:
+ * "unknown" means SetoffIQ cannot see the aircraft — because it is not in
+ * range, or the data went stale — which is a statement about SetoffIQ, not
+ * about the flight. An overnight watch sent "the flight went from scheduled to
+ * an unknown status" at 08:15 for a departure that had not moved at all.
+ */
+const PHASES_WORTH_TELLING: ReadonlySet<FlightPhase> = new Set<FlightPhase>([
+  'airborne',
+  'landed',
+  'cancelled',
+  'diverted',
+]);
+
+/**
  * Decides whether a recalculation is worth showing or notifying about.
  *
  * A departure time that wanders by a minute is noise. A ten-minute move, or a
@@ -24,13 +38,14 @@ export function compareRecommendations(
 ): RecommendationChange {
   const departureDeltaMinutes = minutesBetween(previous.departure, next.recommendedDeparture);
   const phaseChanged = previous.flightPhase !== nextPhase;
+  const phaseWorthTelling = phaseChanged && PHASES_WORTH_TELLING.has(nextPhase);
   const movedEnough = Math.abs(departureDeltaMinutes) >= thresholdMinutes;
 
   return {
-    meaningful: movedEnough || phaseChanged,
+    meaningful: movedEnough || phaseWorthTelling,
     departureDeltaMinutes,
     phaseChanged,
-    reason: describe(departureDeltaMinutes, phaseChanged, previous.flightPhase, nextPhase),
+    reason: describe(departureDeltaMinutes, phaseWorthTelling, previous.flightPhase, nextPhase),
   };
 }
 

@@ -122,10 +122,16 @@ export function useMonitoredJourney(
               newId(now),
             ),
           );
+          // The departure does not always move: a flight can go airborne on
+          // time. "Moved from 07:40 to 07:40" is not something to write down.
+          const departure = formatClock(plan.recommendation.recommendedDeparture, airport.timeZone);
+          const moved = comparison.departureDeltaMinutes !== 0;
           updated = appendEvent(
             updated,
             'recommendation-changed',
-            `Departure moved from ${formatClock(previous.departure, airport.timeZone)} to ${formatClock(plan.recommendation.recommendedDeparture, airport.timeZone)}${plan.recommendation.recommendedDeparture < now ? ', which has already passed' : ''}. ${comparison.reason}`,
+            moved
+              ? `Departure moved from ${formatClock(previous.departure, airport.timeZone)} to ${departure}${plan.recommendation.recommendedDeparture < now ? ', which has already passed' : ''}. ${comparison.reason}`
+              : `${comparison.reason} Departure stays at ${departure}.`,
             now,
           );
           change = {
