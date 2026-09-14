@@ -38,6 +38,13 @@ const SCHEDULE = 'https://sayamdev.github.io/setoffiq/data/flights/EGCC-schedule
 const AIRPORT_IATA = 'MAN';
 const AIRPORT_ICAO = 'EGCC';
 
+/**
+ * How this file was fetched. A published timetable built by an older strategy
+ * is refreshed whatever its age: the first one held 43 flights, all to
+ * airports beginning A or B, and waiting a month to correct that would have
+ * been absurd.
+ */
+const FETCH_VERSION = 2;
 /** Timetables change with the season, not with the hour. */
 const REFRESH_DAYS = 28;
 /** A run that ran out of room should carry on soon, not in a month. */
@@ -125,6 +132,7 @@ async function write(timetable) {
 
 function isDue(previous, now) {
   if (!previous) return true;
+  if (previous.fetchVersion !== FETCH_VERSION) return true;
   const age = now - Date.parse(previous.generatedAt);
   if (!Number.isFinite(age)) return true;
   return previous.partial ? age >= PARTIAL_RETRY_HOURS * 3_600_000 : age >= REFRESH_DAYS * 86_400_000;
@@ -220,6 +228,7 @@ async function main() {
     airportIata: AIRPORT_IATA,
     source: 'AirLabs — /routes',
     attribution: 'Flight schedules from AirLabs (airlabs.co)',
+    fetchVersion: FETCH_VERSION,
     usage,
     partial,
     destinations,
