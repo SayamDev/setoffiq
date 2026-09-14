@@ -1,6 +1,7 @@
 import type { Instant } from '../../domain/types';
 import { readCache, writeCache } from '../cache';
 import { fetchJson } from '../http';
+import { dataUrl } from './dataUrl';
 import { normaliseFlightNumber } from './callsigns';
 import { isCargoOperator, operatorName } from './operators';
 
@@ -37,21 +38,30 @@ const CACHE_KEY = 'flight-schedule:EGCC';
  * refreshes every four and a half hours; twelve means it has stopped.
  */
 export const SCHEDULE_USABLE_HOURS = 12;
-/** How far ahead the schedule is listed. AirLabs covers about ten hours. */
-const AHEAD_HOURS = 10;
+/**
+ * How far ahead the schedule is listed by default.
+ *
+ * The documentation describes ten hours; a free key measurably returns about
+ * three either side of now, which is why the timetable exists alongside it.
+ * The window here is generous so nothing in the file is hidden — the file's
+ * own reach is the real limit.
+ */
+const AHEAD_HOURS = 36;
 /** An arrival that landed this recently may still have a passenger inside. */
 const LANDED_WITHIN_MINUTES = 45;
 /** A delay worth mentioning. */
 export const NOTABLE_DELAY_MINUTES = 15;
 
-export async function loadSchedule(signal?: AbortSignal): Promise<FlightSchedule | null> {
+export async function loadSchedule(
+  signal?: AbortSignal,
+  options: { forceRefresh?: boolean } = {},
+): Promise<FlightSchedule | null> {
   const now = Date.now();
   const cached = readCache<FlightSchedule>(CACHE_KEY, 15, now);
-  let schedule: FlightSchedule | null = cached?.fresh ? cached.value : null;
+  let schedule: FlightSchedule | null = cached?.fresh && !options.forceRefresh ? cached.value : null;
   if (!schedule) {
     try {
-      const base = import.meta.env.BASE_URL || '/';
-      schedule = await fetchJson<FlightSchedule>(`${base}${SCHEDULE_PATH}`.replace(/([^:]\/)\/+/g, '$1'), {
+      schedule = await fetchJson<FlightSchedule>(dataUrl(SCHEDULE_PATH, options.forceRefresh), {
         provider: 'flight-snapshot',
         endpoint: 'schedule',
         signal,
@@ -94,28 +104,36 @@ function listed(flight: ScheduledFlight): ListedFlight {
 }
 
 /**
- * Arrivals worth offering for a pickup: due in the next ten hours, or landed
- * in the last three-quarters of an hour — and cancelled ones, so nobody plans
- * around a flight that is not coming.
+ * Arrivals worth offering for a pickup: still to come within the window, or
+ * landed in the last three-quarters of an hour — and cancelled ones, so nobody
+ * plans around a flight that is not coming.
  */
-export function upcomingArrivals(schedule: FlightSchedule, now: Instant): ListedFlight[] {
+export function upcomingArrivals(
+  schedule: FlightSchedule,
+  now: Instant,
+  hoursAhead: number = AHEAD_HOURS,
+): ListedFlight[] {
   return schedule.arrivals
     .filter((flight) => !(flight.callsign && isCargoOperator(flight.callsign)))
     .filter((flight) => {
       const at = bestTime(flight);
       if (flight.status === 'landed') return at >= now - LANDED_WITHIN_MINUTES * 60_000;
-      return at >= now - LANDED_WITHIN_MINUTES * 60_000 && flight.scheduled <= now + AHEAD_HOURS * 3_600_000;
+      return at >= now - LANDED_WITHIN_MINUTES * 60_000 && flight.scheduled <= now + hoursAhead * 3_600_000;
     })
     .map(listed)
     .sort((a, b) => bestTime(a) - bestTime(b));
 }
 
-/** Departures worth offering for a drop-off: not yet gone, in the next ten hours. */
-export function upcomingDepartures(schedule: FlightSchedule, now: Instant): ListedFlight[] {
+/** Departures worth offering for a drop-off: not yet gone, within the window. */
+export function upcomingDepartures(
+  schedule: FlightSchedule,
+  now: Instant,
+  hoursAhead: number = AHEAD_HOURS,
+): ListedFlight[] {
   return schedule.departures
     .filter((flight) => !(flight.callsign && isCargoOperator(flight.callsign)))
     .filter((flight) => flight.status !== 'active' && flight.status !== 'landed')
-    .filter((flight) => bestTime(flight) >= now && flight.scheduled <= now + AHEAD_HOURS * 3_600_000)
+    .filter((flight) => bestTime(flight) >= now && flight.scheduled <= now + hoursAhead * 3_600_000)
     .map(listed)
     .sort((a, b) => a.scheduled - b.scheduled);
 }

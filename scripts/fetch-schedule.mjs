@@ -27,8 +27,12 @@ const AIRPORT_IATA = 'MAN';
 
 /** How old the published schedule may get before it is refreshed. */
 const REFRESH_HOURS = 4.5;
-/** Kept under the free plan's 1,000 a month, with room for manual checks. */
-const MONTHLY_BUDGET = 900;
+/**
+ * The free plan allows 1,000 requests a month, shared with the weekly
+ * timetable (400) and leaving room for manual checks. Observed use here is
+ * under 100 a month.
+ */
+const MONTHLY_BUDGET = 500;
 /** Pages per direction; each is 100 flights. */
 const MAX_PAGES = 4;
 

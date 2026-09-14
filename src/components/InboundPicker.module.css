@@ -159,6 +159,100 @@
   white-space: nowrap;
 }
 
+/* Filtering a list that now runs to hundreds of rows. */
+.filter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+
+/*
+ * The wait, shown as the shape of what is coming rather than a word. The rows
+ * are decorative — the text above them is what a screen reader announces.
+ */
+.loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+}
+
+.loadingRows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.loadingRow {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr auto;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+/* The day a timetabled flight falls on: this list reaches into next week. */
+.dayHeading {
+  font-size: var(--t-sm);
+  font-weight: 650;
+  color: var(--ink-2);
+  margin-top: var(--space-4);
+}
+
+.horizon {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.horizonButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.horizonOff {
+  padding: var(--space-2) var(--space-3);
+  min-height: 36px;
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+  background: none;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-1);
+  cursor: pointer;
+  transition-property: background-color, border-color, color;
+  transition-duration: var(--dur-out);
+  transition-timing-function: var(--ease);
+}
+
+.horizonOff:hover {
+  background: var(--surface-2);
+  border-color: var(--signal);
+}
+
+/* The period being listed. Not colour alone: aria-pressed says it too. */
+.horizonOn {
+  composes: horizonOff;
+  color: var(--ink);
+  font-weight: 650;
+  border-color: var(--signal);
+  background: var(--signal-wash);
+}
+
+/* A link inside a sentence — "clear the filter" — not a control of its own. */
+.inlineButton {
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--signal);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* Narrow screens keep all four columns — identifier, airline, distance,
  * time — and drop only the callsign note, which the identifier repeats. */
 @media (max-width: 30rem) {

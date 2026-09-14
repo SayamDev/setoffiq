@@ -161,12 +161,14 @@ of the picker: nobody is collected from them.
 
 ---
 
-## AirLabs — the flight schedule
+## AirLabs — the flight schedule and the weekly timetable
 
-- **Official documentation:** https://airlabs.co/docs/schedules
-- **Purpose:** what lands and leaves at Manchester in the next ten hours, with
-  status — the one thing live positions cannot give, because a flight that has
-  not taken off is not in the air.
+- **Official documentation:** https://airlabs.co/docs/schedules and
+  https://airlabs.co/docs/routes
+- **Purpose:** what lands and leaves at Manchester with status — the one thing
+  live positions cannot give, because a flight that has not taken off is not in
+  the air — and the airlines' weekly timetable, which is the only source here
+  that can answer at three in the morning or for a pickup next Tuesday.
 - **Authentication:** a free API key, held in the `AIRLABS_KEY` repository
   secret and used only by the deploy job. It never reaches a browser.
 - **Free plan, verified 11 September 2026:** sign-up shows *"free $0/month"*
@@ -182,12 +184,29 @@ of the picker: nobody is collected from them.
   scheduled, estimated and actual times, terminal, gate, baggage belt, and
   codeshares. 100 flights per request. That evening Manchester's arrivals
   showed 2 cancelled and 73 with a delay figure.
-- **Budget:** a refresh takes about six requests (arrivals and departures, 100
-  a page). `scripts/fetch-schedule.mjs` refreshes only when the published
-  schedule is over **4.5 hours** old, and never past **900 requests** in a
-  calendar month, counted in the published file itself. In between it
-  republishes what it has; the app says how old the status is, and aircraft in
-  the air stay current from the live snapshot.
+- **How far ahead `/schedules` actually reaches — measured, 14 September 2026**
+  (`scripts/probe-airlabs-routes.mjs`): a free key returned arrivals from 2.2
+  hours ago to 1.2 hours ahead, and departures from 2.5 hours ago to 0.4 hours
+  ahead, 100 rows a page. Four pages reach roughly three hours ahead. The
+  documentation's "ten hours" is not what a free key gives, which is why the
+  picker was empty at night and why the timetable below exists. Assume nothing
+  about a window: measure it.
+- **`/routes` — the weekly timetable — is on the free plan**, verified the same
+  day: 50 rows a page, with `flight_iata`, `flight_icao`, `airline_iata`, the
+  other airport, `dep_time_utc`, `arr_time_utc`, `duration`, terminals, the
+  days of the week it operates, and codeshare numbers. It carries **no status
+  at all** — no delay, no cancellation — so the app never presents it as one.
+  Flights are placed by adding the published duration to the departure, not by
+  reading the arrival clock time, so a flight that lands the day after it
+  leaves lands on the right day.
+- **Budget:** the free plan's 1,000 requests a month are split, each half
+  counted in the file it publishes. The schedule
+  (`scripts/fetch-schedule.mjs`) refreshes only when the published copy is over
+  **4.5 hours** old and never past **500 requests** a month — observed use is
+  under 100. The timetable (`scripts/fetch-timetable.mjs`) refreshes weekly and
+  never past **400**. In between each republishes what it has; the app says how
+  old the status is, and aircraft in the air stay current from the live
+  snapshot.
 - **Codeshares:** one aircraft is listed once per marketing number. Those
   copies are folded into the operating flight as aliases, so a typed codeshare
   number still finds it and the list shows each aircraft once.
@@ -204,11 +223,16 @@ of the picker: nobody is collected from them.
     — the same situation as National Highways ¶21(e).
   - No attribution requirement was found; the app credits AirLabs anyway.
 - **What the app does with it:**
-  - Both pickers list the next ten hours of scheduled flights with the ticket
+  - Both pickers list the scheduled flights the file covers with the ticket
     flight number, airline, origin or destination, and a plain status:
     *Cancelled*, *Delayed ~25 min* (with the expected time), *In the air*,
     *Landed*. Picking one fills in the booking time — for a drop-off, the gate
     time directly, with no allowance.
+  - Under that, both pickers list the timetable — 24 hours, 3 days or a week —
+    grouped by day, with a filter by flight number, airline or city. A
+    timetabled flight the schedule already covers is dropped, including when
+    the two use different codeshare numbers, so nothing appears twice. The
+    section says in as many words that these times carry no status.
   - A monitored journey whose flight the schedule lists as **cancelled** stops
     with *"This flight is showing as cancelled"*. Before the aircraft is in
     range, the schedule's estimate replaces the typed time, labelled as the

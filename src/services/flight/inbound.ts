@@ -2,6 +2,7 @@ import { FLIGHT_SNAPSHOT_STALE_AFTER_MINUTES } from '../../domain/assumptions';
 import type { AirportProfile, Instant } from '../../domain/types';
 import { readCache } from '../cache';
 import { fetchJson } from '../http';
+import { dataUrl } from './dataUrl';
 import { estimateArrivalFromPosition, notArrivingReason } from './arrivalEstimate';
 import { callsignToFlightNumber } from './callsigns';
 import { isCargoOperator, operatorName } from './operators';
@@ -59,17 +60,28 @@ const MAX_LISTED = 20;
 export async function listInboundAircraft(
   airport: AirportProfile,
   signal?: AbortSignal,
+  options: { forceRefresh?: boolean } = {},
 ): Promise<InboundAircraft[]> {
   const now = Date.now();
   const cached = readCache<FlightSnapshot>(CACHE_KEY, 4, now);
 
-  let snapshot = cached?.fresh ? cached.value : null;
+  let snapshot = cached?.fresh && !options.forceRefresh ? cached.value : null;
   if (!snapshot) {
-    const base = import.meta.env.BASE_URL || '/';
-    snapshot = await fetchJson<FlightSnapshot>(
-      `${base}${SNAPSHOT_PATH}`.replace(/([^:]\/)\/+/g, '$1'),
-      { provider: 'flight-snapshot', endpoint: 'inbound', signal },
-    );
+    try {
+      snapshot = await fetchJson<FlightSnapshot>(dataUrl(SNAPSHOT_PATH, options.forceRefresh), {
+        provider: 'flight-snapshot',
+        endpoint: 'inbound',
+        signal,
+        // Someone is waiting on this list. One retry, then fall back to what
+        // is already in hand rather than spending seconds on a dead network.
+        retries: 1,
+      });
+    } catch (error) {
+      // A refresh that fails leaves the last snapshot in place; its age is
+      // checked below like any other, so nothing stale is passed off as live.
+      if (!cached) throw error;
+      snapshot = cached.value;
+    }
   }
 
   const generatedAt = Date.parse(snapshot.generatedAt);

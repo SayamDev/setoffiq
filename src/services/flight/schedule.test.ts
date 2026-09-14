@@ -54,6 +54,7 @@ describe('which scheduled flights are offered', () => {
       flight({ flight: 'A2', scheduled: at(16), status: 'landed', actual: at(16) }),
       flight({ flight: 'A3', scheduled: at(21), status: 'cancelled' }),
       flight({ flight: 'A4', scheduled: at(18) + 11 * 3_600_000 }),
+      flight({ flight: 'A6', scheduled: at(18) + 40 * 3_600_000 }),
       flight({ flight: 'A5', scheduled: at(19), callsign: 'FDX5270' }),
     ],
     departures: [
@@ -62,8 +63,14 @@ describe('which scheduled flights are offered', () => {
     ],
   };
 
-  it('offers arrivals just landed, still to come, and cancelled — not long gone, beyond ten hours, or freight', () => {
-    expect(upcomingArrivals(schedule, now).map((f) => f.flight)).toEqual(['A1', 'A3']);
+  it('offers arrivals just landed, still to come, and cancelled — not long gone, past the window, or freight', () => {
+    // A4 is eleven hours out: a free key never reaches that far, but nothing in
+    // a published file should be hidden by a window tighter than the file.
+    expect(upcomingArrivals(schedule, now).map((f) => f.flight)).toEqual(['A1', 'A3', 'A4']);
+  });
+
+  it('honours a tighter window when one is asked for', () => {
+    expect(upcomingArrivals(schedule, now, 6).map((f) => f.flight)).toEqual(['A1', 'A3']);
   });
 
   it('offers departures that have not gone', () => {

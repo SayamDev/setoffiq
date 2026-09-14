@@ -38,7 +38,7 @@ describe('planning a pickup from an aircraft in the air', () => {
     const user = userEvent.setup();
     render(<JourneyForm kind="pickup" airport={MANCHESTER} now={Date.now()} onSubmit={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: /Collecting from a flight landing soon/ }));
+    await user.click(screen.getByRole('button', { name: /Collecting someone from a flight/ }));
     await user.click(await screen.findByRole('button', { name: /RYR61UR.*Ryanair.*from Ibiza/s }));
 
     expect(screen.getByLabelText('Flight number (optional)')).toHaveValue('RYR61UR');
@@ -120,7 +120,7 @@ describe('planning a drop-off from a flight that usually leaves soon', () => {
     const user = userEvent.setup();
     render(<JourneyForm kind="dropoff" airport={MANCHESTER} now={now} onSubmit={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: /Dropping off for a flight leaving soon/ }));
+    await user.click(screen.getByRole('button', { name: /Dropping someone off for a flight/ }));
     await user.click(await screen.findByRole('button', { name: /EZY256Q.*easyJet.*to Belfast/s }));
 
     const gate = london(160);
@@ -168,7 +168,7 @@ describe('choosing from the airline schedule', () => {
     const user = userEvent.setup();
     render(<JourneyForm kind="pickup" airport={MANCHESTER} now={now} onSubmit={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: /Collecting from a flight landing soon/ }));
+    await user.click(screen.getByRole('button', { name: /Collecting someone from a flight/ }));
     expect(await screen.findByRole('button', { name: /FR3006.*Ryanair.*from Ibiza.*Cancelled/s })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /EK19.*Emirates.*from Dubai.*Delayed ~25 min/s }));
 
@@ -184,10 +184,76 @@ describe('choosing from the airline schedule', () => {
     const user = userEvent.setup();
     render(<JourneyForm kind="dropoff" airport={MANCHESTER} now={now} onSubmit={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: /Dropping off for a flight leaving soon/ }));
+    await user.click(screen.getByRole('button', { name: /Dropping someone off for a flight/ }));
     await user.click(await screen.findByRole('button', { name: /LS811.*Jet2.*to Alicante/s }));
 
     expect(screen.getByLabelText('Scheduled departure time')).toHaveValue(clock(now + 4 * 3_600_000));
     expect(screen.getByRole('radio', { name: /International/ })).toBeChecked();
+  });
+});
+
+
+describe('the timetable, when the schedule has nothing to say', () => {
+  afterEach(() => clearAll());
+
+  const clock = (ms: number) =>
+    new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ms));
+
+  /** A flight timetabled to land three hours from now, and nothing else. */
+  function seedTimetable(now: number) {
+    const durationMinutes = 120;
+    const departure = new Date(now + 3 * 3_600_000 - durationMinutes * 60_000);
+    const days = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    writeCache(
+      'flight-timetable:EGCC',
+      {
+        generatedAt: new Date(now).toISOString(),
+        attribution: 'Flight schedules from AirLabs (airlabs.co)',
+        arrivals: [
+          {
+            flight: 'EK21',
+            callsign: 'UAE21',
+            airline: 'EK',
+            otherEnd: { icao: 'OMDB', iata: 'DXB', city: 'Dubai', country: 'AE' },
+            days: [days[departure.getUTCDay()]],
+            departureMinute: departure.getUTCHours() * 60 + departure.getUTCMinutes(),
+            durationMinutes,
+            terminal: '2',
+            aliases: [],
+          },
+        ],
+        departures: [],
+      },
+      now,
+    );
+  }
+
+  it('lists a timetabled arrival when there is no schedule at all, and fills the time in', async () => {
+    const now = Date.now();
+    seedTimetable(now);
+    const user = userEvent.setup();
+    render(<JourneyForm kind="pickup" airport={MANCHESTER} now={now} onSubmit={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: /Collecting someone from a flight/ }));
+    await user.click(await screen.findByRole('button', { name: /EK21.*Emirates.*from Dubai/s }));
+
+    expect(screen.getByLabelText('Flight number (optional)')).toHaveValue('EK21');
+    expect(screen.getByLabelText('Scheduled arrival time')).toHaveValue(clock(now + 3 * 3_600_000));
+    // The timetable carries no status, and the interface has to say so.
+    expect(screen.getByText(/published timetable, which carries no status/)).toBeInTheDocument();
+  });
+
+  it('filters a long list down to one flight', async () => {
+    const now = Date.now();
+    seedTimetable(now);
+    const user = userEvent.setup();
+    render(<JourneyForm kind="pickup" airport={MANCHESTER} now={now} onSubmit={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: /Collecting someone from a flight/ }));
+    await screen.findByRole('button', { name: /EK21/ });
+    await user.type(screen.getByLabelText('Find a flight'), 'BA 1360');
+
+    expect(screen.queryByRole('button', { name: /EK21/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/Nothing matches/)).toBeInTheDocument();
   });
 });

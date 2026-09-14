@@ -96,6 +96,18 @@ jobs:
           SCHEDULE_CACHE_FILE: .cache/schedule/EGCC-schedule.json
         run: node scripts/fetch-schedule.mjs
 
+      # Manchester's weekly timetable from AirLabs, keyed, refreshed weekly.
+      # A free key sees only about three hours of the schedule either side of
+      # now, so without this the picker is empty at night and useless to
+      # anyone planning a pickup tomorrow — see scripts/fetch-timetable.mjs.
+      - name: Refresh flight timetable
+        continue-on-error: true
+        env:
+          AIRLABS_KEY: ${{ secrets.AIRLABS_KEY }}
+          STANDING_DATA_DIR: .cache/standing-data
+          TIMETABLE_CACHE_FILE: .cache/schedule/EGCC-timetable.json
+        run: node scripts/fetch-timetable.mjs
+
       # Aerodrome observation. Free and keyless, but the Aviation Weather
       # Center sends no CORS header, so it is fetched here rather than in the
       # browser — the same pattern as the flight snapshot.

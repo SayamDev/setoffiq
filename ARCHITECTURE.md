@@ -163,6 +163,23 @@ No single provider can prevent a recommendation from being produced when the
 remaining information is sufficient — and when it genuinely is not, the app says
 it cannot safely calculate one rather than inventing something.
 
+## Choosing a flight
+
+Three published files feed the picker, and each is allowed to say only what it
+knows:
+
+| File | From | Refreshed | What it can say |
+| --- | --- | --- | --- |
+| `EGCC-arrivals.json` | adsb.lol positions | every deploy | What is in the air right now, timed from where it is |
+| `EGCC-schedule.json` | AirLabs `/schedules` | every 4.5 h | About three hours either side of now, with delays and cancellations |
+| `EGCC-timetable.json` | AirLabs `/routes` | weekly | What is meant to fly, any hour of any day, with no status at all |
+
+The timetable is what makes the picker work at two in the morning and for a
+pickup next week; the schedule overrides it wherever the two overlap, because it
+is the one that knows whether a flight is actually running. Opening the picker
+re-fetches all three past the browser cache, with skeleton rows while it waits,
+and falls back to the last copy it holds if a fetch fails.
+
 ## Build and deploy
 
 Vite builds a static bundle. `.github/workflows/deploy.yml` refreshes the flight

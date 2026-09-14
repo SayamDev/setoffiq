@@ -19,3 +19,5 @@ export {
   upcomingDepartures,
 } from './schedule';
 export type { FlightSchedule, ListedFlight, ScheduledFlight } from './schedule';
+export { loadTimetable, timetableWindow, withoutScheduled, TIMETABLE_USABLE_DAYS } from './timetable';
+export type { FlightTimetable, TimetableEntry, TimetableFlight } from './timetable';

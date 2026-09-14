@@ -2,6 +2,7 @@ import type { AirportProfile, Instant } from '../../domain/types';
 import { parseLocalDateTime, todayInZone } from '../../domain/time';
 import { readCache, writeCache } from '../cache';
 import { fetchJson } from '../http';
+import { dataUrl } from './dataUrl';
 import { callsignToFlightNumber } from './callsigns';
 import { isCargoOperator, operatorName } from './operators';
 
@@ -64,13 +65,15 @@ const LOOK_AHEAD_HOURS = 12;
 /** After its usual time, how long a missing flight is still worth mentioning. */
 const NOT_SEEN_WINDOW_MINUTES = { from: 20, to: 180 };
 
-export async function loadArrivalHistory(signal?: AbortSignal): Promise<ArrivalHistory | null> {
+export async function loadArrivalHistory(
+  signal?: AbortSignal,
+  options: { forceRefresh?: boolean } = {},
+): Promise<ArrivalHistory | null> {
   const now = Date.now();
   const cached = readCache<ArrivalHistory>(CACHE_KEY, 30, now);
-  if (cached?.fresh) return cached.value;
+  if (cached?.fresh && !options.forceRefresh) return cached.value;
   try {
-    const base = import.meta.env.BASE_URL || '/';
-    const history = await fetchJson<ArrivalHistory>(`${base}${HISTORY_PATH}`.replace(/([^:]\/)\/+/g, '$1'), {
+    const history = await fetchJson<ArrivalHistory>(dataUrl(HISTORY_PATH, options.forceRefresh), {
       provider: 'flight-snapshot',
       endpoint: 'history',
       signal,

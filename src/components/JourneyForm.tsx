@@ -95,6 +95,8 @@ export function JourneyForm({
         return "Filled in from the aircraft's position. Change them if the booking says otherwise.";
       case 'schedule':
         return 'Filled in from the airline schedule. Check the time on the booking.';
+      case 'timetable':
+        return "Filled in from the airlines' published timetable, which carries no status. Check the time on the booking.";
       case 'usual':
         return 'Filled in from when this flight usually lands. Check the time on the booking.';
       case 'usual-departure':

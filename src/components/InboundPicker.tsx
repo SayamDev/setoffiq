@@ -6,18 +6,25 @@ import {
   listInboundAircraft,
   loadArrivalHistory,
   loadSchedule,
+  loadTimetable,
   upcomingArrivals,
   minutesAgainstUsual,
   SnapshotTooOldError,
+  timetableWindow,
   USUAL_MIN_DAYS,
   usualArrivals,
+  withoutScheduled,
   type ArrivalHistory,
   type FlightSchedule,
+  type FlightTimetable,
   type InboundAircraft,
   type ListedFlight,
+  type TimetableFlight,
   type UsualArrival,
 } from '../services/flight';
 import { describeScheduled, ScheduledList } from './ScheduledList';
+import { FilterField, LoadingRows, matches, TimetableList } from './pickerParts';
+import { HORIZONS, HorizonChoice, NothingFound, TimetableNote } from './pickerSections';
 import { Button, ui } from './ui';
 import styles from './InboundPicker.module.css';
 
@@ -32,7 +39,7 @@ export interface PickedFlight {
    * Where the time came from: a live position, the recorded landing pattern,
    * or the recorded take-off pattern less the gate-to-take-off allowance.
    */
-  basis: 'position' | 'schedule' | 'usual' | 'usual-departure';
+  basis: 'position' | 'schedule' | 'timetable' | 'usual' | 'usual-departure';
 }
 
 type Live =
@@ -51,16 +58,23 @@ type State =
       usual: UsualArrival[];
       /** undefined while loading; null when there is no usable schedule. */
       schedule: FlightSchedule | null | undefined;
+      /** The weekly timetable: what is meant to fly, at any hour of any day. */
+      timetable: FlightTimetable | null | undefined;
     }
   | { kind: 'picked'; title: string; detail: string };
 
 /**
  * Pick the flight rather than type it.
  *
- * Two lists. Aircraft in the air now, from the live snapshot, with a time from
- * their position. And flights that usually land in the next twelve hours, from
- * SetoffIQ's own record of landings — a pattern it measured, labelled as one.
- * Neither is a schedule, and the interface says what each can and cannot know.
+ * Three lists, each with a different claim to make. Aircraft in the air now,
+ * from the live snapshot, timed from their position. Today's schedule, with
+ * delays and cancellations — which a free AirLabs key only reaches about three
+ * hours ahead of. And the airlines' weekly timetable, which carries no status
+ * at all but answers at two in the morning and for a pickup next Tuesday.
+ *
+ * The point of the third list is that there is always something to choose:
+ * before it existed, the picker was empty overnight. Each list says what it
+ * can and cannot know rather than blending into one confident answer.
  */
 export function InboundPicker({
   airport,
@@ -70,26 +84,47 @@ export function InboundPicker({
   onPick: (flight: PickedFlight) => void;
 }): React.JSX.Element {
   const [state, setState] = useState<State>({ kind: 'idle' });
+  const [query, setQuery] = useState('');
+  const [hoursAhead, setHoursAhead] = useState<number>(HORIZONS[0].hours);
 
   const load = async (): Promise<void> => {
     setState({ kind: 'loading' });
-    // The live list shows as soon as it is ready; the record of usual arrivals
-    // follows when it arrives, rather than holding the live list back.
-    const historyPromise = loadArrivalHistory();
-    const schedulePromise = loadSchedule();
-    const live = await listInboundAircraft(airport).then(
+    // Opening the picker is a deliberate act, so every source is re-fetched
+    // rather than answered from the browser's cache: the published files are
+    // refreshed behind the site, and a list of flights that has quietly gone
+    // stale is worse than a second's wait.
+    const fresh = { forceRefresh: true };
+    const historyPromise = loadArrivalHistory(undefined, fresh);
+    const schedulePromise = loadSchedule(undefined, fresh);
+    const timetablePromise = loadTimetable(undefined, fresh);
+    const live = await listInboundAircraft(airport, undefined, fresh).then(
       (aircraft): Live => ({ kind: 'ok', aircraft }),
       (error: unknown): Live =>
         error instanceof SnapshotTooOldError
           ? { kind: 'too-old', ageMinutes: error.ageMinutes }
           : { kind: 'error' },
     );
-    setState({ kind: 'ready', live, history: undefined, usual: [], schedule: undefined });
+    // The live list shows as soon as it is ready; the schedule, timetable and
+    // record follow, rather than holding it back.
+    setState({
+      kind: 'ready',
+      live,
+      history: undefined,
+      usual: [],
+      schedule: undefined,
+      timetable: undefined,
+    });
 
-    const [history, schedule] = await Promise.all([historyPromise, schedulePromise]);
+    const [history, schedule, timetable] = await Promise.all([
+      historyPromise,
+      schedulePromise,
+      timetablePromise,
+    ]);
     const inTheAir = new Set(live.kind === 'ok' ? live.aircraft.map((a) => a.callsign) : []);
     const usual = history ? usualArrivals(history, airport, Date.now(), inTheAir) : [];
-    setState((current) => (current.kind === 'ready' ? { ...current, history, usual, schedule } : current));
+    setState((current) =>
+      current.kind === 'ready' ? { ...current, history, usual, schedule, timetable } : current,
+    );
   };
 
   const pickLive = (aircraft: InboundAircraft): void => {
@@ -122,6 +157,20 @@ export function InboundPicker({
     });
   };
 
+  const pickTimetable = (flight: TimetableFlight): void => {
+    onPick({
+      flightNumber: flight.flight,
+      fillAt: flight.at,
+      otherEndCountry: flight.otherEnd?.country ?? null,
+      basis: 'timetable',
+    });
+    setState({
+      kind: 'picked',
+      title: describe(flight.flight, flight.airlineName, flight.place),
+      detail: `Timetabled to land at ${formatClock(flight.at, airport.timeZone)} on ${formatDate(flight.at, airport.timeZone)}. That is the airlines' timetable, not today's status — SetoffIQ will check the flight itself once it is close enough to see.`,
+    });
+  };
+
   const pickUsual = (flight: UsualArrival): void => {
     onPick({
       flightNumber: flight.flightNumber ?? flight.callsign,
@@ -143,10 +192,11 @@ export function InboundPicker({
           ✈
         </span>
         <span className={styles.entryText}>
-          <span className={styles.entryTitle}>Collecting from a flight landing soon?</span>
+          <span className={styles.entryTitle}>Collecting someone from a flight?</span>
           <span className={styles.entryBody}>
-            Choose it from the arrivals at {airport.name} in the next ten hours — with delays and
-            cancellations — and the flight and time are filled in for you.
+            Choose it from the arrivals at {airport.name} — today, tonight or next week — and the
+            flight and time are filled in for you. Delays and cancellations are shown for flights
+            close enough for anyone to know them.
           </span>
         </span>
       </button>
@@ -168,69 +218,77 @@ export function InboundPicker({
   if (state.kind === 'loading') {
     return (
       <div className={styles.wrapper}>
-        <p className={ui.hint}>Checking what is in the air…</p>
+        <LoadingRows label={`Fetching the latest arrivals for ${airport.name}…`} rows={5} />
       </div>
     );
   }
 
-  const { live, history, usual, schedule } = state;
+  const { live, history, usual, schedule, timetable } = state;
   const now = Date.now();
+
+  const aircraft =
+    live.kind === 'ok'
+      ? live.aircraft.filter((one) => matches(query, [one.flightNumber, one.callsign, one.airline, one.from]))
+      : [];
+  const scheduled = schedule ? upcomingArrivals(schedule, now) : [];
+  const scheduledShown = scheduled.filter((flight) =>
+    matches(query, [flight.flight, flight.airlineName, flight.place, ...flight.aliases]),
+  );
+  // The timetable repeats what the schedule already covers, with less to say
+  // about it, so the schedule wins wherever the two overlap.
+  const timetabled = timetable
+    ? withoutScheduled(timetableWindow(timetable, 'arrival', now, hoursAhead), scheduled)
+    : [];
+  const timetabledShown = timetabled.filter((flight) =>
+    matches(query, [flight.flight, flight.airlineName, flight.place, ...flight.aliases]),
+  );
+  const stillLoading = schedule === undefined || timetable === undefined;
+  const nothingListed =
+    !stillLoading && aircraft.length === 0 && scheduledShown.length === 0 && timetabledShown.length === 0;
 
   return (
     <div className={styles.wrapper}>
-      <h2 className={styles.sectionTitle}>In the air now</h2>
-      {live.kind === 'too-old' ? (
-        <p className={ui.hint}>
-          {Number.isFinite(live.ageMinutes)
-            ? `The latest flight data is ${formatAge(live.ageMinutes)} old, so it cannot show what is in the air now.`
-            : 'The latest flight data has no timestamp, so it cannot show what is in the air now.'}
-        </p>
-      ) : null}
-      {live.kind === 'error' ? (
-        <p className={ui.hint}>We couldn't check what is in the air just now.</p>
-      ) : null}
-      {live.kind === 'ok' && live.aircraft.length === 0 ? (
-        <p className={ui.hint}>No airline aircraft are heading for {airport.name} at the moment.</p>
-      ) : null}
-      {live.kind === 'ok' && live.aircraft.length > 0 ? (
+      <FilterField value={query} onChange={setQuery} label="Find a flight" />
+
+      {live.kind === 'ok' && aircraft.length > 0 ? (
         <>
+          <h2 className={styles.sectionTitle}>In the air now</h2>
           <p className={ui.hint}>
-            Nearest first. Where a route is shown it is the one reported for that callsign, not a
-            schedule, and some airlines broadcast a callsign that is not the number on a ticket.
+            Nearest first, timed from where each aircraft is this minute. Where a route is shown it
+            is the one reported for that callsign, not a schedule, and some airlines broadcast a
+            callsign that is not the number on a ticket.
           </p>
           <ul className={styles.list}>
-            {live.aircraft.map((aircraft) => {
+            {aircraft.map((one) => {
               const against = minutesAgainstUsual(
                 history ?? null,
-                aircraft.callsign,
-                aircraft.estimatedArrival,
+                one.callsign,
+                one.estimatedArrival,
                 airport,
                 ARRIVAL_ESTIMATE.taxiMinutes,
               );
               return (
-                <li key={aircraft.callsign}>
-                  <button type="button" className={styles.option} onClick={() => pickLive(aircraft)}>
-                    <span className={styles.identifier}>
-                      {aircraft.flightNumber ?? aircraft.callsign}
-                    </span>
+                <li key={one.callsign}>
+                  <button type="button" className={styles.option} onClick={() => pickLive(one)}>
+                    <span className={styles.identifier}>{one.flightNumber ?? one.callsign}</span>
                     <span className={styles.who}>
-                      {aircraft.airline ? <span className={styles.airline}>{aircraft.airline}</span> : null}
-                      {aircraft.from ? <span className={styles.origin}>from {aircraft.from}</span> : null}
+                      {one.airline ? <span className={styles.airline}>{one.airline}</span> : null}
+                      {one.from ? <span className={styles.origin}>from {one.from}</span> : null}
                       {against !== null ? (
                         <span className={styles.notice}>
                           ~{Math.abs(against)} min {against > 0 ? 'later' : 'earlier'} than usual
                         </span>
                       ) : null}
-                      {aircraft.flightNumber ? (
-                        <span className={styles.callsign}>{aircraft.callsign}</span>
+                      {one.flightNumber ? (
+                        <span className={styles.callsign}>{one.callsign}</span>
                       ) : (
                         <span className={styles.callsign}>callsign only</span>
                       )}
                     </span>
-                    <span className={styles.detail}>{aircraft.distanceKm} km out</span>
+                    <span className={styles.detail}>{one.distanceKm} km out</span>
                     <span className={styles.detail}>
-                      {aircraft.estimatedArrival
-                        ? `~${formatClock(aircraft.estimatedArrival, airport.timeZone)}`
+                      {one.estimatedArrival
+                        ? `~${formatClock(one.estimatedArrival, airport.timeZone)}`
                         : ''}
                     </span>
                   </button>
@@ -242,25 +300,63 @@ export function InboundPicker({
       ) : null}
 
       {schedule === undefined ? (
-        <p className={ui.hint}>Checking the schedule…</p>
-      ) : schedule !== null ? (
+        <LoadingRows label="Fetching today's schedule…" rows={3} />
+      ) : schedule !== null && scheduledShown.length > 0 ? (
         <>
-          <h2 className={styles.sectionTitle}>Scheduled in the next ten hours</h2>
+          <h2 className={styles.sectionTitle}>Today, with live status</h2>
           <p className={ui.hint}>
             From AirLabs, as of {formatClock(Date.parse(schedule.generatedAt), airport.timeZone)}.
-            Delays and cancellations can be a few hours old here; aircraft in the air above are
-            live. Check with the airline before you set off.
+            This is the part of the day close enough for delays and cancellations to be known;
+            aircraft in the air above are live. Check with the airline before you set off.
           </p>
           <ScheduledList
-            flights={upcomingArrivals(schedule, now)}
+            flights={scheduledShown}
             airport={airport}
             direction="arrival"
             onPick={pickScheduled}
           />
         </>
-      ) : (
+      ) : null}
+
+      {timetable === undefined ? (
+        <LoadingRows label="Fetching the timetable…" rows={4} />
+      ) : timetable !== null ? (
+        <>
+          <h2 className={styles.sectionTitle}>Timetabled arrivals</h2>
+          <TimetableNote generatedAt={timetable.generatedAt} airport={airport} direction="arrival" />
+          <HorizonChoice hours={hoursAhead} onChange={setHoursAhead} shown={timetabledShown.length} />
+          <TimetableList
+            flights={timetabledShown}
+            airport={airport}
+            direction="arrival"
+            now={now}
+            onPick={pickTimetable}
+          />
+        </>
+      ) : schedule === null ? (
+        // Nothing from AirLabs at all: fall back to what SetoffIQ has recorded
+        // itself, which is a pattern rather than a timetable and says so.
         <UsualSection history={history} usual={usual} airport={airport} now={now} onPick={pickUsual} />
-      )}
+      ) : null}
+
+      {nothingListed ? (
+        <NothingFound query={query} onClear={() => setQuery('')} airport={airport} now={now} />
+      ) : null}
+
+      {live.kind === 'too-old' && !query.trim() ? (
+        <p className={ui.hint}>
+          {Number.isFinite(live.ageMinutes)
+            ? `The live aircraft positions are ${formatAge(live.ageMinutes)} old, so nothing is shown as in the air now. The lists below do not depend on them.`
+            : 'The live aircraft positions have no timestamp, so nothing is shown as in the air now.'}
+        </p>
+      ) : null}
+      {live.kind === 'error' && !query.trim() ? (
+        <p className={ui.hint}>We couldn't check what is in the air just now.</p>
+      ) : null}
+
+      <Button variant="quiet" onClick={() => void load()} className={styles.change}>
+        Refresh this list
+      </Button>
     </div>
   );
 }
