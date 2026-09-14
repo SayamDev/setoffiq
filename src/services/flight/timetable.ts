@@ -53,10 +53,11 @@ const TIMETABLE_PATH = 'data/flights/EGCC-timetable.json';
 const CACHE_KEY = 'flight-timetable:EGCC';
 
 /**
- * A timetable is a season's worth of intent, so it ages in weeks. Past a
- * month it is more likely to be wrong than useful.
+ * A timetable is a season's worth of intent, so it ages in weeks. The job
+ * refreshes it every 28 days; this leaves room for a late run without the
+ * list blanking, and stops a forgotten file being shown months later.
  */
-export const TIMETABLE_USABLE_DAYS = 30;
+export const TIMETABLE_USABLE_DAYS = 45;
 
 const DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 const DAY_MS = 86_400_000;

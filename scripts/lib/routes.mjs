@@ -136,3 +136,54 @@ export function createIataLookup(standingDataDir) {
   return (iata) => (iata ? (byIata.get(iata) ?? null) : null);
 }
 
+
+/**
+ * Every airport the standing data has ever seen paired with this one, as IATA
+ * codes.
+ *
+ * The AirLabs timetable can only be fetched one airport pair at a time — a
+ * free key returns 50 rows per query and ignores `offset` — so this is what
+ * says which pairs to ask about. It is a list of places to query, not data
+ * shown to anyone: a route that has since stopped costs one wasted request,
+ * and a route the CC0 data has not seen is simply not asked about.
+ */
+export function partnerIataCodes(standingDataDir, airportIcao) {
+  const routesDir = standingDataDir ? join(standingDataDir, 'routes', 'schema-01') : null;
+  if (!routesDir || !existsSync(routesDir)) return [];
+
+  const partners = new Set();
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) walk(path);
+      else if (entry.name.endsWith('.csv')) {
+        for (const row of readCsv(path)) {
+          const codes = (row[4] ?? '').split('-').map((code) => code.trim()).filter(Boolean);
+          const here = codes.indexOf(airportIcao);
+          if (here === -1) continue;
+          if (here > 0) partners.add(codes[here - 1]);
+          if (here < codes.length - 1) partners.add(codes[here + 1]);
+        }
+      }
+    }
+  };
+  walk(routesDir);
+  partners.delete(airportIcao);
+
+  const iataFor = createIcaoToIata(standingDataDir);
+  return [...partners].map(iataFor).filter(Boolean).sort();
+}
+
+/** ICAO to IATA, from the same standing data. */
+function createIcaoToIata(standingDataDir) {
+  const airportsDir = standingDataDir ? join(standingDataDir, 'airports', 'schema-01') : null;
+  const cache = new Map();
+  return (icao) => {
+    if (!airportsDir || !/^[A-Z]{4}$/.test(icao)) return null;
+    const file = join(airportsDir, icao[0], `${icao.slice(0, 2)}.csv`);
+    if (!cache.has(file)) {
+      cache.set(file, new Map(readCsv(file).map((row) => [row[2] || row[0], row[3] || null])));
+    }
+    return cache.get(file).get(icao) ?? null;
+  };
+}

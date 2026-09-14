@@ -96,10 +96,12 @@ jobs:
           SCHEDULE_CACHE_FILE: .cache/schedule/EGCC-schedule.json
         run: node scripts/fetch-schedule.mjs
 
-      # Manchester's weekly timetable from AirLabs, keyed, refreshed weekly.
+      # Manchester's weekly timetable from AirLabs, keyed, refreshed monthly.
       # A free key sees only about three hours of the schedule either side of
       # now, so without this the picker is empty at night and useless to
-      # anyone planning a pickup tomorrow — see scripts/fetch-timetable.mjs.
+      # anyone planning a pickup tomorrow. It is fetched one airport pair at a
+      # time because a free key returns 50 rows per query and ignores offset —
+      # see scripts/fetch-timetable.mjs.
       - name: Refresh flight timetable
         continue-on-error: true
         env:

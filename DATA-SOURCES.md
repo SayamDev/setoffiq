@@ -192,13 +192,24 @@ of the picker: nobody is collected from them.
   picker was empty at night and why the timetable below exists. Assume nothing
   about a window: measure it.
 - **`/routes` — the weekly timetable — is on the free plan**, verified the same
-  day: 50 rows a page, with `flight_iata`, `flight_icao`, `airline_iata`, the
+  day: with `flight_iata`, `flight_icao`, `airline_iata`, the
   other airport, `dep_time_utc`, `arr_time_utc`, `duration`, terminals, the
   days of the week it operates, and codeshare numbers. It carries **no status
   at all** — no delay, no cancellation — so the app never presents it as one.
   Flights are placed by adding the published duration to the departure, not by
   reading the arrival clock time, so a flight that lands the day after it
   leaves lands on the right day.
+- **A free key returns 50 rows per `/routes` query and ignores `offset`** —
+  measured, after the first published timetable came back holding 43 flights
+  whose destinations all began with A or B. `offset=50` returns nothing, and
+  filtering by airline does not help: Ryanair alone fills fifty rows before
+  leaving the letter B. So the timetable is fetched **one airport pair at a
+  time** (`dep_iata` and `arr_iata` both set), two requests per pair. Which
+  pairs to ask about comes from the CC0 standing data already cloned for
+  reported routes, plus every airport the published schedule has named, so no
+  request is spent discovering the list. A pair that still returns fifty rows
+  was cut off; those airports are recorded in `truncatedAt` in the published
+  file rather than quietly dropped.
 - **Budget:** the free plan's 1,000 requests a month are split, each half
   counted in the file it publishes. The schedule
   (`scripts/fetch-schedule.mjs`) refreshes only when the published copy is over

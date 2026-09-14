@@ -5,13 +5,23 @@
  * Why this exists: a free AirLabs key returns only about three hours of
  * `/schedules` either side of now — measured, not assumed, by
  * `scripts/probe-airlabs-routes.mjs`. So at two in the morning, or for anyone
- * planning a pickup tomorrow, the schedule has nothing to show. `/routes` is
+ * planning a pickup next week, the schedule has nothing to show. `/routes` is
  * the airlines' weekly timetable — flight number, days of the week, times —
- * and it answers at any hour of any day.
+ * and it answers at any hour of any day. It carries no status, so the app
+ * never presents it as one.
  *
- * It carries no status, so the app never presents it as one: the schedule and
- * live positions say what is happening today, and the timetable says what is
- * meant to happen. It changes slowly, so it is refreshed weekly.
+ * How it has to be fetched: the same probe showed a free key returns **50 rows
+ * per query and ignores `offset`**, so "everything leaving Manchester" comes
+ * back as the first fifty destinations alphabetically and stops. The timetable
+ * is therefore fetched one airport pair at a time. Which pairs to ask about
+ * comes from the CC0 standing data already cloned for reported routes, plus
+ * every airport the published schedule has named — no API requests spent on
+ * discovering the list.
+ *
+ * That is a few hundred requests, so it runs monthly and counts every request
+ * in the file it writes. A run that reaches its cap publishes what it has with
+ * `partial: true` and the destinations it covered, and the next run picks up
+ * where it left off instead of starting again.
  *
  * The key lives in the AIRLABS_KEY repository secret and is used only here.
  */
@@ -19,31 +29,44 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { toTimetableEntries } from './lib/timetable.mjs';
-import { createIataLookup } from './lib/routes.mjs';
+import { createIataLookup, partnerIataCodes } from './lib/routes.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUTPUT = resolve(HERE, '../public/data/flights/EGCC-timetable.json');
 const PUBLISHED = 'https://sayamdev.github.io/setoffiq/data/flights/EGCC-timetable.json';
+const SCHEDULE = 'https://sayamdev.github.io/setoffiq/data/flights/EGCC-schedule.json';
 const AIRPORT_IATA = 'MAN';
+const AIRPORT_ICAO = 'EGCC';
 
 /** Timetables change with the season, not with the hour. */
-const REFRESH_DAYS = 7;
+const REFRESH_DAYS = 28;
+/** A run that ran out of room should carry on soon, not in a month. */
+const PARTIAL_RETRY_HOURS = 6;
 /**
- * The free plan allows 1,000 requests a month. The schedule takes about 90 of
- * them; this is the rest of the safe share, and a weekly refresh at 50 rows a
- * page costs well under it.
+ * The free plan allows 1,000 requests a month, shared with the schedule (500).
+ * A full sweep of Manchester's airport pairs is two requests each.
  */
-const MONTHLY_BUDGET = 400;
-/** Pages per direction, 50 rows each: enough for a full week at Manchester. */
-const MAX_PAGES = 40;
+const MONTHLY_BUDGET = 650;
+/** Kept short enough that one run cannot spend a month's budget. */
+const MAX_REQUESTS_PER_RUN = 450;
+/** A free key's hard limit per query: what comes back past this is invisible. */
+const ROWS_PER_QUERY = 50;
+/** Spacing between requests, so a sweep is never a burst. */
+const PACE_MS = 120;
 
 const month = (ms) => new Date(ms).toISOString().slice(0, 7);
+const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
+
+async function fetchJson(url, timeoutMs = 20_000) {
+  const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+}
 
 async function previousTimetable() {
   const candidates = [];
   try {
-    const response = await fetch(`${PUBLISHED}?t=${Date.now()}`, { signal: AbortSignal.timeout(15_000) });
-    if (response.ok) candidates.push(await response.json());
+    candidates.push(await fetchJson(`${PUBLISHED}?t=${Date.now()}`, 15_000));
   } catch {
     // Fall back to the local copies.
   }
@@ -59,23 +82,34 @@ async function previousTimetable() {
   return valid[0] ?? null;
 }
 
-async function fetchDirection(key, param, usage) {
-  const rows = [];
-  for (let page = 0; page < MAX_PAGES; page += 1) {
-    if (usage.requests >= MONTHLY_BUDGET) throw new Error('monthly request budget reached');
-    const url = new URL('https://airlabs.co/api/v9/routes');
-    url.searchParams.set(param, AIRPORT_IATA);
-    url.searchParams.set('offset', String(page * 50));
-    url.searchParams.set('api_key', key);
-    const response = await fetch(url, { signal: AbortSignal.timeout(25_000) });
-    usage.requests += 1;
-    const body = await response.json();
-    // Never echo the URL: it carries the key.
-    if (!response.ok || body.error) throw new Error(`AirLabs routes ${param}: ${body.error?.code ?? response.status}`);
-    const page_rows = body.response ?? [];
-    rows.push(...page_rows);
-    if (!(body.request?.has_more ?? body.has_more) || page_rows.length === 0) break;
+/** Airports the published schedule has named, so a new route is picked up. */
+async function scheduledPartners() {
+  try {
+    const schedule = await fetchJson(`${SCHEDULE}?t=${Date.now()}`, 15_000);
+    const codes = new Set();
+    for (const list of [schedule.arrivals, schedule.departures]) {
+      for (const flight of list ?? []) if (flight.otherEnd?.iata) codes.add(flight.otherEnd.iata);
+    }
+    return [...codes];
+  } catch {
+    return [];
   }
+}
+
+async function fetchPair(key, params, usage, state) {
+  const url = new URL('https://airlabs.co/api/v9/routes');
+  for (const [name, value] of Object.entries(params)) url.searchParams.set(name, value);
+  url.searchParams.set('api_key', key);
+  const response = await fetch(url, { signal: AbortSignal.timeout(20_000) });
+  usage.requests += 1;
+  state.thisRun += 1;
+  const body = await response.json();
+  // Never echo the URL: it carries the key.
+  if (!response.ok || body.error) throw new Error(`AirLabs routes: ${body.error?.code ?? response.status}`);
+  const rows = body.response ?? [];
+  // Fifty rows means the answer was cut off, and what is missing cannot be
+  // asked for. Worth recording rather than quietly publishing a short list.
+  if (rows.length >= ROWS_PER_QUERY) state.truncated.add(params.dep_iata === AIRPORT_IATA ? params.arr_iata : params.dep_iata);
   return rows;
 }
 
@@ -87,6 +121,13 @@ async function write(timetable) {
     await mkdir(dirname(process.env.TIMETABLE_CACHE_FILE), { recursive: true });
     await writeFile(process.env.TIMETABLE_CACHE_FILE, body);
   }
+}
+
+function isDue(previous, now) {
+  if (!previous) return true;
+  const age = now - Date.parse(previous.generatedAt);
+  if (!Number.isFinite(age)) return true;
+  return previous.partial ? age >= PARTIAL_RETRY_HOURS * 3_600_000 : age >= REFRESH_DAYS * 86_400_000;
 }
 
 async function main() {
@@ -101,11 +142,11 @@ async function main() {
 
   const usage =
     previous?.usage?.month === month(now) ? { ...previous.usage } : { month: month(now), requests: 0 };
-  const ageDays = previous ? (now - Date.parse(previous.generatedAt)) / 86_400_000 : Infinity;
 
-  if (previous && ageDays < REFRESH_DAYS) {
+  if (!isDue(previous, now)) {
     await write(previous);
-    console.log(`Timetable kept: ${ageDays.toFixed(1)} days old; ${usage.requests}/${MONTHLY_BUDGET} requests this month.`);
+    const ageDays = ((now - Date.parse(previous.generatedAt)) / 86_400_000).toFixed(1);
+    console.log(`Timetable kept: ${ageDays} days old${previous.partial ? ' (partial)' : ''}; ${usage.requests}/${MONTHLY_BUDGET} requests this month.`);
     return;
   }
   if (usage.requests >= MONTHLY_BUDGET) {
@@ -114,27 +155,86 @@ async function main() {
     return;
   }
 
-  try {
-    const placeFor = createIataLookup(process.env.STANDING_DATA_DIR);
-    const arrivals = toTimetableEntries(await fetchDirection(key, 'arr_iata', usage), 'arrival', placeFor);
-    const departures = toTimetableEntries(await fetchDirection(key, 'dep_iata', usage), 'departure', placeFor);
-    if (arrivals.length === 0 && departures.length === 0) throw new Error('no timetable rows returned');
-    await write({
-      generatedAt: new Date(now).toISOString(),
-      airportIata: AIRPORT_IATA,
-      source: 'AirLabs — /routes',
-      attribution: 'Flight schedules from AirLabs (airlabs.co)',
-      usage,
-      arrivals,
-      departures,
-    });
-    console.log(`Timetable refreshed: ${arrivals.length} arrivals, ${departures.length} departures; ${usage.requests}/${MONTHLY_BUDGET} requests this month.`);
-  } catch (error) {
-    // A failed refresh keeps the last good timetable, with its own timestamp.
-    if (previous) await write({ ...previous, usage });
-    console.error(`Timetable refresh failed: ${error instanceof Error ? error.message : String(error)}`);
+  const placeFor = createIataLookup(process.env.STANDING_DATA_DIR);
+  const destinations = [
+    ...new Set([
+      ...partnerIataCodes(process.env.STANDING_DATA_DIR, AIRPORT_ICAO),
+      ...(await scheduledPartners()),
+      ...(previous?.destinations ?? []),
+    ]),
+  ]
+    .filter((code) => /^[A-Z0-9]{3}$/.test(code) && code !== AIRPORT_IATA)
+    .sort();
+
+  if (destinations.length === 0) {
+    if (previous) await write(previous);
+    console.error('No airport pairs to ask about: the standing data is missing and nothing was published.');
     process.exitCode = 1;
+    return;
   }
+
+  // A partial run resumes; a due refresh starts again from the top.
+  const alreadyCovered = previous?.partial ? new Set(previous.covered ?? []) : new Set();
+  const order = [
+    ...destinations.filter((code) => !alreadyCovered.has(code)),
+    ...destinations.filter((code) => alreadyCovered.has(code)),
+  ];
+
+  // Everything already known is kept, and replaced pair by pair as each is
+  // refetched, so a run that stops early leaves the file no worse than before.
+  const arrivals = new Map((previous?.arrivals ?? []).map((entry) => [`${entry.flight}@${entry.departureMinute}`, entry]));
+  const departures = new Map((previous?.departures ?? []).map((entry) => [`${entry.flight}@${entry.departureMinute}`, entry]));
+  const state = { thisRun: 0, truncated: new Set() };
+  const covered = new Set(alreadyCovered);
+  let failures = 0;
+
+  for (const code of order) {
+    if (state.thisRun + 2 > MAX_REQUESTS_PER_RUN || usage.requests + 2 > MONTHLY_BUDGET) break;
+    try {
+      const inbound = await fetchPair(key, { arr_iata: AIRPORT_IATA, dep_iata: code }, usage, state);
+      await sleep(PACE_MS);
+      const outbound = await fetchPair(key, { dep_iata: AIRPORT_IATA, arr_iata: code }, usage, state);
+      await sleep(PACE_MS);
+
+      for (const [map, rows, direction] of [
+        [arrivals, inbound, 'arrival'],
+        [departures, outbound, 'departure'],
+      ]) {
+        for (const [keyed, entry] of map) if (entry.otherEnd?.iata === code) map.delete(keyed);
+        for (const entry of toTimetableEntries(rows, direction, placeFor)) {
+          map.set(`${entry.flight}@${entry.departureMinute}`, entry);
+        }
+      }
+      covered.add(code);
+    } catch (error) {
+      failures += 1;
+      console.error(`${code}: ${error instanceof Error ? error.message : String(error)}`);
+      // A run of failures is a key or quota problem, not one bad airport.
+      if (failures >= 5) break;
+    }
+  }
+
+  const partial = covered.size < destinations.length;
+  await write({
+    generatedAt: new Date(now).toISOString(),
+    airportIata: AIRPORT_IATA,
+    source: 'AirLabs — /routes',
+    attribution: 'Flight schedules from AirLabs (airlabs.co)',
+    usage,
+    partial,
+    destinations,
+    covered: [...covered].sort(),
+    truncatedAt: [...state.truncated].sort(),
+    arrivals: [...arrivals.values()].sort((a, b) => a.departureMinute - b.departureMinute),
+    departures: [...departures.values()].sort((a, b) => a.departureMinute - b.departureMinute),
+  });
+  console.log(
+    `Timetable ${partial ? 'part-refreshed' : 'refreshed'}: ${covered.size}/${destinations.length} airports, ` +
+      `${arrivals.size} arrivals, ${departures.size} departures; ${state.thisRun} requests this run, ` +
+      `${usage.requests}/${MONTHLY_BUDGET} this month` +
+      (state.truncated.size ? `; cut off at ${[...state.truncated].sort().join(' ')}` : '') +
+      `${failures ? `; ${failures} failed` : ''}.`,
+  );
 }
 
 await main();
