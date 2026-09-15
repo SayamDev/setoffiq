@@ -62,6 +62,29 @@ describe('planning a pickup from an aircraft in the air', () => {
   });
 });
 
+describe('required-field validation', () => {
+  it('lets each summary issue move focus to the field that needs attention', async () => {
+    const user = userEvent.setup();
+    render(<JourneyForm kind="pickup" airport={MANCHESTER} now={Date.now()} onSubmit={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '' } });
+    await user.click(screen.getByRole('button', { name: /Calculate my journey/i }));
+
+    await user.click(screen.getByRole('button', { name: 'Choose the date of the flight.' }));
+    expect(screen.getByLabelText('Date')).toHaveFocus();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Enter the arrival time from the booking.' }),
+    );
+    expect(screen.getByLabelText('Scheduled arrival time')).toHaveFocus();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Enter the UK postcode you are setting off from.' }),
+    );
+    expect(screen.getByLabelText('Setting off from')).toHaveFocus();
+  });
+});
+
 describe('a time with no date chosen', () => {
   it('is taken as tomorrow once it has already passed today, and says so', () => {
     const at1900 = Date.UTC(2026, 8, 11, 18, 0);

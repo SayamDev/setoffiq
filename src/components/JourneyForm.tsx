@@ -174,6 +174,23 @@ export function JourneyForm({
 
   const errorList = Object.entries(errors).filter(([, message]) => Boolean(message));
 
+  const focusErrorField = (key: string): void => {
+    const fieldIds: Partial<Record<keyof FormState, string>> = {
+      date: `${baseId}-date`,
+      time: `${baseId}-time`,
+      postcode: `${baseId}-postcode`,
+    };
+    const targetId = fieldIds[key as keyof FormState];
+    const target = targetId ? document.getElementById(targetId) : null;
+    if (!target) return;
+
+    target.focus({ preventScroll: true });
+    target.scrollIntoView?.({
+      behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'center',
+    });
+  };
+
   return (
     <form className={styles.form} onSubmit={handleSubmit} noValidate>
       <div
@@ -187,7 +204,19 @@ export function JourneyForm({
             <strong>Check these before calculating:</strong>
             <ul>
               {errorList.map(([key, message]) => (
-                <li key={key}>{message}</li>
+                <li key={key}>
+                  {key === 'form' ? (
+                    message
+                  ) : (
+                    <button
+                      className={styles.errorLink}
+                      type="button"
+                      onClick={() => focusErrorField(key)}
+                    >
+                      {message}
+                    </button>
+                  )}
+                </li>
               ))}
             </ul>
           </>

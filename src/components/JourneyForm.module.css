@@ -220,3 +220,28 @@
   list-style: disc;
   margin-left: var(--space-5);
 }
+
+.errorLink {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: var(--space-1) 0;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.errorLink:hover {
+  color: var(--ink);
+}
+
+.errorLink:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+  border-radius: 1px;
+}
