@@ -9,7 +9,7 @@
   background: var(--surface);
   border: 1px solid var(--rule);
   border-radius: var(--r-3);
-  padding: var(--space-5);
+  padding: clamp(var(--space-5), 3vw, var(--space-6));
 }
 
 .cardQuiet {
@@ -262,7 +262,7 @@
 .stackTight {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
 .row {

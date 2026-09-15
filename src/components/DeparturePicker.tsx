@@ -191,9 +191,6 @@ export function DeparturePicker({
   if (state.kind === 'idle') {
     return (
       <button type="button" className={styles.entry} onClick={() => void load(false)}>
-        <span className={styles.entryGlyph} aria-hidden="true">
-          ✈
-        </span>
         <span className={styles.entryText}>
           <span className={styles.entryTitle}>Dropping someone off for a flight?</span>
           <span className={styles.entryBody}>

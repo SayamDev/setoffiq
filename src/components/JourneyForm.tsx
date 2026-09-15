@@ -194,31 +194,56 @@ export function JourneyForm({
         ) : null}
       </div>
 
-      <Field id={`${baseId}-airport`} label="Airport">
-        <select
-          id={`${baseId}-airport`}
-          className={ui.control}
-          value={airport.iataCode}
-          disabled
-          aria-describedby={`${baseId}-airport-note`}
-        >
-          <option value={airport.iataCode}>
-            {airport.name} ({airport.iataCode})
-          </option>
-        </select>
-      </Field>
-      <p className={ui.hint} id={`${baseId}-airport-note`}>
-        SetoffIQ covers Manchester Airport for now. More airports can be added without changing how
-        the recommendation works.
-      </p>
+      <div className={styles.workspace}>
+        <section className={styles.flightPanel} aria-labelledby={`${baseId}-flight-step`}>
+          <header className={styles.sectionHeader}>
+            <span className={styles.step}>01</span>
+            <div>
+              <h2 className={styles.sectionTitle} id={`${baseId}-flight-step`}>
+                Choose the flight
+              </h2>
+              <p className={styles.sectionCopy}>
+                Pick from current flights or use the booking details.
+              </p>
+            </div>
+          </header>
 
-      {kind === 'pickup' ? (
-        <InboundPicker airport={airport} onPick={fillFromPick} />
-      ) : (
-        <DeparturePicker airport={airport} onPick={fillFromPick} />
-      )}
+          <Field id={`${baseId}-airport`} label="Airport">
+            <select
+              id={`${baseId}-airport`}
+              className={ui.control}
+              value={airport.iataCode}
+              disabled
+              aria-describedby={`${baseId}-airport-note`}
+            >
+              <option value={airport.iataCode}>
+                {airport.name} ({airport.iataCode})
+              </option>
+            </select>
+          </Field>
+          <p className={ui.hint} id={`${baseId}-airport-note`}>
+            Manchester Airport is currently supported.
+          </p>
 
-      <div className={ui.stackTight}>
+          {kind === 'pickup' ? (
+            <InboundPicker airport={airport} onPick={fillFromPick} />
+          ) : (
+            <DeparturePicker airport={airport} onPick={fillFromPick} />
+          )}
+        </section>
+
+        <section className={styles.detailsPanel} aria-labelledby={`${baseId}-details-step`}>
+          <header className={styles.sectionHeader}>
+            <span className={styles.step}>02</span>
+            <div>
+              <h2 className={styles.sectionTitle} id={`${baseId}-details-step`}>
+                Journey details
+              </h2>
+              <p className={styles.sectionCopy}>Confirm the booking and where you are leaving from.</p>
+            </div>
+          </header>
+
+          <div className={ui.stackTight}>
         <div className={styles.grid}>
           <Field
             id={`${baseId}-date`}
@@ -272,7 +297,7 @@ export function JourneyForm({
         <p className={ui.hint} id={`${baseId}-when-note`}>
           {whenNote()}
         </p>
-      </div>
+          </div>
 
       <Field
         id={`${baseId}-flight`}
@@ -395,14 +420,15 @@ export function JourneyForm({
         </div>
       </fieldset>
 
-      <div className={styles.submitRow}>
-        <Button type="submit" block disabled={busy}>
-          {busy ? 'Checking your postcode…' : 'Calculate my journey'}
-        </Button>
-        <p className={ui.hint}>
-          Nothing you type here leaves your device except the postcode, which is sent to a UK
-          postcode lookup to turn it into a location.
-        </p>
+          <div className={styles.submitRow}>
+            <Button type="submit" block disabled={busy}>
+              {busy ? 'Checking your postcode…' : 'Calculate my journey'}
+            </Button>
+            <p className={ui.hint}>
+              Only your postcode leaves this device, for location lookup.
+            </p>
+          </div>
+        </section>
       </div>
     </form>
   );

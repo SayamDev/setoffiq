@@ -27,7 +27,7 @@ export function JourneysPage({ journeys }: { journeys: SavedJourney[] }): React.
           Plan a pickup or drop-off and choose "Monitor this journey" to keep it here.
         </EmptyState>
       ) : (
-        <ul className={ui.stackTight}>
+        <ul className={`${ui.stackTight} ${styles.journeyGrid}`}>
           {sorted.map((journey) => (
             <li key={journey.id}>
               <SavedJourneyCard journey={journey} timeZone={DEFAULT_AIRPORT.timeZone} />

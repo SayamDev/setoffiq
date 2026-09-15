@@ -69,10 +69,10 @@
     monospace;
 
   /* Sharp scale contrast: quiet labels, enormous times, nothing in between. */
-  --t-label: 0.6875rem;
-  --t-xs: 0.75rem;
-  --t-sm: 0.8125rem;
-  --t-body: 0.9375rem;
+  --t-label: 0.75rem;
+  --t-xs: 0.8125rem;
+  --t-sm: 0.875rem;
+  --t-body: 1rem;
   --t-lg: 1.0625rem;
   --t-xl: 1.3125rem;
   --t-2xl: 1.75rem;
@@ -87,13 +87,13 @@
   /* The two choices on the home screen, and equivalent headline links. */
   --t-choice: clamp(1.5rem, 2.9vw, 2.25rem);
 
-  --track-label: 0.14em;
+  --track-label: 0.11em;
   --track-display: -0.045em;
 
   /* One shadow, for the one surface that lifts. */
   --lift: 0 1px 1px rgb(20 24 28 / 4%), 0 6px 20px -8px rgb(20 24 28 / 12%);
 
-  --measure: 54rem;
+  --measure: 76rem;
   --rail: 9.5rem;
 
   --ease: cubic-bezier(0.32, 0.72, 0, 1);
@@ -175,4 +175,3 @@
 
   --lift: 0 1px 1px rgb(0 0 0 / 40%), 0 8px 26px -10px rgb(0 0 0 / 60%);
 }
-

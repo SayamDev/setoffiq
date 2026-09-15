@@ -9,13 +9,6 @@ const LABEL: Record<ThemeChoice, string> = {
   dark: 'Dark',
 };
 
-/** A glyph as well as a word, so the state is not carried by the icon alone. */
-const GLYPH: Record<ThemeChoice, string> = {
-  system: '◐',
-  light: '☀',
-  dark: '☾',
-};
-
 /**
  * Cycles system → light → dark. Three states rather than two, because
  * following the operating system is a legitimate preference and silently
@@ -38,9 +31,6 @@ export function ThemeToggle({
       aria-label={`Theme: ${LABEL[theme]}. Switch to ${LABEL[next]}.`}
       title={`Theme: ${LABEL[theme]}`}
     >
-      <span aria-hidden="true" className={styles.glyph}>
-        {GLYPH[theme]}
-      </span>
       <span className={styles.text}>{LABEL[theme]}</span>
     </button>
   );

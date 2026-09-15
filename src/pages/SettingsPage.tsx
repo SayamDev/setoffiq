@@ -60,7 +60,8 @@ export function SettingsPage({
         <p className={styles.subtitle}>Everything here is stored in this browser only.</p>
       </header>
 
-      <Card>
+      <div className={styles.settingsGrid}>
+        <Card>
         <h2>Notifications</h2>
         <p className={ui.hint}>
           SetoffIQ uses your browser's own notifications. There is no email or SMS, because both
@@ -119,10 +120,10 @@ export function SettingsPage({
             </select>
           </Field>
         </div>
-      </Card>
+        </Card>
 
       {localModelFound ? (
-        <Card>
+          <Card>
           <h2>Explanations</h2>
           <p className={ui.hint}>
             Every recommendation comes with a written explanation, built from the same figures
@@ -142,10 +143,10 @@ export function SettingsPage({
             Nothing is sent over the internet — the model runs on this machine, and it is never
             given your postcode or address.
           </p>
-        </Card>
+          </Card>
       ) : null}
 
-      <Card>
+        <Card>
         <h2>Appearance</h2>
         <p className={ui.hint}>
           SetoffIQ follows your device's light or dark setting unless you choose otherwise.
@@ -168,9 +169,9 @@ export function SettingsPage({
             </label>
           ))}
         </div>
-      </Card>
+        </Card>
 
-      <Card>
+        <Card>
         <h2>Motion</h2>
         <label className={ui.label} style={{ display: 'block' }}>
           <input
@@ -184,9 +185,9 @@ export function SettingsPage({
           SetoffIQ already respects your system's reduced-motion setting. This forces it on
           regardless.
         </p>
-      </Card>
+        </Card>
 
-      <Card>
+        <Card>
         <h2>Your data</h2>
         <p className={ui.hint}>
           Saved journeys, cached routes and weather, your preferences and the local request counter
@@ -203,7 +204,8 @@ export function SettingsPage({
             </Button>
           </p>
         )}
-      </Card>
+        </Card>
+      </div>
     </>
   );
 }

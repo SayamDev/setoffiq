@@ -27,19 +27,3 @@
 .toggle:hover {
   color: var(--ink);
 }
-
-.glyph {
-  font-size: 0.95rem;
-  line-height: 1;
-}
-
-/* The word is the accessible label on small screens; the glyph carries it. */
-@media (max-width: 26rem) {
-  .text {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-  }
-}
