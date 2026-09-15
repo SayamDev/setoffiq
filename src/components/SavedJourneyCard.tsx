@@ -53,6 +53,10 @@ export function SavedJourneyCard({
           <span>{version.confidence} confidence</span>
         </span>
       ) : null}
+      <span className={styles.journeyAction}>
+        <span>View journey</span>
+        <span className={styles.journeyArrow} aria-hidden="true">→</span>
+      </span>
     </a>
   );
 }

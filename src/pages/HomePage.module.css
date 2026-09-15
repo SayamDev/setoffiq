@@ -68,6 +68,8 @@
 }
 
 .choice {
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-rows: auto 1fr auto;
   gap: var(--space-3);
@@ -75,13 +77,56 @@
   border-top: 1px solid var(--rule);
   text-decoration: none;
   color: inherit;
-  transition-property: background-color;
+  transition-property: color;
   transition-duration: var(--dur-out);
   transition-timing-function: var(--ease);
 }
 
-.choice:hover {
+.choice::before,
+.choice::after {
+  position: absolute;
+  z-index: -1;
+  content: '';
+  pointer-events: none;
+}
+
+.choice::before {
+  inset: 0;
+  background: var(--surface-2);
+  opacity: 0;
+  transition: opacity var(--dur-out) var(--ease);
+}
+
+.choice::after {
+  inset: auto 0 0;
+  height: 2px;
+  background: var(--signal);
+  opacity: 0;
+  transform: scaleX(0.82);
+  transform-origin: left;
+  transition: opacity var(--dur-out) var(--ease), transform var(--dur-out) var(--ease);
+}
+
+.choice:hover,
+.choice:focus-visible {
   color: inherit;
+}
+
+.choice:hover::before,
+.choice:focus-visible::before,
+.choice:hover::after,
+.choice:focus-visible::after {
+  opacity: 1;
+}
+
+.choice:hover::after,
+.choice:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.choice:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 4px;
 }
 
 @media (min-width: 38rem) {
@@ -118,7 +163,7 @@
 .choiceGo {
   color: var(--signal);
   font-size: var(--t-sm);
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: var(--track-label);
   text-transform: uppercase;
   margin-top: var(--space-2);
@@ -133,8 +178,17 @@
   transition-timing-function: var(--ease);
 }
 
-.choice:hover .arrow {
+.choice:hover .arrow,
+.choice:focus-visible .arrow {
   transform: translateX(3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .choice::before,
+  .choice::after,
+  .arrow {
+    transition: none;
+  }
 }
 
 /* Three short claims, set as a ruled strip rather than three more boxes. */
