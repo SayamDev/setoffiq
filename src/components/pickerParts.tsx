@@ -83,15 +83,17 @@ export function TimetableList({
   direction,
   now,
   onPick,
+  limit = flights.length,
 }: {
   flights: TimetableFlight[];
   airport: AirportProfile;
   direction: 'arrival' | 'departure';
   now: Instant;
   onPick: (flight: TimetableFlight) => void;
+  limit?: number;
 }): React.JSX.Element {
   const zone = airport.timeZone;
-  const days = groupByDay(flights, zone);
+  const days = groupByDay(flights.slice(0, limit), zone);
   const today = formatDate(now, zone);
 
   return (

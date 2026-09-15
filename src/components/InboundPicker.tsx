@@ -49,7 +49,7 @@ type Live =
 
 type State =
   | { kind: 'idle' }
-  | { kind: 'loading' }
+  | { kind: 'loading'; refreshing: boolean }
   | {
       kind: 'ready';
       live: Live;
@@ -62,6 +62,17 @@ type State =
       timetable: FlightTimetable | null | undefined;
     }
   | { kind: 'picked'; title: string; detail: string };
+
+const INITIAL_VISIBLE_FLIGHTS = 5;
+const VISIBLE_FLIGHTS_STEP = 5;
+
+type VisibleSection = 'live' | 'scheduled' | 'timetable';
+
+const INITIAL_VISIBLE_COUNTS: Record<VisibleSection, number> = {
+  live: INITIAL_VISIBLE_FLIGHTS,
+  scheduled: INITIAL_VISIBLE_FLIGHTS,
+  timetable: INITIAL_VISIBLE_FLIGHTS,
+};
 
 /**
  * Pick the flight rather than type it.
@@ -86,9 +97,23 @@ export function InboundPicker({
   const [state, setState] = useState<State>({ kind: 'idle' });
   const [query, setQuery] = useState('');
   const [hoursAhead, setHoursAhead] = useState<number>(HORIZONS[0].hours);
+  const [visibleCounts, setVisibleCounts] = useState(INITIAL_VISIBLE_COUNTS);
 
-  const load = async (): Promise<void> => {
-    setState({ kind: 'loading' });
+  const updateQuery = (value: string): void => {
+    setQuery(value);
+    setVisibleCounts(INITIAL_VISIBLE_COUNTS);
+  };
+
+  const showMore = (section: VisibleSection): void => {
+    setVisibleCounts((current) => ({
+      ...current,
+      [section]: current[section] + VISIBLE_FLIGHTS_STEP,
+    }));
+  };
+
+  const load = async (refreshing = state.kind === 'ready'): Promise<void> => {
+    setVisibleCounts(INITIAL_VISIBLE_COUNTS);
+    setState({ kind: 'loading', refreshing });
     // Opening the picker is a deliberate act, so every source is re-fetched
     // rather than answered from the browser's cache: the published files are
     // refreshed behind the site, and a list of flights that has quietly gone
@@ -187,7 +212,7 @@ export function InboundPicker({
 
   if (state.kind === 'idle') {
     return (
-      <button type="button" className={styles.entry} onClick={() => void load()}>
+      <button type="button" className={styles.entry} onClick={() => void load(false)}>
         <span className={styles.entryGlyph} aria-hidden="true">
           ✈
         </span>
@@ -208,7 +233,7 @@ export function InboundPicker({
       <div className={styles.picked} role="status">
         <p className={styles.pickedTitle}>{state.title}</p>
         <p className={ui.hint}>{state.detail}</p>
-        <Button variant="quiet" onClick={() => void load()} className={styles.change}>
+        <Button variant="quiet" onClick={() => void load(false)} className={styles.change}>
           Choose a different flight
         </Button>
       </div>
@@ -218,7 +243,14 @@ export function InboundPicker({
   if (state.kind === 'loading') {
     return (
       <div className={styles.wrapper}>
-        <LoadingRows label={`Fetching the latest arrivals for ${airport.name}…`} rows={5} />
+        <LoadingRows
+          label={
+            state.refreshing
+              ? `Refreshing the latest arrivals for ${airport.name}...`
+              : `Fetching the latest arrivals for ${airport.name}...`
+          }
+          rows={state.refreshing ? 3 : 5}
+        />
       </div>
     );
   }
@@ -245,10 +277,13 @@ export function InboundPicker({
   const stillLoading = schedule === undefined || timetable === undefined;
   const nothingListed =
     !stillLoading && aircraft.length === 0 && scheduledShown.length === 0 && timetabledShown.length === 0;
+  const liveShown = Math.max(0, visibleCounts.live);
+  const scheduledShownCount = Math.max(0, visibleCounts.scheduled);
+  const timetableShown = Math.max(0, visibleCounts.timetable);
 
   return (
     <div className={styles.wrapper}>
-      <FilterField value={query} onChange={setQuery} label="Find a flight" />
+      <FilterField value={query} onChange={updateQuery} label="Find a flight" />
 
       {live.kind === 'ok' && aircraft.length > 0 ? (
         <>
@@ -259,7 +294,7 @@ export function InboundPicker({
             callsign that is not the number on a ticket.
           </p>
           <ul className={styles.list}>
-            {aircraft.map((one) => {
+            {aircraft.slice(0, liveShown).map((one) => {
               const against = minutesAgainstUsual(
                 history ?? null,
                 one.callsign,
@@ -296,6 +331,11 @@ export function InboundPicker({
               );
             })}
           </ul>
+          <ShowMoreControl
+            total={aircraft.length}
+            shown={liveShown}
+            onShowMore={() => showMore('live')}
+          />
         </>
       ) : null}
 
@@ -314,6 +354,12 @@ export function InboundPicker({
             airport={airport}
             direction="arrival"
             onPick={pickScheduled}
+            limit={scheduledShownCount}
+          />
+          <ShowMoreControl
+            total={scheduledShown.length}
+            shown={scheduledShownCount}
+            onShowMore={() => showMore('scheduled')}
           />
         </>
       ) : null}
@@ -331,6 +377,12 @@ export function InboundPicker({
             direction="arrival"
             now={now}
             onPick={pickTimetable}
+            limit={timetableShown}
+          />
+          <ShowMoreControl
+            total={timetabledShown.length}
+            shown={timetableShown}
+            onShowMore={() => showMore('timetable')}
           />
         </>
       ) : schedule === null ? (
@@ -354,9 +406,33 @@ export function InboundPicker({
         <p className={ui.hint}>We couldn't check what is in the air just now.</p>
       ) : null}
 
-      <Button variant="quiet" onClick={() => void load()} className={styles.change}>
+      <Button variant="secondary" onClick={() => void load(true)} className={styles.refresh}>
         Refresh this list
       </Button>
+    </div>
+  );
+}
+
+function ShowMoreControl({
+  total,
+  shown,
+  onShowMore,
+}: {
+  total: number;
+  shown: number;
+  onShowMore: () => void;
+}): React.JSX.Element | null {
+  const remaining = total - shown;
+  if (remaining <= 0) return null;
+
+  return (
+    <div className={styles.showMore}>
+      <Button variant="secondary" onClick={onShowMore}>
+        Show more
+      </Button>
+      <span className={ui.hint}>
+        Showing {shown} of {total}. {remaining} more hidden.
+      </span>
     </div>
   );
 }
@@ -374,6 +450,7 @@ function UsualSection({
   now: number;
   onPick: (flight: UsualArrival) => void;
 }): React.JSX.Element {
+  const [shown, setShown] = useState(INITIAL_VISIBLE_FLIGHTS);
   return (
     <>
       <h2 className={styles.sectionTitle}>Usually in the next twelve hours</h2>
@@ -396,7 +473,7 @@ function UsualSection({
             aircraft is in the air, so check with the airline.
           </p>
           <ul className={styles.list}>
-            {usual.map((flight) => (
+            {usual.slice(0, shown).map((flight) => (
               <li key={flight.callsign}>
                 <button type="button" className={styles.option} onClick={() => onPick(flight)}>
                   <span className={styles.identifier}>{flight.flightNumber ?? flight.callsign}</span>
@@ -422,6 +499,11 @@ function UsualSection({
               </li>
             ))}
           </ul>
+          <ShowMoreControl
+            total={usual.length}
+            shown={shown}
+            onShowMore={() => setShown((current) => current + VISIBLE_FLIGHTS_STEP)}
+          />
         </>
       )}
     </>

@@ -13,16 +13,19 @@ export function ScheduledList({
   airport,
   direction,
   onPick,
+  limit = flights.length,
 }: {
   flights: ListedFlight[];
   airport: AirportProfile;
   direction: 'arrival' | 'departure';
   onPick: (flight: ListedFlight) => void;
+  limit?: number;
 }): React.JSX.Element {
   const zone = airport.timeZone;
+  const visibleFlights = flights.slice(0, limit);
   return (
     <ul className={styles.list}>
-      {flights.map((flight) => {
+      {visibleFlights.map((flight) => {
         const late = lateBy(flight);
         const expected = flight.estimated !== null && Math.abs(flight.estimated - flight.scheduled) >= 5 * 60_000;
         return (
