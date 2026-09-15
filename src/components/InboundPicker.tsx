@@ -24,7 +24,14 @@ import {
 } from '../services/flight';
 import { describeScheduled, ScheduledList } from './ScheduledList';
 import { FilterField, LoadingRows, matches, TimetableList } from './pickerParts';
-import { HORIZONS, HorizonChoice, NothingFound, TimetableNote } from './pickerSections';
+import {
+  HORIZONS,
+  HorizonChoice,
+  NothingFound,
+  RefreshPopup,
+  ShowMoreControl,
+  TimetableNote,
+} from './pickerSections';
 import { Button, ui } from './ui';
 import styles from './InboundPicker.module.css';
 
@@ -65,6 +72,8 @@ type State =
 
 const INITIAL_VISIBLE_FLIGHTS = 5;
 const VISIBLE_FLIGHTS_STEP = 5;
+const TIMETABLE_BROWSE_LIMIT = 30;
+const REFRESH_FEEDBACK_MS = 700;
 
 type VisibleSection = 'live' | 'scheduled' | 'timetable';
 
@@ -98,6 +107,7 @@ export function InboundPicker({
   const [query, setQuery] = useState('');
   const [hoursAhead, setHoursAhead] = useState<number>(HORIZONS[0].hours);
   const [visibleCounts, setVisibleCounts] = useState(INITIAL_VISIBLE_COUNTS);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const updateQuery = (value: string): void => {
     setQuery(value);
@@ -111,9 +121,19 @@ export function InboundPicker({
     }));
   };
 
+  const updateHoursAhead = (hours: number): void => {
+    setHoursAhead(hours);
+    setVisibleCounts((current) => ({ ...current, timetable: INITIAL_VISIBLE_FLIGHTS }));
+  };
+
   const load = async (refreshing = state.kind === 'ready'): Promise<void> => {
     setVisibleCounts(INITIAL_VISIBLE_COUNTS);
-    setState({ kind: 'loading', refreshing });
+    const refreshStartedAt = Date.now();
+    if (refreshing && state.kind === 'ready') {
+      setIsRefreshing(true);
+    } else {
+      setState({ kind: 'loading', refreshing: false });
+    }
     // Opening the picker is a deliberate act, so every source is re-fetched
     // rather than answered from the browser's cache: the published files are
     // refreshed behind the site, and a list of flights that has quietly gone
@@ -122,34 +142,39 @@ export function InboundPicker({
     const historyPromise = loadArrivalHistory(undefined, fresh);
     const schedulePromise = loadSchedule(undefined, fresh);
     const timetablePromise = loadTimetable(undefined, fresh);
-    const live = await listInboundAircraft(airport, undefined, fresh).then(
-      (aircraft): Live => ({ kind: 'ok', aircraft }),
-      (error: unknown): Live =>
-        error instanceof SnapshotTooOldError
-          ? { kind: 'too-old', ageMinutes: error.ageMinutes }
-          : { kind: 'error' },
-    );
-    // The live list shows as soon as it is ready; the schedule, timetable and
-    // record follow, rather than holding it back.
-    setState({
-      kind: 'ready',
-      live,
-      history: undefined,
-      usual: [],
-      schedule: undefined,
-      timetable: undefined,
-    });
+    try {
+      const live = await listInboundAircraft(airport, undefined, fresh).then(
+        (aircraft): Live => ({ kind: 'ok', aircraft }),
+        (error: unknown): Live =>
+          error instanceof SnapshotTooOldError
+            ? { kind: 'too-old', ageMinutes: error.ageMinutes }
+            : { kind: 'error' },
+      );
+      // The live list shows as soon as it is ready; the schedule, timetable and
+      // record follow, rather than holding it back.
+      setState({
+        kind: 'ready',
+        live,
+        history: undefined,
+        usual: [],
+        schedule: undefined,
+        timetable: undefined,
+      });
 
-    const [history, schedule, timetable] = await Promise.all([
-      historyPromise,
-      schedulePromise,
-      timetablePromise,
-    ]);
-    const inTheAir = new Set(live.kind === 'ok' ? live.aircraft.map((a) => a.callsign) : []);
-    const usual = history ? usualArrivals(history, airport, Date.now(), inTheAir) : [];
-    setState((current) =>
-      current.kind === 'ready' ? { ...current, history, usual, schedule, timetable } : current,
-    );
+      const [history, schedule, timetable] = await Promise.all([
+        historyPromise,
+        schedulePromise,
+        timetablePromise,
+      ]);
+      const inTheAir = new Set(live.kind === 'ok' ? live.aircraft.map((a) => a.callsign) : []);
+      const usual = history ? usualArrivals(history, airport, Date.now(), inTheAir) : [];
+      setState((current) =>
+        current.kind === 'ready' ? { ...current, history, usual, schedule, timetable } : current,
+      );
+    } finally {
+      if (refreshing) await holdRefreshFeedback(refreshStartedAt);
+      setIsRefreshing(false);
+    }
   };
 
   const pickLive = (aircraft: InboundAircraft): void => {
@@ -219,7 +244,7 @@ export function InboundPicker({
         <span className={styles.entryText}>
           <span className={styles.entryTitle}>Collecting someone from a flight?</span>
           <span className={styles.entryBody}>
-            Choose it from the arrivals at {airport.name} — today, tonight or next week — and the
+            Choose it from the arrivals at {airport.name} — today, tonight or tomorrow — and the
             flight and time are filled in for you. Delays and cancellations are shown for flights
             close enough for anyone to know them.
           </span>
@@ -271,9 +296,13 @@ export function InboundPicker({
   const timetabled = timetable
     ? withoutScheduled(timetableWindow(timetable, 'arrival', now, hoursAhead), scheduled)
     : [];
-  const timetabledShown = timetabled.filter((flight) =>
+  const isFiltering = query.trim().length > 0;
+  const timetabledMatches = timetabled.filter((flight) =>
     matches(query, [flight.flight, flight.airlineName, flight.place, ...flight.aliases]),
   );
+  const timetabledShown = isFiltering
+    ? timetabledMatches
+    : timetabledMatches.slice(0, TIMETABLE_BROWSE_LIMIT);
   const stillLoading = schedule === undefined || timetable === undefined;
   const nothingListed =
     !stillLoading && aircraft.length === 0 && scheduledShown.length === 0 && timetabledShown.length === 0;
@@ -370,7 +399,12 @@ export function InboundPicker({
         <>
           <h2 className={styles.sectionTitle}>Timetabled arrivals</h2>
           <TimetableNote generatedAt={timetable.generatedAt} airport={airport} direction="arrival" />
-          <HorizonChoice hours={hoursAhead} onChange={setHoursAhead} shown={timetabledShown.length} />
+          <HorizonChoice
+            hours={hoursAhead}
+            onChange={updateHoursAhead}
+            shown={timetabledShown.length}
+            capped={!isFiltering && timetabledMatches.length > timetabledShown.length}
+          />
           <TimetableList
             flights={timetabledShown}
             airport={airport}
@@ -406,33 +440,15 @@ export function InboundPicker({
         <p className={ui.hint}>We couldn't check what is in the air just now.</p>
       ) : null}
 
-      <Button variant="secondary" onClick={() => void load(true)} className={styles.refresh}>
-        Refresh this list
+      <Button
+        variant="secondary"
+        onClick={() => void load(true)}
+        className={styles.refresh}
+        disabled={isRefreshing}
+      >
+        {isRefreshing ? 'Refreshing...' : 'Refresh this list'}
       </Button>
-    </div>
-  );
-}
-
-function ShowMoreControl({
-  total,
-  shown,
-  onShowMore,
-}: {
-  total: number;
-  shown: number;
-  onShowMore: () => void;
-}): React.JSX.Element | null {
-  const remaining = total - shown;
-  if (remaining <= 0) return null;
-
-  return (
-    <div className={styles.showMore}>
-      <Button variant="secondary" onClick={onShowMore}>
-        Show more
-      </Button>
-      <span className={ui.hint}>
-        Showing {shown} of {total}. {remaining} more hidden.
-      </span>
+      {isRefreshing ? <RefreshPopup /> : null}
     </div>
   );
 }
@@ -512,4 +528,11 @@ function UsualSection({
 
 export function describe(identifier: string, airline: string | null, from: string | null): string {
   return [identifier, airline ? `· ${airline}` : null, from ? `from ${from}` : null].filter(Boolean).join(' ');
+}
+
+async function holdRefreshFeedback(startedAt: number): Promise<void> {
+  const remaining = REFRESH_FEEDBACK_MS - (Date.now() - startedAt);
+  if (remaining > 0) {
+    await new Promise((resolve) => setTimeout(resolve, remaining));
+  }
 }

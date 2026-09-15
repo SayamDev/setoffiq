@@ -79,6 +79,34 @@
   margin-top: var(--space-3);
 }
 
+.refreshPopup {
+  position: sticky;
+  bottom: var(--space-4);
+  z-index: 1;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--signal);
+  border-left-width: 3px;
+  border-radius: var(--r-2);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 0 0 1px var(--surface), 0 12px 30px rgb(0 0 0 / 0.2);
+  font-size: var(--t-sm);
+  font-weight: 600;
+}
+
+.refreshSpinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--rule-strong);
+  border-top-color: var(--signal);
+  border-radius: 50%;
+  animation: refresh-spin 0.8s linear infinite;
+}
+
 .list {
   display: flex;
   flex-direction: column;
@@ -204,12 +232,24 @@
   align-items: center;
 }
 
-/* The day a timetabled flight falls on: this list reaches into next week. */
+/* The day a timetabled flight falls on: the list can reach past midnight. */
 .dayHeading {
   font-size: var(--t-sm);
   font-weight: 650;
   color: var(--ink-2);
   margin-top: var(--space-4);
+}
+
+@keyframes refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .refreshSpinner {
+    animation-duration: 1.6s;
+  }
 }
 
 .horizon {

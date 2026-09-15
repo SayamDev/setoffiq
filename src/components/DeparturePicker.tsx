@@ -20,13 +20,20 @@ import {
 import { describeScheduled, ScheduledList } from './ScheduledList';
 import { describe, type PickedFlight } from './InboundPicker';
 import { FilterField, LoadingRows, matches, TimetableList } from './pickerParts';
-import { HORIZONS, HorizonChoice, NothingFound, TimetableNote } from './pickerSections';
+import {
+  HORIZONS,
+  HorizonChoice,
+  NothingFound,
+  RefreshPopup,
+  ShowMoreControl,
+  TimetableNote,
+} from './pickerSections';
 import { Button, ui } from './ui';
 import styles from './InboundPicker.module.css';
 
 type State =
   | { kind: 'idle' }
-  | { kind: 'loading' }
+  | { kind: 'loading'; refreshing: boolean }
   | {
       kind: 'ready';
       since: string | null;
@@ -36,6 +43,19 @@ type State =
     }
   | { kind: 'unavailable' }
   | { kind: 'picked'; title: string; detail: string };
+
+const INITIAL_VISIBLE_FLIGHTS = 5;
+const VISIBLE_FLIGHTS_STEP = 5;
+const TIMETABLE_BROWSE_LIMIT = 30;
+const REFRESH_FEEDBACK_MS = 700;
+
+type VisibleSection = 'scheduled' | 'timetable' | 'usual';
+
+const INITIAL_VISIBLE_COUNTS: Record<VisibleSection, number> = {
+  scheduled: INITIAL_VISIBLE_FLIGHTS,
+  timetable: INITIAL_VISIBLE_FLIGHTS,
+  usual: INITIAL_VISIBLE_FLIGHTS,
+};
 
 /**
  * The drop-off side of the picker.
@@ -61,29 +81,59 @@ export function DeparturePicker({
   const [state, setState] = useState<State>({ kind: 'idle' });
   const [query, setQuery] = useState('');
   const [hoursAhead, setHoursAhead] = useState<number>(HORIZONS[0].hours);
+  const [visibleCounts, setVisibleCounts] = useState(INITIAL_VISIBLE_COUNTS);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const load = async (): Promise<void> => {
-    setState({ kind: 'loading' });
+  const updateQuery = (value: string): void => {
+    setQuery(value);
+    setVisibleCounts(INITIAL_VISIBLE_COUNTS);
+  };
+
+  const showMore = (section: VisibleSection): void => {
+    setVisibleCounts((current) => ({
+      ...current,
+      [section]: current[section] + VISIBLE_FLIGHTS_STEP,
+    }));
+  };
+
+  const updateHoursAhead = (hours: number): void => {
+    setHoursAhead(hours);
+    setVisibleCounts((current) => ({ ...current, timetable: INITIAL_VISIBLE_FLIGHTS }));
+  };
+
+  const load = async (refreshing = state.kind === 'ready'): Promise<void> => {
+    setVisibleCounts(INITIAL_VISIBLE_COUNTS);
+    const refreshStartedAt = Date.now();
+    if (refreshing && state.kind === 'ready') {
+      setIsRefreshing(true);
+    } else {
+      setState({ kind: 'loading', refreshing: false });
+    }
     // Opening the picker re-fetches everything rather than reading the
     // browser's cache: the published files change behind the site, and a
     // quietly stale list of flights is worse than a second's wait.
     const fresh = { forceRefresh: true };
-    const [history, schedule, timetable] = await Promise.all([
-      loadArrivalHistory(undefined, fresh),
-      loadSchedule(undefined, fresh),
-      loadTimetable(undefined, fresh),
-    ]);
-    if (!history && !schedule && !timetable) {
-      setState({ kind: 'unavailable' });
-      return;
+    try {
+      const [history, schedule, timetable] = await Promise.all([
+        loadArrivalHistory(undefined, fresh),
+        loadSchedule(undefined, fresh),
+        loadTimetable(undefined, fresh),
+      ]);
+      if (!history && !schedule && !timetable) {
+        setState({ kind: 'unavailable' });
+        return;
+      }
+      setState({
+        kind: 'ready',
+        since: history?.departuresSince ?? null,
+        departures: history ? usualDepartures(history, airport, Date.now()) : [],
+        schedule,
+        timetable,
+      });
+    } finally {
+      if (refreshing) await holdRefreshFeedback(refreshStartedAt);
+      setIsRefreshing(false);
     }
-    setState({
-      kind: 'ready',
-      since: history?.departuresSince ?? null,
-      departures: history ? usualDepartures(history, airport, Date.now()) : [],
-      schedule,
-      timetable,
-    });
   };
 
   const pickScheduled = (flight: ListedFlight): void => {
@@ -138,14 +188,14 @@ export function DeparturePicker({
 
   if (state.kind === 'idle') {
     return (
-      <button type="button" className={styles.entry} onClick={() => void load()}>
+      <button type="button" className={styles.entry} onClick={() => void load(false)}>
         <span className={styles.entryGlyph} aria-hidden="true">
           ✈
         </span>
         <span className={styles.entryText}>
           <span className={styles.entryTitle}>Dropping someone off for a flight?</span>
           <span className={styles.entryBody}>
-            Choose it from the departures at {airport.name} — today, tonight or next week — and the
+            Choose it from the departures at {airport.name} — today, tonight or tomorrow — and the
             flight and time are filled in for you. Delays and cancellations are shown for flights
             close enough for anyone to know them.
           </span>
@@ -159,7 +209,7 @@ export function DeparturePicker({
       <div className={styles.picked} role="status">
         <p className={styles.pickedTitle}>{state.title}</p>
         <p className={ui.hint}>{state.detail}</p>
-        <Button variant="quiet" onClick={() => void load()} className={styles.change}>
+        <Button variant="quiet" onClick={() => void load(false)} className={styles.change}>
           Choose a different flight
         </Button>
       </div>
@@ -169,7 +219,7 @@ export function DeparturePicker({
   if (state.kind === 'loading') {
     return (
       <div className={styles.wrapper}>
-        <LoadingRows label={`Fetching the latest departures for ${airport.name}…`} rows={5} />
+        <LoadingRows label={`Fetching the latest departures for ${airport.name}...`} rows={5} />
       </div>
     );
   }
@@ -181,7 +231,7 @@ export function DeparturePicker({
           The departure lists could not be loaded just now. Enter the flight number and time from
           the booking below.
         </p>
-        <Button variant="quiet" onClick={() => void load()} className={styles.change}>
+        <Button variant="quiet" onClick={() => void load(false)} className={styles.change}>
           Try again
         </Button>
       </div>
@@ -199,17 +249,24 @@ export function DeparturePicker({
   const timetabled = timetable
     ? withoutScheduled(timetableWindow(timetable, 'departure', now, hoursAhead), scheduled)
     : [];
-  const timetabledShown = timetabled.filter((flight) =>
+  const isFiltering = query.trim().length > 0;
+  const timetabledMatches = timetabled.filter((flight) =>
     matches(query, [flight.flight, flight.airlineName, flight.place, ...flight.aliases]),
   );
+  const timetabledShown = isFiltering
+    ? timetabledMatches
+    : timetabledMatches.slice(0, TIMETABLE_BROWSE_LIMIT);
   const usualShown = state.departures.filter((flight) =>
     matches(query, [flight.flightNumber, flight.callsign, flight.airline, flight.to]),
   );
   const haveAirlabs = schedule !== null || timetable !== null;
+  const scheduledShownCount = Math.max(0, visibleCounts.scheduled);
+  const timetableShown = Math.max(0, visibleCounts.timetable);
+  const usualShownCount = Math.max(0, visibleCounts.usual);
 
   return (
     <div className={styles.wrapper}>
-      <FilterField value={query} onChange={setQuery} label="Find a flight" />
+      <FilterField value={query} onChange={updateQuery} label="Find a flight" />
 
       {schedule !== null && scheduledShown.length > 0 ? (
         <>
@@ -224,6 +281,12 @@ export function DeparturePicker({
             airport={airport}
             direction="departure"
             onPick={pickScheduled}
+            limit={scheduledShownCount}
+          />
+          <ShowMoreControl
+            total={scheduledShown.length}
+            shown={scheduledShownCount}
+            onShowMore={() => showMore('scheduled')}
           />
         </>
       ) : null}
@@ -232,13 +295,24 @@ export function DeparturePicker({
         <>
           <h2 className={styles.sectionTitle}>Timetabled departures</h2>
           <TimetableNote generatedAt={timetable.generatedAt} airport={airport} direction="departure" />
-          <HorizonChoice hours={hoursAhead} onChange={setHoursAhead} shown={timetabledShown.length} />
+          <HorizonChoice
+            hours={hoursAhead}
+            onChange={updateHoursAhead}
+            shown={timetabledShown.length}
+            capped={!isFiltering && timetabledMatches.length > timetabledShown.length}
+          />
           <TimetableList
             flights={timetabledShown}
             airport={airport}
             direction="departure"
             now={now}
             onPick={pickTimetable}
+            limit={timetableShown}
+          />
+          <ShowMoreControl
+            total={timetabledShown.length}
+            shown={timetableShown}
+            onShowMore={() => showMore('timetable')}
           />
         </>
       ) : null}
@@ -262,7 +336,7 @@ export function DeparturePicker({
                 time shown is take-off, not the gate time on a booking. Check with the airline.
               </p>
               <ul className={styles.list}>
-                {usualShown.map((flight) => (
+                {usualShown.slice(0, usualShownCount).map((flight) => (
                   <li key={flight.callsign}>
                     <button type="button" className={styles.option} onClick={() => pick(flight)}>
                       <span className={styles.identifier}>{flight.flightNumber ?? flight.callsign}</span>
@@ -288,6 +362,11 @@ export function DeparturePicker({
                   </li>
                 ))}
               </ul>
+              <ShowMoreControl
+                total={usualShown.length}
+                shown={usualShownCount}
+                onShowMore={() => showMore('usual')}
+              />
             </>
           )}
         </>
@@ -297,9 +376,22 @@ export function DeparturePicker({
         <NothingFound query={query} onClear={() => setQuery('')} airport={airport} now={now} />
       ) : null}
 
-      <Button variant="quiet" onClick={() => void load()} className={styles.change}>
-        Refresh this list
+      <Button
+        variant="secondary"
+        onClick={() => void load(true)}
+        className={styles.refresh}
+        disabled={isRefreshing}
+      >
+        {isRefreshing ? 'Refreshing...' : 'Refresh this list'}
       </Button>
+      {isRefreshing ? <RefreshPopup /> : null}
     </div>
   );
+}
+
+async function holdRefreshFeedback(startedAt: number): Promise<void> {
+  const remaining = REFRESH_FEEDBACK_MS - (Date.now() - startedAt);
+  if (remaining > 0) {
+    await new Promise((resolve) => setTimeout(resolve, remaining));
+  }
 }

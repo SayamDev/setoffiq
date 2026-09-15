@@ -1,30 +1,33 @@
 import { formatClock, formatDate } from '../domain/time';
 import type { AirportProfile } from '../domain/types';
-import { ui } from './ui';
+import { Button, ui } from './ui';
 import styles from './InboundPicker.module.css';
 
 /**
  * How far ahead the timetable is listed.
  *
- * A day covers tonight and tomorrow morning, which is what most pickups need.
- * Three days and a week are there because people book a lift long before they
- * book a taxi, and the timetable can answer that — nothing else here can.
+ * The picker is for choosing a likely flight, not browsing the airport's whole
+ * week. Two days is enough for planned lifts without expanding thousands of
+ * timetable rows into the page.
  */
 export const HORIZONS = [
+  { hours: 12, label: 'Next 12 hours' },
   { hours: 24, label: 'Next 24 hours' },
-  { hours: 72, label: 'Next 3 days' },
-  { hours: 168, label: 'Next week' },
+  { hours: 48, label: 'Next 48 hours' },
 ] as const;
 
 export function HorizonChoice({
   hours,
   onChange,
   shown,
+  capped = false,
 }: {
   hours: number;
   onChange: (hours: number) => void;
-  /** How many flights the current choice is showing, so the control means something. */
+  /** How many flights are shown in the current choice. */
   shown: number;
+  /** Whether this is a capped browsing set rather than every match in the period. */
+  capped?: boolean;
 }): React.JSX.Element {
   return (
     <div className={styles.horizon}>
@@ -42,8 +45,45 @@ export function HorizonChoice({
         ))}
       </div>
       <p className={ui.hint}>
-        {shown === 0 ? 'No timetabled flights in this period.' : `${shown} flights`}
+        {shown === 0
+          ? 'No timetabled flights in this period.'
+          : capped
+            ? `First ${shown} flights`
+            : `${shown} flights`}
       </p>
+    </div>
+  );
+}
+
+export function RefreshPopup(): React.JSX.Element {
+  return (
+    <div className={styles.refreshPopup} role="status" aria-live="polite">
+      <span className={styles.refreshSpinner} aria-hidden="true" />
+      <span>Pulling fresh flight data...</span>
+    </div>
+  );
+}
+
+export function ShowMoreControl({
+  total,
+  shown,
+  onShowMore,
+}: {
+  total: number;
+  shown: number;
+  onShowMore: () => void;
+}): React.JSX.Element | null {
+  const remaining = total - shown;
+  if (remaining <= 0) return null;
+
+  return (
+    <div className={styles.showMore}>
+      <Button variant="secondary" onClick={onShowMore}>
+        Show more
+      </Button>
+      <span className={ui.hint}>
+        Showing {Math.min(shown, total)} of {total}. {remaining} more hidden.
+      </span>
     </div>
   );
 }
