@@ -73,7 +73,7 @@ type State =
 const INITIAL_VISIBLE_FLIGHTS = 5;
 const VISIBLE_FLIGHTS_STEP = 5;
 const TIMETABLE_BROWSE_LIMIT = 30;
-const REFRESH_FEEDBACK_MS = 700;
+const REFRESH_FEEDBACK_MS = 1000;
 
 type VisibleSection = 'live' | 'scheduled' | 'timetable';
 
@@ -127,8 +127,9 @@ export function InboundPicker({
   };
 
   const load = async (refreshing = state.kind === 'ready'): Promise<void> => {
-    setVisibleCounts(INITIAL_VISIBLE_COUNTS);
+    if (!refreshing) setVisibleCounts(INITIAL_VISIBLE_COUNTS);
     const refreshStartedAt = Date.now();
+    const refreshScrollY = refreshing ? window.scrollY : null;
     if (refreshing && state.kind === 'ready') {
       setIsRefreshing(true);
     } else {
@@ -173,6 +174,7 @@ export function InboundPicker({
       );
     } finally {
       if (refreshing) await holdRefreshFeedback(refreshStartedAt);
+      if (refreshScrollY !== null) await restoreScrollPosition(refreshScrollY);
       setIsRefreshing(false);
     }
   };
@@ -446,7 +448,7 @@ export function InboundPicker({
         className={styles.refresh}
         disabled={isRefreshing}
       >
-        {isRefreshing ? 'Refreshing...' : 'Refresh this list'}
+        Refresh this list
       </Button>
       {isRefreshing ? <RefreshPopup /> : null}
     </div>
@@ -535,4 +537,9 @@ async function holdRefreshFeedback(startedAt: number): Promise<void> {
   if (remaining > 0) {
     await new Promise((resolve) => setTimeout(resolve, remaining));
   }
+}
+
+async function restoreScrollPosition(scrollY: number): Promise<void> {
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  window.scrollTo(0, scrollY);
 }

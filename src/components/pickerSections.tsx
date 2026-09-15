@@ -1,6 +1,7 @@
 import { formatClock, formatDate } from '../domain/time';
 import type { AirportProfile } from '../domain/types';
 import { Button, ui } from './ui';
+import { Wordmark } from './Wordmark';
 import styles from './InboundPicker.module.css';
 
 /**
@@ -57,9 +58,21 @@ export function HorizonChoice({
 
 export function RefreshPopup(): React.JSX.Element {
   return (
-    <div className={styles.refreshPopup} role="status" aria-live="polite">
-      <span className={styles.refreshSpinner} aria-hidden="true" />
-      <span>Pulling fresh flight data...</span>
+    <div className={styles.refreshBackdrop} role="status" aria-live="polite" aria-atomic="true">
+      <div className={styles.refreshPanel}>
+        <div className={styles.refreshDial} aria-hidden="true">
+          <span className={styles.refreshSweep} />
+          <span className={styles.refreshHand} />
+          <span className={styles.refreshCentre} />
+        </div>
+        <div className={styles.refreshCopy}>
+          <span className={styles.refreshBrand} aria-hidden="true">
+            <Wordmark />
+          </span>
+          <strong>Refreshing flight data</strong>
+          <span>Checking the latest positions and times...</span>
+        </div>
+      </div>
     </div>
   );
 }

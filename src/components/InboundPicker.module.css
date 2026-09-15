@@ -77,34 +77,128 @@
 .refresh {
   align-self: flex-start;
   margin-top: var(--space-3);
+  min-width: 10.5rem;
 }
 
-.refreshPopup {
-  position: sticky;
-  bottom: var(--space-4);
-  z-index: 1;
-  align-self: flex-start;
-  display: inline-flex;
+.refreshBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: var(--space-5);
+  background: rgb(10 14 17 / 0.76);
+  backdrop-filter: blur(6px);
+  animation: refresh-backdrop-in 180ms var(--ease) both;
+}
+
+.refreshPanel {
+  display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--signal);
-  border-left-width: 3px;
+  gap: var(--space-5);
+  width: min(100%, 26rem);
+  padding: var(--space-5);
+  border: 1px solid var(--rule-strong);
+  border-left: 4px solid var(--signal);
   border-radius: var(--r-2);
   background: var(--surface);
   color: var(--ink);
-  box-shadow: 0 0 0 1px var(--surface), 0 12px 30px rgb(0 0 0 / 0.2);
-  font-size: var(--t-sm);
-  font-weight: 600;
+  box-shadow: 0 24px 70px rgb(0 0 0 / 0.38);
+  animation: refresh-panel-in 260ms var(--ease) both;
 }
 
-.refreshSpinner {
-  width: 1rem;
-  height: 1rem;
-  border: 2px solid var(--rule-strong);
-  border-top-color: var(--signal);
+.refreshDial {
+  position: relative;
+  flex: 0 0 auto;
+  width: 4.5rem;
+  height: 4.5rem;
+  overflow: hidden;
+  border: 3px solid var(--ink);
   border-radius: 50%;
-  animation: refresh-spin 0.8s linear infinite;
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+
+.refreshDial::before,
+.refreshDial::after {
+  content: '';
+  position: absolute;
+  background: var(--rule-strong);
+}
+
+.refreshDial::before {
+  top: 50%;
+  left: 0.45rem;
+  right: 0.45rem;
+  height: 1px;
+}
+
+.refreshDial::after {
+  top: 0.45rem;
+  bottom: 0.45rem;
+  left: 50%;
+  width: 1px;
+}
+
+.refreshSweep {
+  position: absolute;
+  inset: 0.25rem;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg 278deg,
+    rgb(79 191 162 / 0.06) 310deg,
+    var(--signal) 360deg
+  );
+  animation: refresh-sweep 1.35s linear infinite;
+}
+
+.refreshHand {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: 50%;
+  width: 2px;
+  height: 1.65rem;
+  border-radius: 2px;
+  background: var(--signal);
+  transform-origin: 50% 100%;
+  animation: refresh-hand 1.35s linear infinite;
+}
+
+.refreshCentre {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 50%;
+  width: 0.5rem;
+  height: 0.5rem;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--signal);
+  transform: translate(-50%, -50%);
+}
+
+.refreshCopy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--t-sm);
+}
+
+.refreshCopy strong {
+  font-size: var(--t-base);
+}
+
+.refreshCopy > span:last-child {
+  color: var(--ink-3);
+}
+
+.refreshBrand {
+  margin-bottom: var(--space-1);
+  color: var(--ink-2);
+  font-size: var(--t-xs);
+  font-weight: 700;
 }
 
 .list {
@@ -240,15 +334,37 @@
   margin-top: var(--space-4);
 }
 
-@keyframes refresh-spin {
+@keyframes refresh-sweep {
   to {
     transform: rotate(360deg);
   }
 }
 
+@keyframes refresh-hand {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes refresh-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes refresh-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.98);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .refreshSpinner {
-    animation-duration: 1.6s;
+  .refreshBackdrop,
+  .refreshPanel,
+  .refreshSweep,
+  .refreshHand {
+    animation: none;
   }
 }
 
@@ -309,6 +425,20 @@
 /* Narrow screens keep all four columns — identifier, airline, distance,
  * time — and drop only the callsign note, which the identifier repeats. */
 @media (max-width: 30rem) {
+  .refreshPanel {
+    gap: var(--space-4);
+    padding: var(--space-4);
+  }
+
+  .refreshDial {
+    width: 3.75rem;
+    height: 3.75rem;
+  }
+
+  .refreshHand {
+    height: 1.35rem;
+  }
+
   .option {
     gap: var(--space-2);
   }
