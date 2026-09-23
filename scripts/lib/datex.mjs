@@ -206,6 +206,7 @@ export function parseClosures(payload, options) {
           road,
           category: categoryOf(body, closureType, description),
           description,
+          coordinate,
           distanceFromAirportKm: Math.round(distanceFromAirportKm),
           startedAt,
           expectedEndAt,
