@@ -53,6 +53,14 @@ export function signalDetails(plan: JourneyPlan): Partial<Record<SignalId, Signa
       facts: mode ? [`${mode.label}: ${mode.value}`] : [],
     },
     'airport-conditions': {},
-    'road-disruption': {},
+    'road-disruption': plan.roadDisruption.value
+      ? {
+          facts: [
+            `${plan.roadDisruption.value.disruptions.filter((entry) => entry.routeMatch === 'on-route').length} matched to this drive`,
+            `${plan.roadDisruption.value.disruptions.filter((entry) => entry.routeMatch !== 'on-route').length} nearby but unconfirmed`,
+          ],
+          note: 'National Highways covers major roads near Manchester Airport. Route matching uses the reported event location; it is not a live traffic measurement. Local roads are not included.',
+        }
+      : {},
   };
 }
