@@ -11,6 +11,7 @@ on:
     branches: [main]
   schedule:
     - cron: '*/15 * * * *'
+    - cron: '7 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -131,6 +132,24 @@ jobs:
           NATIONAL_HIGHWAYS_KEY: ${{ secrets.NATIONAL_HIGHWAYS_KEY }}
           ROAD_DISRUPTION_URL: ${{ vars.ROAD_DISRUPTION_URL }}
         run: node scripts/fetch-road-disruption.mjs
+
+      # One shared snapshot for every visitor. Only the hourly schedule can
+      # call TomTom: at most 744 requests in a 31-day month, well below the
+      # documented 2,500/month free allowance. Pushes and manual runs only
+      # reuse the cached file. No retries, and no browser-side API calls.
+      - uses: actions/cache@v4
+        with:
+          path: public/data/roads/EGCC-traffic.json
+          key: tomtom-traffic-${{ github.run_id }}
+          restore-keys: tomtom-traffic-
+
+      - name: Refresh shared traffic incident snapshot
+        continue-on-error: true
+        env:
+          TOMTOM_KEY: ${{ secrets.TOMTOM_KEY }}
+          TOMTOM_PUBLISH_ALLOWED: ${{ vars.TOMTOM_PUBLISH_ALLOWED }}
+          TOMTOM_FETCH_HOURLY: ${{ github.event_name == 'schedule' && github.event.schedule == '7 * * * *' && github.run_attempt == 1 }}
+        run: node scripts/fetch-tomtom-incidents.mjs
 
       - run: npm run build
 
