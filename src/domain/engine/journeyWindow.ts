@@ -95,17 +95,18 @@ export function estimateJourney(
    * A reported closure is a reason to allow more time, not a basis for
    * claiming to know how much longer the drive takes.
    */
-  const disruptions = roadDisruption?.value?.disruptions ?? [];
+  const disruptions = roadDisruption?.state === 'ok' ? roadDisruption.value?.disruptions ?? [] : [];
   const disruptive = disruptions.filter(
-    (entry) => entry.active && (entry.category === 'closure' || entry.category === 'incident'),
+    (entry) => entry.active && entry.routeMatch === 'on-route' &&
+      (entry.category === 'closure' || entry.category === 'incident'),
   );
   if (disruptive.length > 0) {
     const closures = disruptive.filter((entry) => entry.category === 'closure').length;
     fraction += closures > 0 ? 0.2 : 0.1;
     reasons.push(
       closures > 0
-        ? 'A road closure is reported near the route.'
-        : 'An incident is reported near the route.',
+        ? 'A road closure is reported on or very close to the route.'
+        : 'An incident is reported on or very close to the route.',
     );
   }
 
