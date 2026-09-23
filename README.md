@@ -205,6 +205,7 @@ for each provider's current terms and the date they were checked.
 | [AirLabs](https://airlabs.co/) | Manchester's schedule, delays and cancellations | Free plan, keyed (CI only), 1,000 requests/month; refreshed every 4.5 hours |
 | [NOAA Aviation Weather Center](https://aviationweather.gov/data/api/) | Aerodrome observations (METAR) | Public domain, no key, no billing |
 | [National Highways](https://developer.data.nationalhighways.co.uk/) | Road and lane closures | Free, keyed, OGL 2.0, redistribution permitted |
+| [TomTom Traffic Incidents](https://docs.tomtom.com/traffic-api/documentation/tomtom-orbis-maps/v2/traffic-incidents/incident-details) | Optional accidents, jams and roadworks | Keyed; one shared hourly request when enabled |
 | [Open-Meteo](https://open-meteo.com/) | Weather | No key, 10,000 calls/day, non-commercial, CC BY 4.0 |
 | [OSRM](https://project-osrm.org/) (FOSSGIS + project instances) | Driving time and distance | No key, no billing, no live traffic |
 | [postcodes.io](https://postcodes.io/) | UK postcode → coordinates | MIT, ONS/OS open data, no key |
@@ -224,7 +225,7 @@ Stated plainly, because a planner that oversells itself is worse than useless:
 - **No queue data.** Border control, security and baggage times are SetoffIQ
   assumptions, documented in [DATA-SOURCES.md](DATA-SOURCES.md) and labelled as
   assumptions in the app. They are not airport statistics.
-- **Road disruption covers motorways only.** National Highways operates the
+- **National Highways disruption covers major roads only.** National Highways operates the
   Strategic Road Network, so the M56 and M60 are covered and local roads are
   not. The feed reports planned works and unplanned closures, not every accident
   or traffic jam. Route matching uses event locations, not measured traffic
