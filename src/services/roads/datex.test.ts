@@ -61,6 +61,7 @@ describe('parsing the closures feed', () => {
       active: false,
     });
     expect(results[0].distanceFromAirportKm).toBeLessThan(5);
+    expect(results[0].coordinate).toEqual({ latitude: 53.352, longitude: -2.31 });
   });
 
   it('maps a single-location unplanned closure and marks it active', () => {
