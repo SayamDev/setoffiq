@@ -34,9 +34,10 @@ export function matchDisruptionsToRoute(
     ...snapshot,
     disruptions: snapshot.disruptions.map((entry) => {
       let routeMatch: 'on-route' | 'unconfirmed' = 'unconfirmed';
-      if (entry.coordinate && geometry && geometry.length >= 2) {
+      const eventPoints = entry.coordinates?.length ? entry.coordinates : entry.coordinate ? [entry.coordinate] : [];
+      if (eventPoints.length && geometry && geometry.length >= 2) {
         for (let index = 1; index < geometry.length; index += 1) {
-          if (segmentDistanceKm(entry.coordinate, geometry[index - 1]!, geometry[index]!) <= CORRIDOR_KM) {
+          if (eventPoints.some((point) => segmentDistanceKm(point, geometry[index - 1]!, geometry[index]!) <= CORRIDOR_KM)) {
             routeMatch = 'on-route';
             break;
           }
