@@ -7,16 +7,16 @@ import type {
 import { readCache, writeCache } from '../cache';
 import { fetchJson } from '../http';
 
-const SNAPSHOT_PATH = 'data/roads/EGCC-disruption.json';
+const SNAPSHOT_PATHS = ['data/roads/EGCC-disruption.json', 'data/roads/EGCC-traffic.json'];
 const CACHE_KEY = 'road-disruption:EGCC';
 const CACHE_TTL_MINUTES = 10;
 /** Beyond this the disruption is unlikely to be on any sensible route in. */
 const RELEVANT_RADIUS_KM = 40;
 
-function snapshotUrl(): string {
+function snapshotUrl(path: string): string {
   // `||` not `??`: an empty base would silently produce a relative URL.
   const base = import.meta.env.BASE_URL || '/';
-  return `${base}${SNAPSHOT_PATH}`.replace(/([^:]\/)\/+/g, '$1');
+  return `${base}${path}`.replace(/([^:]\/)\/+/g, '$1');
 }
 
 /**
@@ -51,14 +51,20 @@ export const roadDisruptionProvider = {
 
     if (!snapshot) {
       try {
-        snapshot = await fetchJson<RoadDisruptionSnapshot>(snapshotUrl(), {
-          provider: 'road-disruption',
-          endpoint: 'disruption',
-          // The file legitimately does not exist when no key is configured, so
-          // a 404 must not be retried.
-          retries: 0,
-          signal,
-        });
+        const results = await Promise.allSettled(SNAPSHOT_PATHS.map((path) => fetchJson<RoadDisruptionSnapshot>(snapshotUrl(path), {
+          provider: 'road-disruption', endpoint: path, retries: 0, signal,
+        })));
+        const available = results.flatMap((result) => result.status === 'fulfilled' ? [result.value] : []);
+        const fresh = available.filter((item) => Number.isFinite(item.generatedAt) && now - item.generatedAt <= 60 * 60_000 && item.generatedAt <= now + 60_000);
+        const selected = fresh.length ? fresh : available.filter((item) => Number.isFinite(item.generatedAt)).sort((a, b) => b.generatedAt - a.generatedAt).slice(0, 1);
+        if (!selected.length) throw new Error('No road snapshots available');
+        snapshot = {
+          generatedAt: Math.min(...selected.map((item) => item.generatedAt)),
+          source: selected.map((item) => item.source).join(', '),
+          attribution: [...new Set(selected.map((item) => item.attribution))].join(' · '),
+          searchRadiusKm: 40,
+          disruptions: selected.flatMap((item) => item.disruptions),
+        };
         fetchedAt = now;
         writeCache(CACHE_KEY, snapshot, now);
       } catch {
