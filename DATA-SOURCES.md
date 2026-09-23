@@ -360,6 +360,10 @@ An exhausted allowance or failed fetch retains the last cached file, which
 will become stale rather than silently claiming the roads are clear.
 
 Incident locations are matched against the driver's OSRM route within 500 m.
+Likely duplicates between National Highways and TomTom are suppressed when the
+category and named road match and their reported points are within 250 m.
+This is deliberately conservative: reports with imprecise locations may still
+appear separately, and distinct incidents on the same road remain visible.
 This indicates proximity, not measured travel time or certainty that the
 incident affects that direction of travel. TomTom's reported delay is not
 added to the ETA; the existing conservative uncertainty allowance applies to
