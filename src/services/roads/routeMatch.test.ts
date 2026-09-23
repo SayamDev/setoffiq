@@ -39,6 +39,15 @@ describe('road disruption route matching', () => {
     expect(result.disruptions[0]?.routeMatch).toBe('unconfirmed');
   });
 
+  it('matches a point along an incident line even when its representative point is elsewhere', () => {
+    const incident = snapshot({ latitude: 53.41, longitude: -2.30 });
+    incident.disruptions[0]!.coordinates = [
+      { latitude: 53.41, longitude: -2.30 },
+      { latitude: 53.345, longitude: -2.35 },
+    ];
+    expect(matchDisruptionsToRoute(incident, route).disruptions[0]?.routeMatch).toBe('on-route');
+  });
+
   it('does not guess when routing or older snapshot geometry is absent', () => {
     expect(matchDisruptionsToRoute(snapshot(), route).disruptions[0]?.routeMatch).toBe('unconfirmed');
     expect(matchDisruptionsToRoute(snapshot({ latitude: 53.345, longitude: -2.35 }), null).disruptions[0]?.routeMatch).toBe('unconfirmed');
