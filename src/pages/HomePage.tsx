@@ -37,9 +37,9 @@ export function HomePage(): React.JSX.Element {
         </h2>
         <div className={styles.choices}>
           <a className={styles.choice} href={hrefFor({ name: 'plan', kind: 'pickup' })}>
-            <span className={styles.choiceTitle}>Pick someone up</span>
+            <span className={styles.choiceTitle}>Collect an arriving passenger</span>
             <span className={styles.choiceBody}>
-              Know when to leave so you are not sitting in a car park waiting for a bag to arrive.
+              Use their flight arrival time to work out when to set off for the airport.
             </span>
             <span className={styles.choiceGo}>
               Plan a pickup
@@ -50,9 +50,9 @@ export function HomePage(): React.JSX.Element {
           </a>
 
           <a className={styles.choice} href={hrefFor({ name: 'plan', kind: 'dropoff' })}>
-            <span className={styles.choiceTitle}>Drop someone off</span>
+            <span className={styles.choiceTitle}>Take someone to a departing flight</span>
             <span className={styles.choiceBody}>
-              Know when to leave home to reach the airport with a sensible buffer before the flight.
+              Use their flight departure time to arrive at the terminal with time to spare.
             </span>
             <span className={styles.choiceGo}>
               Plan a drop-off
