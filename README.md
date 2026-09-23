@@ -82,8 +82,9 @@ table explaining it.
   flights that *usually* land in the next twelve hours, from SetoffIQ's own
   record of landings.
 - **Real routing** to the terminal itself over OpenStreetMap data, plus the
-  aerodrome's own weather observation and live road closures, all feeding the
-  journey estimate.
+  aerodrome's own weather observation and road closures. A fresh closure or
+  incident changes the journey estimate only when its reported location is on
+  or very close to the driver's route.
 - **Passenger stages**, because a landed flight is not a ready passenger — and
   the stages that are inferred rather than observed say so.
 - **Windows, not false precision.** "Ready between 18:55 and 19:15", never
@@ -225,7 +226,10 @@ Stated plainly, because a planner that oversells itself is worse than useless:
   assumptions in the app. They are not airport statistics.
 - **Road disruption covers motorways only.** National Highways operates the
   Strategic Road Network, so the M56 and M60 are covered and local roads are
-  not. Routine roadworks are reported but deliberately do not widen the
+  not. The feed reports planned works and unplanned closures, not every accident
+  or traffic jam. Route matching uses event locations, not measured traffic
+  delay. Old snapshots and events merely near the airport do not widen the
+  estimate. Routine roadworks are reported but deliberately do not widen the
   estimate — dozens of live lane closures is the normal state of the network,
   and a warning that is always on is not a warning.
 - **No flight schedules.** Nothing free will tell you which flights land
