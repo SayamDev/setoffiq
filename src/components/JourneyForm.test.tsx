@@ -38,11 +38,12 @@ describe('planning a pickup from an aircraft in the air', () => {
     const user = userEvent.setup();
     render(<JourneyForm kind="pickup" airport={MANCHESTER} now={Date.now()} onSubmit={vi.fn()} />);
 
+    await user.click(screen.getByRole('button', { name: /Find a flight to fill these details/ }));
     await user.click(screen.getByRole('button', { name: /Collecting someone from a flight/ }));
     await user.click(await screen.findByRole('button', { name: /RYR61UR.*Ryanair.*from Ibiza/s }));
 
     expect(screen.getByLabelText('Flight number (optional)')).toHaveValue('RYR61UR');
-    const time = screen.getByLabelText('Scheduled arrival time') as HTMLInputElement;
+    const time = screen.getByLabelText('Flight arrival time') as HTMLInputElement;
     expect(time.value).toMatch(/^\d\d:\d\d$/);
     // From Spain, so border control applies.
     expect(screen.getByRole('radio', { name: /International/ })).toBeChecked();
@@ -56,7 +57,7 @@ describe('planning a pickup from an aircraft in the air', () => {
     render(<JourneyForm kind="pickup" airport={MANCHESTER} now={Date.now()} onSubmit={vi.fn()} />);
 
     await user.click(screen.getByLabelText('Date'));
-    await user.click(screen.getByLabelText('Scheduled arrival time'));
+    await user.click(screen.getByLabelText('Flight arrival time'));
     expect(showPicker).toHaveBeenCalledTimes(2);
     Reflect.deleteProperty(HTMLInputElement.prototype, 'showPicker');
   });
@@ -68,7 +69,7 @@ describe('required-field validation', () => {
     render(<JourneyForm kind="pickup" airport={MANCHESTER} now={Date.now()} onSubmit={vi.fn()} />);
 
     fireEvent.change(screen.getByLabelText('Date'), { target: { value: '' } });
-    await user.click(screen.getByRole('button', { name: /Calculate my journey/i }));
+    await user.click(screen.getByRole('button', { name: /Calculate when to leave/i }));
 
     await user.click(screen.getByRole('button', { name: 'Choose the date of the flight.' }));
     expect(screen.getByLabelText('Date')).toHaveFocus();
@@ -76,12 +77,12 @@ describe('required-field validation', () => {
     await user.click(
       screen.getByRole('button', { name: 'Enter the arrival time from the booking.' }),
     );
-    expect(screen.getByLabelText('Scheduled arrival time')).toHaveFocus();
+    expect(screen.getByLabelText('Flight arrival time')).toHaveFocus();
 
     await user.click(
       screen.getByRole('button', { name: 'Enter the UK postcode you are setting off from.' }),
     );
-    expect(screen.getByLabelText('Setting off from')).toHaveFocus();
+    expect(screen.getByLabelText('Starting postcode')).toHaveFocus();
   });
 });
 
@@ -90,7 +91,7 @@ describe('a time with no date chosen', () => {
     const at1900 = Date.UTC(2026, 8, 11, 18, 0);
     render(<JourneyForm kind="pickup" airport={MANCHESTER} now={at1900} onSubmit={vi.fn()} />);
 
-    fireEvent.change(screen.getByLabelText('Scheduled arrival time'), { target: { value: '01:05' } });
+    fireEvent.change(screen.getByLabelText('Flight arrival time'), { target: { value: '01:05' } });
 
     expect(screen.getByLabelText('Date')).toHaveValue('2026-09-12');
     expect(screen.getByText(/Taken as tomorrow, Sat 12 Sept, because 01:05 today has already passed/)).toBeInTheDocument();
@@ -101,7 +102,7 @@ describe('a time with no date chosen', () => {
     render(<JourneyForm kind="pickup" airport={MANCHESTER} now={at1900} onSubmit={vi.fn()} />);
 
     fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-09-14' } });
-    fireEvent.change(screen.getByLabelText('Scheduled arrival time'), { target: { value: '01:05' } });
+    fireEvent.change(screen.getByLabelText('Flight arrival time'), { target: { value: '01:05' } });
 
     expect(screen.getByLabelText('Date')).toHaveValue('2026-09-14');
     expect(screen.queryByText(/Taken as tomorrow/)).not.toBeInTheDocument();
@@ -143,12 +144,13 @@ describe('planning a drop-off from a flight that usually leaves soon', () => {
     const user = userEvent.setup();
     render(<JourneyForm kind="dropoff" airport={MANCHESTER} now={now} onSubmit={vi.fn()} />);
 
+    await user.click(screen.getByRole('button', { name: /Find a flight to fill these details/ }));
     await user.click(screen.getByRole('button', { name: /Dropping someone off for a flight/ }));
     await user.click(await screen.findByRole('button', { name: /EZY256Q.*easyJet.*to Belfast/s }));
 
     const gate = london(160);
     const expected = `${String(Math.floor(gate.minute / 60)).padStart(2, '0')}:${String(gate.minute % 60).padStart(2, '0')}`;
-    expect(screen.getByLabelText('Scheduled departure time')).toHaveValue(expected);
+    expect(screen.getByLabelText('Flight departure time')).toHaveValue(expected);
     expect(screen.getByRole('radio', { name: /Within the UK/ })).toBeChecked();
     expect(screen.getByText(/less 20 minutes from the gate/)).toBeInTheDocument();
   });
@@ -191,12 +193,13 @@ describe('choosing from the airline schedule', () => {
     const user = userEvent.setup();
     render(<JourneyForm kind="pickup" airport={MANCHESTER} now={now} onSubmit={vi.fn()} />);
 
+    await user.click(screen.getByRole('button', { name: /Find a flight to fill these details/ }));
     await user.click(screen.getByRole('button', { name: /Collecting someone from a flight/ }));
     expect(await screen.findByRole('button', { name: /FR3006.*Ryanair.*from Ibiza.*Cancelled/s })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /EK19.*Emirates.*from Dubai.*Delayed ~25 min/s }));
 
     expect(screen.getByLabelText('Flight number (optional)')).toHaveValue('EK19');
-    expect(screen.getByLabelText('Scheduled arrival time')).toHaveValue(clock(now + 3 * 3_600_000));
+    expect(screen.getByLabelText('Flight arrival time')).toHaveValue(clock(now + 3 * 3_600_000));
     expect(screen.getByRole('status')).toHaveTextContent(/running about 25 minutes late/);
     expect(screen.getByText(/Filled in from the airline schedule/)).toBeInTheDocument();
   });
@@ -207,10 +210,11 @@ describe('choosing from the airline schedule', () => {
     const user = userEvent.setup();
     render(<JourneyForm kind="dropoff" airport={MANCHESTER} now={now} onSubmit={vi.fn()} />);
 
+    await user.click(screen.getByRole('button', { name: /Find a flight to fill these details/ }));
     await user.click(screen.getByRole('button', { name: /Dropping someone off for a flight/ }));
     await user.click(await screen.findByRole('button', { name: /LS811.*Jet2.*to Alicante/s }));
 
-    expect(screen.getByLabelText('Scheduled departure time')).toHaveValue(clock(now + 4 * 3_600_000));
+    expect(screen.getByLabelText('Flight departure time')).toHaveValue(clock(now + 4 * 3_600_000));
     expect(screen.getByRole('radio', { name: /International/ })).toBeChecked();
   });
 });
@@ -257,11 +261,12 @@ describe('the timetable, when the schedule has nothing to say', () => {
     const user = userEvent.setup();
     render(<JourneyForm kind="pickup" airport={MANCHESTER} now={now} onSubmit={vi.fn()} />);
 
+    await user.click(screen.getByRole('button', { name: /Find a flight to fill these details/ }));
     await user.click(screen.getByRole('button', { name: /Collecting someone from a flight/ }));
     await user.click(await screen.findByRole('button', { name: /EK21.*Emirates.*from Dubai/s }));
 
     expect(screen.getByLabelText('Flight number (optional)')).toHaveValue('EK21');
-    expect(screen.getByLabelText('Scheduled arrival time')).toHaveValue(clock(now + 3 * 3_600_000));
+    expect(screen.getByLabelText('Flight arrival time')).toHaveValue(clock(now + 3 * 3_600_000));
     // The timetable carries no status, and the interface has to say so.
     expect(screen.getByText(/published timetable, which carries no status/)).toBeInTheDocument();
   });
@@ -272,6 +277,7 @@ describe('the timetable, when the schedule has nothing to say', () => {
     const user = userEvent.setup();
     render(<JourneyForm kind="pickup" airport={MANCHESTER} now={now} onSubmit={vi.fn()} />);
 
+    await user.click(screen.getByRole('button', { name: /Find a flight to fill these details/ }));
     await user.click(screen.getByRole('button', { name: /Collecting someone from a flight/ }));
     await screen.findByRole('button', { name: /EK21/ });
     await user.type(screen.getByLabelText('Find a flight'), 'BA 1360');
