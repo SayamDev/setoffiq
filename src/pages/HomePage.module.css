@@ -1,52 +1,45 @@
-/*
- * An editorial opening: a masthead-scale wordmark, a rule, then the single
- * question. No hero card, no feature grid of boxes.
- */
 .hero {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  padding-bottom: var(--space-7);
+  gap: var(--space-3);
+  padding-bottom: var(--space-5);
   border-bottom: 1px solid var(--rule-strong);
 }
 
-/* Generous air above the mark on a large screen; none of it on a phone, where
- * the fold is the scarce resource. */
 @media (min-width: 48rem) {
   .hero {
-    padding-top: var(--space-6);
-    padding-bottom: var(--space-8);
-    gap: var(--space-5);
+    padding-top: var(--space-5);
+    padding-bottom: var(--space-6);
+    gap: var(--space-4);
   }
 }
 
-.title {
-  font-size: var(--t-hero);
+.wordmark {
+  font-size: clamp(2.6rem, 7vw, 5.25rem);
   font-weight: 650;
   line-height: 0.95;
   letter-spacing: -0.045em;
 }
 
 .tagline {
-  font-size: var(--t-hero-tagline);
-  font-weight: 400;
-  color: var(--ink-2);
+  font-size: clamp(1.65rem, 3.2vw, 2.75rem);
+  font-weight: 500;
+  color: var(--ink);
   letter-spacing: -0.028em;
-  line-height: 1.2;
-  max-width: 20ch;
+  line-height: 1.14;
+  max-width: 24ch;
   text-wrap: balance;
 }
 
 .lede {
   color: var(--ink-3);
-  max-width: 50ch;
-  margin-top: var(--space-3);
-  font-size: var(--t-lg);
+  max-width: 59ch;
+  font-size: var(--t-base, 1rem);
 }
 
 @media (min-width: 48rem) {
   .lede {
-    font-size: var(--t-xl);
+    font-size: var(--t-lg);
     line-height: 1.5;
   }
 }
@@ -191,16 +184,31 @@
   }
 }
 
-/* Three short claims, set as a ruled strip rather than three more boxes. */
-.points {
-  display: grid;
-  gap: var(--space-5);
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+.steps {
   border-top: 1px solid var(--rule-strong);
   padding-top: var(--space-5);
 }
 
-.pointTitle {
+.stepList {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+.step {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+}
+
+.stepNumber {
+  color: var(--signal);
+  font-size: var(--t-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stepTitle {
   font-size: var(--t-label);
   font-weight: 600;
   letter-spacing: var(--track-label);
@@ -209,7 +217,7 @@
   margin-bottom: var(--space-2);
 }
 
-.pointBody {
+.stepBody {
   color: var(--ink-3);
   font-size: var(--t-sm);
   max-width: 40ch;
