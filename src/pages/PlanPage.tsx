@@ -3,7 +3,7 @@ import { DEFAULT_AIRPORT } from '../domain/airports';
 import { formatClock, formatDate } from '../domain/time';
 import type { JourneyInput, JourneyKind } from '../domain/types';
 import { signalDetails } from '../components/signalDetails';
-import { navigate } from '../app/router';
+import { hrefFor, navigate } from '../app/router';
 import { ExplanationPanel } from '../components/ExplanationPanel';
 import { JourneyForm } from '../components/JourneyForm';
 import { JourneyTimeline } from '../components/JourneyTimeline';
@@ -86,13 +86,21 @@ export function PlanPage({
         <a className={styles.back} href="#/">
           ← Back
         </a>
+        <nav className={styles.modeNav} aria-label="Journey type">
+          <a className={kind === 'pickup' ? styles.modeActive : styles.modeLink} href={hrefFor({ name: 'plan', kind: 'pickup' })} aria-current={kind === 'pickup' ? 'page' : undefined}>
+            Collect an arriving passenger
+          </a>
+          <a className={kind === 'dropoff' ? styles.modeActive : styles.modeLink} href={hrefFor({ name: 'plan', kind: 'dropoff' })} aria-current={kind === 'dropoff' ? 'page' : undefined}>
+            Take someone to a departing flight
+          </a>
+        </nav>
         <h1 className={styles.title}>
-          {kind === 'pickup' ? 'Pick someone up' : 'Drop someone off'}
+          {kind === 'pickup' ? 'Plan a pickup' : 'Plan a drop-off'}
         </h1>
         <p className={styles.subtitle}>
           {kind === 'pickup'
-            ? 'SetoffIQ works back from when your passenger is likely to walk out, so you arrive about when they do.'
-            : 'SetoffIQ works back from the departure time, allowing time at the terminal and for the drive.'}
+            ? 'For an arriving flight at Manchester Airport. Enter the landing time; we’ll calculate when to set off to collect your passenger.'
+            : 'For a departing flight from Manchester Airport. Enter the flight time; we’ll calculate when to set off and reach the terminal in time.'}
         </p>
       </header>
 
