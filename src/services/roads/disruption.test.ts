@@ -167,11 +167,33 @@ describe('road disruption in a recommendation', () => {
     expect(signal?.summary).toContain('M56');
   });
 
+  it('does not move the recommendation for an incident that is nearby but unconfirmed on this route', () => {
+    const clear = assess();
+    const nearby = assess({
+      roadDisruption: roadDisruption(
+        [{ category: 'incident', description: 'Accident nearby', routeMatch: 'unconfirmed' }],
+        manTime(17, 0),
+      ),
+    });
+    expect(nearby.recommendedDeparture).toBe(clear.recommendedDeparture);
+    expect(nearby.signals.find((s) => s.id === 'road-disruption')?.summary).toMatch(/none confirmed on your route/i);
+  });
+
+  it('does not use stale closure data to change a departure', () => {
+    const clear = assess();
+    const stale = roadDisruption([{ category: 'closure', description: 'Old closure' }], manTime(13, 0));
+    stale.state = 'stale';
+    const result = assess({ roadDisruption: stale });
+    expect(result.recommendedDeparture).toBe(clear.recommendedDeparture);
+    expect(result.signals.find((s) => s.id === 'road-disruption')?.state.kind).toBe('stale');
+    expect(result.signals.find((s) => s.id === 'road-disruption')?.summary).toMatch(/too old to use/i);
+  });
+
   it('confirms clear roads only when a source actually said so', () => {
     const result = assess({ roadDisruption: roadDisruption([], manTime(17, 0)) });
     const signal = result.signals.find((s) => s.id === 'road-disruption');
     expect(signal?.state.kind).toBe('live');
     expect(signal?.impact).toBe('none');
-    expect(signal?.summary).toMatch(/nothing reported/i);
+    expect(signal?.summary).toMatch(/no current closure or incident reported/i);
   });
 });

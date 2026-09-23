@@ -139,17 +139,17 @@ describe('planning and monitoring a pickup', () => {
     });
     // The hour in Manchester, like the date — not the machine's own zone. CI
     // runs in UTC, and mixing the two once put the flight a day away.
-    fireEvent.change(screen.getByLabelText(/Scheduled arrival time/i), {
+    fireEvent.change(screen.getByLabelText(/Flight arrival time/i), {
       target: { value: `${formatClock(arrival.getTime(), MANCHESTER.timeZone).slice(0, 2)}:00` },
     });
     await user.type(screen.getByLabelText(/Flight number/i), 'KL1038');
-    await user.type(screen.getByLabelText(/Setting off from/i), 'M1 4BT');
+    await user.type(screen.getByLabelText(/Starting postcode/i), 'M1 4BT');
     await user.click(screen.getByRole('radio', { name: /Quick pickup/i }));
 
     // 3. Calculate.
-    await user.click(screen.getByRole('button', { name: /Calculate my journey/i }));
+    await user.click(screen.getByRole('button', { name: /Calculate when to leave/i }));
 
-    const recommendation = await screen.findByRole('region', { name: /Recommended departure/i }, { timeout: 5000 });
+    const recommendation = await screen.findByRole('region', { name: /Set off at/i }, { timeout: 5000 });
     const firstDeparture = within(recommendation)
       .getByText(/^\d{2}:\d{2}$/)
       .textContent!;
@@ -189,7 +189,7 @@ describe('planning and monitoring a pickup', () => {
     expect(notice).toBeInTheDocument();
     expect((await screen.findAllByText(/minutes later/i)).length).toBeGreaterThan(0);
 
-    const updated = screen.getByRole('region', { name: /Recommended departure/i });
+    const updated = screen.getByRole('region', { name: /Set off at/i });
     const secondDeparture = within(updated)
       .getByText(/^\d{2}:\d{2}$/)
       .textContent!;
@@ -213,6 +213,6 @@ describe('planning and monitoring a pickup', () => {
     });
     expect(mentions.length).toBeGreaterThan(0);
     expect(screen.getByText(/Monitoring has been stopped/i)).toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: /Recommended departure/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: /Set off at/i })).not.toBeInTheDocument();
   }, 30_000);
 });

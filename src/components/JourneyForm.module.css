@@ -17,11 +17,10 @@
 
 .workspace {
   display: grid;
-  gap: var(--space-7);
+  max-width: 52rem;
   align-items: start;
 }
 
-.flightPanel,
 .detailsPanel {
   display: flex;
   min-width: 0;
@@ -30,25 +29,8 @@
 }
 
 .sectionHeader {
-  display: grid;
-  grid-template-columns: 2.5rem 1fr;
-  gap: var(--space-3);
-  align-items: start;
   padding-bottom: var(--space-4);
   border-bottom: 1px solid var(--rule-strong);
-}
-
-.step {
-  display: grid;
-  width: 2.25rem;
-  height: 2.25rem;
-  place-items: center;
-  border: 1px solid var(--signal);
-  border-radius: 50%;
-  color: var(--signal-2);
-  font-family: var(--font-mono);
-  font-size: var(--t-xs);
-  font-weight: 700;
 }
 
 .sectionTitle {
@@ -63,16 +45,39 @@
   font-size: var(--t-sm);
 }
 
-@media (min-width: 70rem) {
-  .workspace {
-    grid-template-columns: minmax(0, 1.35fr) minmax(20rem, 0.8fr);
-    gap: var(--space-8);
-  }
+.finderBlock {
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: var(--space-4);
+}
 
-  .detailsPanel {
-    padding-left: var(--space-7);
-    border-left: 1px solid var(--rule);
-  }
+.finderToggle {
+  min-height: 44px;
+  appearance: none;
+  border: 0;
+  padding: var(--space-2) 0;
+  background: transparent;
+  color: var(--signal-2);
+  font: inherit;
+  font-weight: 650;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.finderToggle:hover { color: var(--signal); }
+.finderToggle:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }
+.finderContent { margin-top: var(--space-3); }
+
+.subsection {
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--rule-strong);
+}
+
+.subsectionTitle {
+  font-size: var(--t-xl);
+  font-weight: 650;
+  letter-spacing: -0.025em;
 }
 
 .grid {
@@ -98,6 +103,11 @@
   color: var(--ink-3);
   padding: 0;
   margin-bottom: var(--space-1);
+}
+
+.routeHint {
+  color: var(--ink-3);
+  font-size: var(--t-sm);
 }
 
 .options {
@@ -204,11 +214,11 @@
 
 .errorSummary {
   max-width: 38rem;
-  border-left: 3px solid var(--red);
+  border: 1px solid var(--red);
   background: var(--red-wash);
   color: var(--red);
   padding: var(--space-4);
-  border-radius: 0 var(--r-2) var(--r-2) 0;
+  border-radius: var(--r-2);
   font-size: var(--t-sm);
 }
 

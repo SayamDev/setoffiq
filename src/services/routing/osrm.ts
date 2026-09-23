@@ -19,7 +19,7 @@ export const OSRM_ATTRIBUTION =
 
 interface OsrmResponse {
   code: string;
-  routes?: { duration: number; distance: number }[];
+  routes?: { duration: number; distance: number; geometry?: { type: string; coordinates: number[][] } }[];
 }
 
 function cacheKey(origin: GeoPoint, destination: GeoPoint): string {
@@ -35,7 +35,7 @@ async function routeVia(
 ): Promise<RouteResult> {
   const coordinates = `${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}`;
   const payload = await fetchJson<OsrmResponse>(
-    `${host}/route/v1/driving/${coordinates}?overview=false&alternatives=false&steps=false`,
+    `${host}/route/v1/driving/${coordinates}?overview=full&geometries=geojson&alternatives=false&steps=false`,
     // No per-host retry: the second public instance is the retry. Retrying
     // each host as well would make a total outage take long enough that the
     // user is left staring at a spinner.
@@ -46,6 +46,11 @@ async function routeVia(
   return {
     durationSeconds: route.duration,
     distanceMeters: route.distance,
+    geometry: route.geometry?.type === 'LineString'
+      ? route.geometry.coordinates
+          .filter((point) => point.length >= 2 && Number.isFinite(point[0]) && Number.isFinite(point[1]))
+          .map((point) => ({ latitude: point[1]!, longitude: point[0]! }))
+      : undefined,
     trafficAware: false,
     estimatedWithoutRouting: false,
   };

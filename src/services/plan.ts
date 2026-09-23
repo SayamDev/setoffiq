@@ -16,6 +16,7 @@ import { snapshotFlightProvider } from './flight';
 import { findScenario, scenarioFlightStatus } from './flight/scenarios';
 import { haversineKm } from './geo';
 import { roadDisruptionProvider } from './roads';
+import { matchDisruptionsToRoute } from './roads/routeMatch';
 import { osrmRoutingProvider } from './routing';
 import { openMeteoProvider } from './weather';
 
@@ -95,6 +96,13 @@ export async function planJourney(
     roadDisruptionProvider.getDisruption(airport, signal),
   ]);
 
+  const matchedRoadDisruption = roadDisruption.value
+    ? {
+        ...roadDisruption,
+        value: matchDisruptionsToRoute(roadDisruption.value, route.value),
+      }
+    : roadDisruption;
+
   const distanceKm = haversineKm(input.origin, destination);
   const shared = {
     now,
@@ -106,7 +114,7 @@ export async function planJourney(
     route: toProviderInput(route),
     weather: toProviderInput(weather),
     airportConditions: toProviderInput(airportConditions),
-    roadDisruption: toProviderInput(roadDisruption),
+    roadDisruption: toProviderInput(matchedRoadDisruption),
   };
 
   const recommendation =
@@ -128,7 +136,7 @@ export async function planJourney(
     route,
     weather,
     airportConditions,
-    roadDisruption,
+    roadDisruption: matchedRoadDisruption,
     computedAt: now,
   };
 }

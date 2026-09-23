@@ -340,6 +340,38 @@ leaving in the next twelve hours"*. Recording began on the evening of
 
 ## Road disruption and roadworks — National Highways
 
+### Optional TomTom traffic incidents, capped to one request every 20 minutes
+
+The optional TomTom Orbis incidents feed can add accidents, jams, roadworks and
+closures beyond National Highways' Strategic Road Network coverage. Set
+`TOMTOM_KEY` as a GitHub Actions repository secret and set the repository
+variable `TOMTOM_PUBLISH_ALLOWED=true` only after confirming that your TomTom
+plan permits publishing the normalized incident snapshot to your public site.
+Without both settings, the fetch script deletes any cached TomTom snapshot and
+the site continues with National Highways data.
+
+Only the `7,27,47 * * * *` scheduled event makes a TomTom request. Pushes, manual
+runs and the 15-minute schedule make zero requests; there are no retries.
+That is at most 2,232 requests in a 31-day month (89.28% of TomTom's documented
+2,500 monthly free Traffic Incidents API requests). All visitors read the same
+static snapshot. GitHub scheduled jobs are best effort, so the app ignores a
+snapshot older than 60 minutes for timing and labels old road data as stale.
+An exhausted allowance or failed fetch retains the last cached file, which
+will become stale rather than silently claiming the roads are clear.
+
+Incident locations are matched against the driver's OSRM route within 500 m.
+Likely duplicates between National Highways and TomTom are suppressed when the
+category and named road match and their reported points are within 250 m.
+This is deliberately conservative: reports with imprecise locations may still
+appear separately, and distinct incidents on the same road remain visible.
+This indicates proximity, not measured travel time or certainty that the
+incident affects that direction of travel. TomTom's reported delay is not
+added to the ETA; the existing conservative uncertainty allowance applies to
+matched active closures and incidents. API credentials never reach visitors.
+
+Sources: [TomTom pricing](https://docs.tomtom.com/pricing) and
+[incident details documentation](https://docs.tomtom.com/traffic-api/documentation/tomtom-orbis-maps/v2/traffic-incidents/incident-details).
+
 Live road disruption would be genuinely valuable, and three sources were
 examined on 11 September 2026. None of them is free and keyless for this
 question. National Highways' closures feed passed the checks below and has been
@@ -488,6 +520,15 @@ closure.
 **Coverage caveat:** National Highways operates the Strategic Road Network, so
 the M56 and M60 around the airport are covered but local roads generally are
 not. The signal is useful, not complete, and the app does not imply otherwise.
+
+The journey calculation checks each event's reported coordinate against the
+driver's OSRM route geometry. Only a fresh, active closure or incident within
+500 metres of that route widens the estimate. A nearby event without a route
+match remains visible as unconfirmed and adds no time; missing route geometry
+or an older snapshot cannot be treated as a current route disruption. This is
+a proximity heuristic, not a measurement of delay or proof that the carriageway
+in the driver's direction is affected. The closure feed does not cover every
+accident, queue or local-road restriction.
 
 ### What the live feed taught us
 

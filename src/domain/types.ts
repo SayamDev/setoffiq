@@ -275,6 +275,12 @@ export interface RoadDisruption {
   road: string;
   category: 'closure' | 'roadworks' | 'incident' | 'other';
   description: string;
+  /** Location supplied by the road authority. Older snapshots may omit it. */
+  coordinate?: { latitude: number; longitude: number };
+  /** Event line vertices when the source supplies a road segment. */
+  coordinates?: { latitude: number; longitude: number }[];
+  /** Calculated for this driver's route; never asserted from airport proximity alone. */
+  routeMatch?: 'on-route' | 'unconfirmed';
   /** Straight-line distance from the airport, in km. */
   distanceFromAirportKm: number;
   startedAt: Instant | null;
@@ -300,6 +306,8 @@ export interface GeoPoint {
 export interface RouteResult {
   durationSeconds: number;
   distanceMeters: number;
+  /** OSRM road geometry, ordered from the driver's origin to the airport. */
+  geometry?: { latitude: number; longitude: number }[];
   /** OSRM models free-flow speeds only; nothing here is traffic-aware. */
   trafficAware: false;
   /** True when the duration was estimated locally rather than routed. */
