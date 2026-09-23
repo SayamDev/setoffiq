@@ -43,7 +43,7 @@ export function RecommendationCard({
 
       <div className={styles.head}>
         <p className={styles.eyebrow} id="recommendation-heading">
-          Recommended departure
+          Set off at
         </p>
         <div className={styles.confidence}>
           <ConfidenceBadge confidence={recommendation.confidence} />
