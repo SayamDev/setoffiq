@@ -2,18 +2,18 @@ import { hrefFor } from '../app/router';
 import { Wordmark } from '../components/Wordmark';
 import styles from './HomePage.module.css';
 
-const POINTS = [
+const STEPS = [
   {
-    title: 'A real calculation',
-    body: 'A deterministic engine works back from the flight to a departure time. The explanation comes after the maths, never instead of it.',
+    title: 'Choose your journey',
+    body: 'Tell us whether you are collecting someone or taking them to the airport.',
   },
   {
-    title: 'Honest about what it knows',
-    body: 'Live aircraft positions where they exist, your own booking where they do not, and a label on every assumption.',
+    title: 'Add the details',
+    body: 'Enter the flight time and where you are travelling from.',
   },
   {
-    title: 'Yours, on your device',
-    body: 'No account, no tracking, no server holding your journeys. Saved plans stay in this browser.',
+    title: 'Get your set-off time',
+    body: 'See a recommended time to leave, with the journey and flight information behind it.',
   },
 ];
 
@@ -21,13 +21,13 @@ export function HomePage(): React.JSX.Element {
   return (
     <>
       <section className={styles.hero}>
-        <h1 className={styles.title}>
+        <div className={styles.wordmark}>
           <Wordmark />
-        </h1>
-        <p className={styles.tagline}>Know when to set off. Know when to wait.</p>
+        </div>
+        <h1 className={styles.tagline}>Know when to set off for Manchester Airport.</h1>
         <p className={styles.lede}>
-          Plan airport pickups and drop-offs using available flight, journey and weather
-          information — so you arrive at the right time instead of arriving early and waiting.
+          Plan a pickup or drop-off around the flight and your journey. Get a clear time to leave,
+          with the details that shaped it.
         </p>
       </section>
 
@@ -64,13 +64,23 @@ export function HomePage(): React.JSX.Element {
         </div>
       </section>
 
-      <section className={styles.points}>
-        {POINTS.map((point) => (
-          <div key={point.title}>
-            <p className={styles.pointTitle}>{point.title}</p>
-            <p className={styles.pointBody}>{point.body}</p>
-          </div>
-        ))}
+      <section className={styles.steps} aria-labelledby="how-it-works">
+        <h2 className={styles.question} id="how-it-works">
+          How it works
+        </h2>
+        <div className={styles.stepList}>
+          {STEPS.map((step, index) => (
+            <div className={styles.step} key={step.title}>
+              <span className={styles.stepNumber} aria-hidden="true">
+                0{index + 1}
+              </span>
+              <div>
+                <p className={styles.stepTitle}>{step.title}</p>
+                <p className={styles.stepBody}>{step.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
     </>
   );
