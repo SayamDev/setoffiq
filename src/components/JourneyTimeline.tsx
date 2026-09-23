@@ -16,7 +16,7 @@ function buildSteps(recommendation: Recommendation, now: Instant, timeZone: stri
     return [
       {
         at: recommendation.recommendedDeparture,
-        title: 'Leave home',
+        title: 'Set off',
         note: 'Set off so the slower end of your drive still gets you there in time.',
         reached: reached(recommendation.recommendedDeparture),
       },
@@ -44,7 +44,7 @@ function buildSteps(recommendation: Recommendation, now: Instant, timeZone: stri
   return [
     {
       at: recommendation.recommendedDeparture,
-      title: 'Leave home',
+      title: 'Set off',
       note: 'Set off allowing for the slower end of your drive.',
       reached: reached(recommendation.recommendedDeparture),
     },
