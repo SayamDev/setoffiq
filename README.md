@@ -205,7 +205,7 @@ for each provider's current terms and the date they were checked.
 | [AirLabs](https://airlabs.co/) | Manchester's schedule, delays and cancellations | Free plan, keyed (CI only), 1,000 requests/month; refreshed every 4.5 hours |
 | [NOAA Aviation Weather Center](https://aviationweather.gov/data/api/) | Aerodrome observations (METAR) | Public domain, no key, no billing |
 | [National Highways](https://developer.data.nationalhighways.co.uk/) | Road and lane closures | Free, keyed, OGL 2.0, redistribution permitted |
-| [TomTom Traffic Incidents](https://docs.tomtom.com/traffic-api/documentation/tomtom-orbis-maps/v2/traffic-incidents/incident-details) | Optional accidents, jams and roadworks | Keyed; one shared hourly request when enabled |
+| [TomTom Traffic Incidents](https://docs.tomtom.com/traffic-api/documentation/tomtom-orbis-maps/v2/traffic-incidents/incident-details) | Optional accidents, jams and roadworks | Keyed; one shared request every 20 minutes when enabled |
 | [Open-Meteo](https://open-meteo.com/) | Weather | No key, 10,000 calls/day, non-commercial, CC BY 4.0 |
 | [OSRM](https://project-osrm.org/) (FOSSGIS + project instances) | Driving time and distance | No key, no billing, no live traffic |
 | [postcodes.io](https://postcodes.io/) | UK postcode → coordinates | MIT, ONS/OS open data, no key |
