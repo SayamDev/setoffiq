@@ -157,6 +157,7 @@ export function roadDisruption(
         startedAt: observedAt,
         expectedEndAt: null,
         active: true,
+        routeMatch: 'on-route',
         ...entry,
       })),
     },
