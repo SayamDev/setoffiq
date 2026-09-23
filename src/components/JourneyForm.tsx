@@ -47,6 +47,7 @@ export function JourneyForm({
   const baseId = useId();
   const errorRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
+  const [finderOpen, setFinderOpen] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   /** Where the date and time came from, when not typed from a booking. */
   const [whenFrom, setWhenFrom] = useState<PickedFlight['basis'] | null>(null);
@@ -111,7 +112,7 @@ export function JourneyForm({
     return 'The date and time on your booking.';
   };
 
-  const timeLabel = kind === 'pickup' ? 'Scheduled arrival time' : 'Scheduled departure time';
+  const timeLabel = kind === 'pickup' ? 'Flight arrival time' : 'Flight departure time';
   const options = kind === 'pickup' ? airport.pickupOptions : airport.dropoffOptions;
 
   const validate = (): Errors => {
@@ -224,53 +225,38 @@ export function JourneyForm({
       </div>
 
       <div className={styles.workspace}>
-        <section className={styles.flightPanel} aria-labelledby={`${baseId}-flight-step`}>
+        <section className={styles.detailsPanel} aria-labelledby={`${baseId}-details-step`}>
           <header className={styles.sectionHeader}>
-            <span className={styles.step}>01</span>
             <div>
-              <h2 className={styles.sectionTitle} id={`${baseId}-flight-step`}>
-                Choose the flight
+              <h2 className={styles.sectionTitle} id={`${baseId}-details-step`}>
+                {kind === 'pickup' ? 'Arriving flight' : 'Departing flight'}
               </h2>
               <p className={styles.sectionCopy}>
-                Pick from current flights or use the booking details.
+                Enter the flight time from the booking. We’ll work out when you should set off.
               </p>
             </div>
           </header>
 
-          <Field id={`${baseId}-airport`} label="Airport">
-            <select
-              id={`${baseId}-airport`}
-              className={ui.control}
-              value={airport.iataCode}
-              disabled
-              aria-describedby={`${baseId}-airport-note`}
+          <div className={styles.finderBlock}>
+            <button
+              type="button"
+              className={styles.finderToggle}
+              aria-expanded={finderOpen}
+              aria-controls={finderOpen ? `${baseId}-flight-finder` : undefined}
+              onClick={() => setFinderOpen((open) => !open)}
             >
-              <option value={airport.iataCode}>
-                {airport.name} ({airport.iataCode})
-              </option>
-            </select>
-          </Field>
-          <p className={ui.hint} id={`${baseId}-airport-note`}>
-            Manchester Airport is currently supported.
-          </p>
-
-          {kind === 'pickup' ? (
-            <InboundPicker airport={airport} onPick={fillFromPick} />
-          ) : (
-            <DeparturePicker airport={airport} onPick={fillFromPick} />
-          )}
-        </section>
-
-        <section className={styles.detailsPanel} aria-labelledby={`${baseId}-details-step`}>
-          <header className={styles.sectionHeader}>
-            <span className={styles.step}>02</span>
-            <div>
-              <h2 className={styles.sectionTitle} id={`${baseId}-details-step`}>
-                Journey details
-              </h2>
-              <p className={styles.sectionCopy}>Confirm the booking and where you are leaving from.</p>
-            </div>
-          </header>
+              {finderOpen ? 'Hide flight finder' : 'Find a flight to fill these details'}
+            </button>
+            {finderOpen ? (
+              <div id={`${baseId}-flight-finder`} className={styles.finderContent}>
+                {kind === 'pickup' ? (
+                  <InboundPicker airport={airport} onPick={fillFromPick} />
+                ) : (
+                  <DeparturePicker airport={airport} onPick={fillFromPick} />
+                )}
+              </div>
+            ) : null}
+          </div>
 
           <div className={ui.stackTight}>
         <div className={styles.grid}>
@@ -353,9 +339,14 @@ export function JourneyForm({
         />
       </Field>
 
+      <div className={styles.subsection}>
+        <h3 className={styles.subsectionTitle}>Your drive</h3>
+        <p className={styles.sectionCopy}>We’ll use your starting postcode to estimate the journey to Manchester Airport.</p>
+      </div>
+
       <Field
         id={`${baseId}-postcode`}
-        label="Setting off from"
+        label="Starting postcode"
         hint="Your UK postcode, e.g. M1 4BT."
         error={errors.postcode ?? null}
       >
@@ -375,8 +366,13 @@ export function JourneyForm({
 
       <fieldset className={styles.fieldset}>
         <legend className={styles.legend}>
-          {kind === 'pickup' ? 'Where is the flight arriving from?' : 'Where is the flight going?'}
+          {kind === 'pickup' ? 'Where is the flight arriving from?' : 'Is the departing flight within the UK?'}
         </legend>
+        <p className={styles.routeHint}>
+          {kind === 'pickup'
+            ? 'This changes the allowance for getting through arrivals.'
+            : 'This changes how early we suggest reaching the terminal. Check your airline’s deadline.'}
+        </p>
         <div className={styles.inline}>
           {(['domestic', 'international'] as PassengerRoute[]).map((route) => (
             <label
@@ -397,8 +393,8 @@ export function JourneyForm({
                 </span>
                 <span className={styles.optionDescription}>
                   {route === 'domestic'
-                    ? 'No border control on arrival'
-                    : 'Border control adds time on arrival'}
+                    ? kind === 'pickup' ? 'No border control on arrival' : 'Uses a shorter airport arrival allowance'
+                    : kind === 'pickup' ? 'Allows time for border control after landing' : 'Uses a longer airport arrival allowance'}
                 </span>
               </span>
             </label>
@@ -451,13 +447,15 @@ export function JourneyForm({
 
           <div className={styles.submitRow}>
             <Button type="submit" block disabled={busy}>
-              {busy ? 'Checking your postcode…' : 'Calculate my journey'}
+              {busy ? 'Checking your postcode…' : 'Calculate when to leave'}
             </Button>
             <p className={ui.hint}>
-              Only your postcode leaves this device, for location lookup.
+              Your postcode is looked up, then its coordinates are used to calculate the drive.
             </p>
           </div>
         </section>
+
+
       </div>
     </form>
   );
