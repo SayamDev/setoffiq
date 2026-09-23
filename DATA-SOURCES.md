@@ -489,6 +489,15 @@ closure.
 the M56 and M60 around the airport are covered but local roads generally are
 not. The signal is useful, not complete, and the app does not imply otherwise.
 
+The journey calculation checks each event's reported coordinate against the
+driver's OSRM route geometry. Only a fresh, active closure or incident within
+500 metres of that route widens the estimate. A nearby event without a route
+match remains visible as unconfirmed and adds no time; missing route geometry
+or an older snapshot cannot be treated as a current route disruption. This is
+a proximity heuristic, not a measurement of delay or proof that the carriageway
+in the driver's direction is affected. The closure feed does not cover every
+accident, queue or local-road restriction.
+
 ### What the live feed taught us
 
 The first successful run returned 24 disruptions within 40 km, and two things
