@@ -277,6 +277,8 @@ export interface RoadDisruption {
   description: string;
   /** Location supplied by the road authority. Older snapshots may omit it. */
   coordinate?: { latitude: number; longitude: number };
+  /** Event line vertices when the source supplies a road segment. */
+  coordinates?: { latitude: number; longitude: number }[];
   /** Calculated for this driver's route; never asserted from airport proximity alone. */
   routeMatch?: 'on-route' | 'unconfirmed';
   /** Straight-line distance from the airport, in km. */
