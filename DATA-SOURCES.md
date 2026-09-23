@@ -340,7 +340,7 @@ leaving in the next twelve hours"*. Recording began on the evening of
 
 ## Road disruption and roadworks — National Highways
 
-### Optional TomTom traffic incidents, capped to one request per hour
+### Optional TomTom traffic incidents, capped to one request every 20 minutes
 
 The optional TomTom Orbis incidents feed can add accidents, jams, roadworks and
 closures beyond National Highways' Strategic Road Network coverage. Set
@@ -350,10 +350,10 @@ plan permits publishing the normalized incident snapshot to your public site.
 Without both settings, the fetch script deletes any cached TomTom snapshot and
 the site continues with National Highways data.
 
-Only the `7 * * * *` scheduled event makes a TomTom request. Pushes, manual
+Only the `7,27,47 * * * *` scheduled event makes a TomTom request. Pushes, manual
 runs and the 15-minute schedule make zero requests; there are no retries.
-That is at most 744 requests in a 31-day month, below TomTom's documented
-2,500 monthly free Traffic Incidents API requests. All visitors read the same
+That is at most 2,232 requests in a 31-day month (89.28% of TomTom's documented
+2,500 monthly free Traffic Incidents API requests). All visitors read the same
 static snapshot. GitHub scheduled jobs are best effort, so the app ignores a
 snapshot older than 60 minutes for timing and labels old road data as stale.
 An exhausted allowance or failed fetch retains the last cached file, which
