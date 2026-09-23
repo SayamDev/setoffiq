@@ -6,6 +6,7 @@ import type {
 } from '../../domain/types';
 import { readCache, writeCache } from '../cache';
 import { fetchJson } from '../http';
+import { mergeRoadDisruptions } from './merge';
 
 const SNAPSHOT_PATHS = ['data/roads/EGCC-disruption.json', 'data/roads/EGCC-traffic.json'];
 const CACHE_KEY = 'road-disruption:EGCC';
@@ -58,13 +59,7 @@ export const roadDisruptionProvider = {
         const fresh = available.filter((item) => Number.isFinite(item.generatedAt) && now - item.generatedAt <= 60 * 60_000 && item.generatedAt <= now + 60_000);
         const selected = fresh.length ? fresh : available.filter((item) => Number.isFinite(item.generatedAt)).sort((a, b) => b.generatedAt - a.generatedAt).slice(0, 1);
         if (!selected.length) throw new Error('No road snapshots available');
-        snapshot = {
-          generatedAt: Math.min(...selected.map((item) => item.generatedAt)),
-          source: selected.map((item) => item.source).join(', '),
-          attribution: [...new Set(selected.map((item) => item.attribution))].join(' · '),
-          searchRadiusKm: 40,
-          disruptions: selected.flatMap((item) => item.disruptions),
-        };
+        snapshot = mergeRoadDisruptions(selected);
         fetchedAt = now;
         writeCache(CACHE_KEY, snapshot, now);
       } catch {
