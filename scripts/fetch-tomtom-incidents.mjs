@@ -13,8 +13,8 @@ const approved = process.env.TOMTOM_PUBLISH_ALLOWED === 'true';
 if (!key || !approved) {
   await rm(output, { force: true });
   console.log('TomTom traffic snapshot disabled.');
-} else if (process.env.TOMTOM_FETCH_HOURLY !== 'true') {
-  console.log('TomTom traffic snapshot retained; this is not the hourly fetch slot.');
+} else if (process.env.TOMTOM_FETCH_SLOT !== 'true') {
+  console.log('TomTom traffic snapshot retained; this is not a scheduled fetch slot.');
 } else {
   const url = new URL('https://api.tomtom.com/maps/orbis/traffic/incidents/details');
   url.searchParams.set('apiVersion', '2');
