@@ -340,6 +340,34 @@ leaving in the next twelve hours"*. Recording began on the evening of
 
 ## Road disruption and roadworks — National Highways
 
+### Optional TomTom traffic incidents, capped to one request per hour
+
+The optional TomTom Orbis incidents feed can add accidents, jams, roadworks and
+closures beyond National Highways' Strategic Road Network coverage. Set
+`TOMTOM_KEY` as a GitHub Actions repository secret and set the repository
+variable `TOMTOM_PUBLISH_ALLOWED=true` only after confirming that your TomTom
+plan permits publishing the normalized incident snapshot to your public site.
+Without both settings, the fetch script deletes any cached TomTom snapshot and
+the site continues with National Highways data.
+
+Only the `7 * * * *` scheduled event makes a TomTom request. Pushes, manual
+runs and the 15-minute schedule make zero requests; there are no retries.
+That is at most 744 requests in a 31-day month, below TomTom's documented
+2,500 monthly free Traffic Incidents API requests. All visitors read the same
+static snapshot. GitHub scheduled jobs are best effort, so the app ignores a
+snapshot older than 60 minutes for timing and labels old road data as stale.
+An exhausted allowance or failed fetch retains the last cached file, which
+will become stale rather than silently claiming the roads are clear.
+
+Incident locations are matched against the driver's OSRM route within 500 m.
+This indicates proximity, not measured travel time or certainty that the
+incident affects that direction of travel. TomTom's reported delay is not
+added to the ETA; the existing conservative uncertainty allowance applies to
+matched active closures and incidents. API credentials never reach visitors.
+
+Sources: [TomTom pricing](https://docs.tomtom.com/pricing) and
+[incident details documentation](https://docs.tomtom.com/traffic-api/documentation/tomtom-orbis-maps/v2/traffic-incidents/incident-details).
+
 Live road disruption would be genuinely valuable, and three sources were
 examined on 11 September 2026. None of them is free and keyless for this
 question. National Highways' closures feed passed the checks below and has been
