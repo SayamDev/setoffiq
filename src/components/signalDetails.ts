@@ -59,7 +59,9 @@ export function signalDetails(plan: JourneyPlan): Partial<Record<SignalId, Signa
             `${plan.roadDisruption.value.disruptions.filter((entry) => entry.routeMatch === 'on-route').length} matched to this drive`,
             `${plan.roadDisruption.value.disruptions.filter((entry) => entry.routeMatch !== 'on-route').length} nearby but unconfirmed`,
           ],
-          note: 'National Highways covers major roads near Manchester Airport. Route matching uses the reported event location; it is not a live traffic measurement. Local roads are not included.',
+          note: plan.roadDisruption.value.source.includes('tomtom')
+            ? 'TomTom incident reports can include accidents, queues and roadworks. Route matching uses reported event locations; it does not measure your actual travel time.'
+            : 'National Highways covers major roads near Manchester Airport. Route matching uses the reported event location; it is not a live traffic measurement. Local roads are not included.',
         }
       : {},
   };
