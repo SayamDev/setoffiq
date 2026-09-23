@@ -21,6 +21,17 @@
   border-top: 0;
 }
 
+.roadAttention {
+  background: var(--surface-2);
+  padding-left: var(--space-3);
+  padding-right: var(--space-3);
+}
+
+.roadAttention .label,
+.roadAttention .summary {
+  color: var(--ink);
+}
+
 @media (max-width: 40rem) {
   .row {
     grid-template-columns: 0.75rem 1fr;
@@ -218,4 +229,3 @@ details[open] > .moreSummary::after {
   clip-path: inset(50%);
   white-space: nowrap;
 }
-
