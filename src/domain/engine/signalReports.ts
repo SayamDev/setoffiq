@@ -203,7 +203,9 @@ export function buildSignalReports(
       id: 'road-disruption',
       label: 'Road disruption',
       state: { kind: 'live', observedAt: roads.generatedAt },
-      summary: 'No current closure or incident reported on National Highways roads near the airport. Local roads are not covered.',
+      summary: roads.source.includes('tomtom')
+        ? 'No current incident reported by the connected traffic sources near the airport. This does not guarantee a clear drive.'
+        : 'No current closure or incident reported on National Highways roads near the airport. Local roads are not covered.',
       impact: 'none',
     });
   } else {
