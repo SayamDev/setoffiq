@@ -100,7 +100,10 @@ export function SignalTable({
     <div>
       <ul className={styles.list}>
         {byConcern(signals).map((signal) => (
-          <li className={styles.row} key={signal.id}>
+          <li
+            className={`${styles.row} ${signal.id === 'road-disruption' && (signal.impact === 'high' || signal.impact === 'moderate') ? styles.roadAttention : ''}`}
+            key={signal.id}
+          >
             <span className={markClass(signal.state)} aria-hidden="true" />
             <span className={styles.label}>{signal.label}</span>
             <span className={styles.summary}>
@@ -145,4 +148,3 @@ function Detail({ detail, label }: { detail?: SignalDetail; label: string }): Re
     </details>
   );
 }
-
