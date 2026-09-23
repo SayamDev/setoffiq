@@ -190,19 +190,28 @@ export function buildSignalReports(
         'Not checked — every free UK source for this requires a registered key. Absence of information here is not evidence the roads are clear.',
       impact: 'none',
     });
+  } else if (input.roadDisruption.state === 'stale') {
+    reports.push({
+      id: 'road-disruption',
+      label: 'Road disruption',
+      state: ageState(roads.generatedAt, input.now, STALE_AFTER_MINUTES.road),
+      summary: 'Road information is too old to use in this departure estimate. Check live traffic before leaving.',
+      impact: 'moderate',
+    });
   } else if (roads.disruptions.length === 0) {
     reports.push({
       id: 'road-disruption',
       label: 'Road disruption',
       state: { kind: 'live', observedAt: roads.generatedAt },
-      summary: 'Nothing reported on the roads near the airport.',
+      summary: 'No current closure or incident reported on National Highways roads near the airport. Local roads are not covered.',
       impact: 'none',
     });
   } else {
-    const disruptive = roads.disruptions.filter(
+    const onRoute = roads.disruptions.filter((entry) => entry.routeMatch === 'on-route');
+    const disruptive = onRoute.filter(
       (entry) => entry.active && (entry.category === 'closure' || entry.category === 'incident'),
     );
-    const headline = disruptive[0] ?? roads.disruptions[0]!;
+    const headline = disruptive[0] ?? onRoute[0] ?? roads.disruptions[0]!;
     const closures = disruptive.filter((entry) => entry.category === 'closure').length;
 
     reports.push({
@@ -210,10 +219,10 @@ export function buildSignalReports(
       label: 'Road disruption',
       state: { kind: 'live', observedAt: roads.generatedAt },
       summary: disruptive.length
-        ? `${headline.road}: ${headline.description}${disruptive.length > 1 ? ` (and ${disruptive.length - 1} more nearby)` : ''}`
-        : // Routine maintenance is worth stating but is not a warning: this is
-          // the normal condition of the motorway network.
-          `${roads.disruptions.length} roadworks reported nearby, none currently closing a road. Closest ${headline.road}.`,
+        ? `${headline.road}: ${headline.description}. On or very close to your route; widening the drive estimate.${disruptive.length > 1 ? ` ${disruptive.length - 1} more route disruptions reported.` : ''}`
+        : onRoute.length > 0
+          ? `${onRoute.length} roadworks reported on or very close to your route, none currently closing a road. No extra time added.`
+          : `${roads.disruptions.length} disruption${roads.disruptions.length === 1 ? '' : 's'} reported near the airport, but none confirmed on your route. No extra time added.`,
       impact: closures > 0 ? 'high' : disruptive.length > 0 ? 'moderate' : 'none',
     });
   }
