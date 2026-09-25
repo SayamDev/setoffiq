@@ -91,20 +91,24 @@ export function RecommendationCard({
         </div>
       </div>
 
+      {/*
+        * In the order things happen: the drive, reaching the airport, then the
+        * passenger at the terminal (or ready to collect). Where — the
+        * terminal — comes last, beside the note that explains it.
+        */}
       <dl className={flight ? styles.detailsFour : styles.details}>
-        {flight ? (
-          <div>
-            <dt className={styles.term}>Terminal</dt>
-            <dd className={terminal ? styles.value : styles.valueMuted}>
-              {terminal ?? 'Not known'}
-              {terminal && flight.terminal?.source === 'timetable' ? (
-                <span className={styles.marker} aria-hidden="true">
-                  *
-                </span>
-              ) : null}
-            </dd>
-          </div>
-        ) : null}
+        <div>
+          <dt className={styles.term}>Journey</dt>
+          <dd className={styles.value}>{formatMinuteRange(recommendation.journey)}</dd>
+        </div>
+
+        <div>
+          <dt className={styles.term}>Arrive at airport</dt>
+          <dd className={styles.value}>
+            {formatClockRange(recommendation.airportArrivalWindow, zone)}
+          </dd>
+        </div>
+
         {recommendation.kind === 'pickup' ? (
           <div>
             <dt className={styles.term}>Passenger likely ready</dt>
@@ -121,17 +125,19 @@ export function RecommendationCard({
           </div>
         )}
 
-        <div>
-          <dt className={styles.term}>Arrive at airport</dt>
-          <dd className={styles.value}>
-            {formatClockRange(recommendation.airportArrivalWindow, zone)}
-          </dd>
-        </div>
-
-        <div>
-          <dt className={styles.term}>Journey</dt>
-          <dd className={styles.value}>{formatMinuteRange(recommendation.journey)}</dd>
-        </div>
+        {flight ? (
+          <div>
+            <dt className={styles.term}>Terminal</dt>
+            <dd className={terminal ? styles.value : styles.valueMuted}>
+              {terminal ?? 'Not known'}
+              {terminal && flight.terminal?.source === 'timetable' ? (
+                <span className={styles.marker} aria-hidden="true">
+                  *
+                </span>
+              ) : null}
+            </dd>
+          </div>
+        ) : null}
       </dl>
       {flight && (!terminal || flight.terminal?.source === 'timetable') ? (
         <p className={styles.detailsNote}>
