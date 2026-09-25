@@ -42,7 +42,9 @@ const AIRPORT_ICAO = 'EGCC';
  * How this file was fetched. A published timetable built by an older strategy
  * is refreshed whatever its age: the first one held 43 flights, all to
  * airports beginning A or B, and waiting a month to correct that would have
- * been absurd.
+ * been absurd. Splitting cut-off pairs by airline did not bump it: the current
+ * file is complete, and the month's requests are spent, so the split waits for
+ * the next monthly sweep rather than overspending the plan.
  */
 const FETCH_VERSION = 2;
 /** Timetables change with the season, not with the hour. */
@@ -50,14 +52,18 @@ const REFRESH_DAYS = 28;
 /** A run that ran out of room should carry on soon, not in a month. */
 const PARTIAL_RETRY_HOURS = 6;
 /**
- * The free plan allows 1,000 requests a month, shared with the schedule (500).
- * A full sweep of Manchester's airport pairs is two requests each.
+ * The free plan allows 1,000 requests a month, shared with the schedule (300).
+ * A full sweep of Manchester's airport pairs is two requests each — 642 in
+ * September 2026 — plus a few for the handful too busy to fit in one answer.
+ * A sweep that runs past this finishes early the next month.
  */
-const MONTHLY_BUDGET = 650;
+const MONTHLY_BUDGET = 680;
 /** Kept short enough that one run cannot spend a month's budget. */
 const MAX_REQUESTS_PER_RUN = 450;
 /** A free key's hard limit per query: what comes back past this is invisible. */
 const ROWS_PER_QUERY = 50;
+/** How many airlines a cut-off airport pair is split across before giving up. */
+const MAX_AIRLINES_PER_PAIR = 8;
 /** Spacing between requests, so a sweep is never a burst. */
 const PACE_MS = 120;
 
@@ -89,21 +95,31 @@ async function previousTimetable() {
   return valid[0] ?? null;
 }
 
-/** Airports the published schedule has named, so a new route is picked up. */
+/**
+ * Airports the published schedule has named, and which airlines fly to each —
+ * so a new route is picked up, and a pair too busy for one answer can be split
+ * by airline.
+ */
 async function scheduledPartners() {
   try {
     const schedule = await fetchJson(`${SCHEDULE}?t=${Date.now()}`, 15_000);
-    const codes = new Set();
+    const airlines = new Map();
     for (const list of [schedule.arrivals, schedule.departures]) {
-      for (const flight of list ?? []) if (flight.otherEnd?.iata) codes.add(flight.otherEnd.iata);
+      for (const flight of list ?? []) {
+        const code = flight.otherEnd?.iata;
+        if (!code) continue;
+        const seen = airlines.get(code) ?? new Set();
+        if (flight.airline) seen.add(flight.airline);
+        airlines.set(code, seen);
+      }
     }
-    return [...codes];
+    return new Map([...airlines].map(([code, seen]) => [code, [...seen]]));
   } catch {
-    return [];
+    return new Map();
   }
 }
 
-async function fetchPair(key, params, usage, state) {
+async function query(key, params, usage, state) {
   const url = new URL('https://airlabs.co/api/v9/routes');
   for (const [name, value] of Object.entries(params)) url.searchParams.set(name, value);
   url.searchParams.set('api_key', key);
@@ -113,11 +129,39 @@ async function fetchPair(key, params, usage, state) {
   const body = await response.json();
   // Never echo the URL: it carries the key.
   if (!response.ok || body.error) throw new Error(`AirLabs routes: ${body.error?.code ?? response.status}`);
-  const rows = body.response ?? [];
-  // Fifty rows means the answer was cut off, and what is missing cannot be
-  // asked for. Worth recording rather than quietly publishing a short list.
-  if (rows.length >= ROWS_PER_QUERY) state.truncated.add(params.dep_iata === AIRPORT_IATA ? params.arr_iata : params.dep_iata);
-  return rows;
+  await sleep(PACE_MS);
+  return body.response ?? [];
+}
+
+/**
+ * One airport pair, in one direction.
+ *
+ * Fifty rows back means the answer was cut off — Dublin, Heathrow, Amsterdam
+ * and a few others are too busy to fit. There is no paging to ask for the
+ * rest, so the pair is asked again one airline at a time, which splits it into
+ * answers that do fit. An airline that was not in the fifty and has never been
+ * seen in the schedule is still missed, so the airport is recorded either way.
+ */
+async function fetchPair(key, params, usage, state, knownAirlines) {
+  const other = params.dep_iata === AIRPORT_IATA ? params.arr_iata : params.dep_iata;
+  const rows = await query(key, params, usage, state);
+  if (rows.length < ROWS_PER_QUERY) return rows;
+
+  const airlines = [
+    ...new Set([...rows.map((row) => row.airline_iata).filter(Boolean), ...(knownAirlines.get(other) ?? [])]),
+  ].slice(0, MAX_AIRLINES_PER_PAIR);
+
+  const byAirline = new Map(rows.map((row) => [`${row.flight_iata}@${row.dep_time_utc}`, row]));
+  let stillCut = false;
+  for (const airline of airlines) {
+    if (state.thisRun >= MAX_REQUESTS_PER_RUN || usage.requests >= MONTHLY_BUDGET) break;
+    const split = await query(key, { ...params, airline_iata: airline }, usage, state);
+    if (split.length >= ROWS_PER_QUERY) stillCut = true;
+    for (const row of split) byAirline.set(`${row.flight_iata}@${row.dep_time_utc}`, row);
+  }
+  state.truncated.add(other);
+  if (stillCut) state.stillTruncated.add(other);
+  return [...byAirline.values()];
 }
 
 async function write(timetable) {
@@ -164,10 +208,18 @@ async function main() {
   }
 
   const placeFor = createIataLookup(process.env.STANDING_DATA_DIR);
+  const knownAirlines = await scheduledPartners();
+  // Airlines already in the published timetable count as known too: that is
+  // how the busiest pairs stay split correctly once they have been split once.
+  for (const entry of [...(previous?.arrivals ?? []), ...(previous?.departures ?? [])]) {
+    const code = entry.otherEnd?.iata;
+    if (!code || !entry.airline) continue;
+    knownAirlines.set(code, [...new Set([...(knownAirlines.get(code) ?? []), entry.airline])]);
+  }
   const destinations = [
     ...new Set([
       ...partnerIataCodes(process.env.STANDING_DATA_DIR, AIRPORT_ICAO),
-      ...(await scheduledPartners()),
+      ...knownAirlines.keys(),
       ...(previous?.destinations ?? []),
     ]),
   ]
@@ -181,10 +233,15 @@ async function main() {
     return;
   }
 
-  // A partial run resumes; a due refresh starts again from the top.
+  // A partial run resumes; a due refresh starts again from the top. Airports
+  // whose last answer was cut off are treated as uncovered whatever else is
+  // true: they are the busiest, so a short list there is the most costly.
   const alreadyCovered = previous?.partial ? new Set(previous.covered ?? []) : new Set();
+  const cutOff = new Set(previous?.truncatedAt ?? []);
+  for (const code of cutOff) alreadyCovered.delete(code);
   const order = [
-    ...destinations.filter((code) => !alreadyCovered.has(code)),
+    ...destinations.filter((code) => cutOff.has(code)),
+    ...destinations.filter((code) => !cutOff.has(code) && !alreadyCovered.has(code)),
     ...destinations.filter((code) => alreadyCovered.has(code)),
   ];
 
@@ -192,17 +249,15 @@ async function main() {
   // refetched, so a run that stops early leaves the file no worse than before.
   const arrivals = new Map((previous?.arrivals ?? []).map((entry) => [`${entry.flight}@${entry.departureMinute}`, entry]));
   const departures = new Map((previous?.departures ?? []).map((entry) => [`${entry.flight}@${entry.departureMinute}`, entry]));
-  const state = { thisRun: 0, truncated: new Set() };
+  const state = { thisRun: 0, truncated: new Set(), stillTruncated: new Set() };
   const covered = new Set(alreadyCovered);
   let failures = 0;
 
   for (const code of order) {
     if (state.thisRun + 2 > MAX_REQUESTS_PER_RUN || usage.requests + 2 > MONTHLY_BUDGET) break;
     try {
-      const inbound = await fetchPair(key, { arr_iata: AIRPORT_IATA, dep_iata: code }, usage, state);
-      await sleep(PACE_MS);
-      const outbound = await fetchPair(key, { dep_iata: AIRPORT_IATA, arr_iata: code }, usage, state);
-      await sleep(PACE_MS);
+      const inbound = await fetchPair(key, { arr_iata: AIRPORT_IATA, dep_iata: code }, usage, state, knownAirlines);
+      const outbound = await fetchPair(key, { dep_iata: AIRPORT_IATA, arr_iata: code }, usage, state, knownAirlines);
 
       for (const [map, rows, direction] of [
         [arrivals, inbound, 'arrival'],
@@ -233,7 +288,10 @@ async function main() {
     partial,
     destinations,
     covered: [...covered].sort(),
-    truncatedAt: [...state.truncated].sort(),
+    // Airports busy enough to need splitting by airline, and the ones still
+    // cut off after that: an honest note of where the list may be short.
+    splitByAirline: [...state.truncated].sort(),
+    truncatedAt: [...state.stillTruncated].sort(),
     arrivals: [...arrivals.values()].sort((a, b) => a.departureMinute - b.departureMinute),
     departures: [...departures.values()].sort((a, b) => a.departureMinute - b.departureMinute),
   });
@@ -241,7 +299,8 @@ async function main() {
     `Timetable ${partial ? 'part-refreshed' : 'refreshed'}: ${covered.size}/${destinations.length} airports, ` +
       `${arrivals.size} arrivals, ${departures.size} departures; ${state.thisRun} requests this run, ` +
       `${usage.requests}/${MONTHLY_BUDGET} this month` +
-      (state.truncated.size ? `; cut off at ${[...state.truncated].sort().join(' ')}` : '') +
+      (state.truncated.size ? `; split by airline at ${[...state.truncated].sort().join(' ')}` : '') +
+      (state.stillTruncated.size ? `; still cut off at ${[...state.stillTruncated].sort().join(' ')}` : '') +
       `${failures ? `; ${failures} failed` : ''}.`,
   );
 }

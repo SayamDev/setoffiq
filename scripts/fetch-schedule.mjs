@@ -28,11 +28,12 @@ const AIRPORT_IATA = 'MAN';
 /** How old the published schedule may get before it is refreshed. */
 const REFRESH_HOURS = 4.5;
 /**
- * The free plan allows 1,000 requests a month, shared with the weekly
- * timetable (400) and leaving room for manual checks. Observed use here is
- * under 100 a month.
+ * The free plan allows 1,000 requests a month, shared with the timetable
+ * (680). September 2026 used 228 here in 25 days — the scheduled deploy runs
+ * more often than it did — so 300 covers a month with a little room, and the
+ * two ceilings together stay under the plan.
  */
-const MONTHLY_BUDGET = 500;
+const MONTHLY_BUDGET = 300;
 /** Pages per direction; each is 100 flights. */
 const MAX_PAGES = 4;
 

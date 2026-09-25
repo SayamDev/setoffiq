@@ -69,6 +69,14 @@ export function toTimetableEntries(rows, direction, placeFor) {
     if (!days.length || departureMinute === null) continue;
 
     const otherIata = text(direction === 'arrival' ? row.dep_iata : row.arr_iata);
+    // The airport's full name is not shown anywhere and this file carries a
+    // thousand of them, so only what the list uses is published.
+    const place = placeFor(otherIata);
+    const otherEnd = place
+      ? { icao: place.icao ?? null, iata: place.iata ?? otherIata, city: place.city ?? null, country: place.country ?? null }
+      : otherIata
+        ? { icao: null, iata: otherIata, city: null, country: null }
+        : null;
     const terminals = direction === 'arrival' ? row.arr_terminals : row.dep_terminals;
 
     // One flight number can be timetabled twice — a different time on
@@ -78,8 +86,7 @@ export function toTimetableEntries(rows, direction, placeFor) {
       flight,
       callsign: text(row.flight_icao),
       airline: text(row.airline_iata),
-      otherEnd:
-        placeFor(otherIata) ?? (otherIata ? { icao: null, iata: otherIata, city: null, country: null } : null),
+      otherEnd,
       days,
       departureMinute,
       durationMinutes: durationOf(row, departureMinute, arrivalMinute),
