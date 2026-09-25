@@ -71,3 +71,25 @@ export function describeRoute(
     basis,
   };
 }
+
+/**
+ * The same, in a phrase short enough for the top of the recommendation card:
+ * "lands about 11:35 in Rabat", or with both clocks when they differ.
+ */
+export function shortOtherEnd(
+  route: Pick<RouteForText, 'city' | 'iata' | 'timeZone' | 'otherEndAt'>,
+  kind: JourneyKind,
+  homeZone: string,
+): string | null {
+  if (route.otherEndAt === null) return null;
+  const place = route.city ?? route.iata ?? 'there';
+  const home = formatClock(route.otherEndAt, homeZone);
+  const local = route.timeZone ? formatClock(route.otherEndAt, route.timeZone) : null;
+  const clocks =
+    local === null ? `${home} UK time` : local === home ? home : `${local} ${place} time (${home} UK)`;
+  return kind === 'pickup'
+    ? `takes off from ${place} about ${clocks}`
+    : local === home || local === null
+      ? `lands in ${place} about ${clocks}`
+      : `lands about ${clocks}`;
+}

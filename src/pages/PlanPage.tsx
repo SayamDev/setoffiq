@@ -1,5 +1,4 @@
 import { FlightRouteSummary, shortRoute } from '../components/FlightRouteSummary';
-import { useFlightRoute } from '../hooks/useFlightRoute';
 import { useEffect, useRef, useState } from 'react';
 import { DEFAULT_AIRPORT } from '../domain/airports';
 import { formatClock, formatDate } from '../domain/time';
@@ -39,7 +38,8 @@ export function PlanPage({
   const now = useNow(30_000);
   const [input, setInput] = useState<JourneyInput | null>(null);
   const { status, plan, error, refresh } = useJourneyPlan(input);
-  const route = useFlightRoute(input);
+  // Worked out with the plan, so the card, the section and the saved name agree.
+  const route = plan?.flightRoute ?? null;
   const resultRef = useRef<HTMLDivElement>(null);
 
   /*
@@ -152,7 +152,12 @@ export function PlanPage({
           </>
         ) : (
           <>
-            <RecommendationCard recommendation={plan.recommendation} airport={airport} now={now}>
+            <RecommendationCard
+              recommendation={plan.recommendation}
+              airport={airport}
+              now={now}
+              flight={{ number: input?.flightNumber ?? null, route, terminal: plan.terminal }}
+            >
               <div className={styles.actions}>
                 <Button onClick={startMonitoring}>Monitor this journey</Button>
                 <Button variant="secondary" onClick={() => show(null)}>

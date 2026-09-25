@@ -1,6 +1,8 @@
 import { advisoryAt } from '../domain/engine';
 import { formatClock, formatClockRange, formatDate, formatMinuteRange } from '../domain/time';
+import { shortOtherEnd } from '../domain/routeText';
 import type { AdvisoryKind, AirportProfile, Instant, Recommendation } from '../domain/types';
+import type { FlightRoute } from '../services/flight';
 import { ConfidenceBadge } from './ConfidenceBadge';
 import styles from './RecommendationCard.module.css';
 
@@ -24,11 +26,21 @@ export function RecommendationCard({
   recommendation,
   airport,
   now,
+  flight,
   children,
 }: {
   recommendation: Recommendation;
   airport: AirportProfile;
   now: Instant;
+  /**
+   * Which flight this is for, where it goes, and the terminal — said on the
+   * card itself, so the one thing everyone reads also says what it is about.
+   */
+  flight?: {
+    number: string | null;
+    route: FlightRoute | null;
+    terminal: { code: string; source: 'booking' | 'timetable' } | null;
+  };
   children?: React.ReactNode;
 }): React.JSX.Element {
   const zone = airport.timeZone;
@@ -49,6 +61,10 @@ export function RecommendationCard({
           <ConfidenceBadge confidence={recommendation.confidence} />
         </div>
       </div>
+
+      {flight && (flight.number || flight.route || flight.terminal) ? (
+        <FlightStrip flight={flight} kind={recommendation.kind} airport={airport} />
+      ) : null}
 
       <div className={styles.body}>
         <div className={styles.timeBlock}>
@@ -97,5 +113,53 @@ export function RecommendationCard({
 
       {children ? <div className={styles.footer}>{children}</div> : null}
     </section>
+  );
+}
+
+function FlightStrip({
+  flight,
+  kind,
+  airport,
+}: {
+  flight: NonNullable<Parameters<typeof RecommendationCard>[0]['flight']>;
+  kind: Recommendation['kind'];
+  airport: AirportProfile;
+}): React.JSX.Element {
+  const place = flight.route?.city ?? flight.route?.iata ?? null;
+  const when = flight.route ? shortOtherEnd(flight.route, kind, airport.timeZone) : null;
+  const terminal = flight.terminal
+    ? (airport.terminals.find((one) => one.code === flight.terminal?.code)?.name ?? flight.terminal.code)
+    : null;
+  return (
+    <div className={styles.flightStrip}>
+      <p className={styles.flightLine}>
+        <span className={styles.flightGlyph} aria-hidden="true">
+          ✈
+        </span>
+        {flight.number ? <span className={styles.flightNumber}>{flight.number}</span> : null}
+        {place ? (
+          <span className={styles.flightPlace}>
+            {kind === 'pickup' ? 'from' : 'to'} {place}
+          </span>
+        ) : null}
+        {when ? <span className={styles.flightWhen}>{when}</span> : null}
+      </p>
+      <p className={styles.terminalLine}>
+        {terminal ? (
+          <>
+            <span className={styles.terminalName}>
+              {kind === 'pickup' ? 'Pick up at' : 'Drop off at'} {terminal}
+            </span>
+            {flight.terminal?.source === 'timetable' ? (
+              <span className={styles.terminalSource}>from the airline timetable — check the booking</span>
+            ) : null}
+          </>
+        ) : (
+          <span className={styles.terminalSource}>
+            Terminal not known — choose it below if the booking says, as each terminal has its own road in.
+          </span>
+        )}
+      </p>
+    </div>
   );
 }

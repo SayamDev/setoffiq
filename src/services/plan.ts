@@ -12,7 +12,7 @@ import type {
   WeatherSnapshot,
 } from '../domain/types';
 import { metarConditionsProvider } from './conditions';
-import { snapshotFlightProvider } from './flight';
+import { loadFlightRoute, snapshotFlightProvider, type FlightRoute } from './flight';
 import { findScenario, scenarioFlightStatus } from './flight/scenarios';
 import { haversineKm } from './geo';
 import { roadDisruptionProvider } from './roads';
@@ -30,6 +30,10 @@ export interface JourneyPlan {
   airportConditions: Observed<AirportConditions>;
   /** Absent unless a key is configured — see DATA-SOURCES.md. */
   roadDisruption: Observed<RoadDisruptionSnapshot>;
+  /** The terminal the drive was routed to, and where that came from. */
+  terminal: { code: string; source: 'booking' | 'timetable' } | null;
+  /** Where the flight goes to or comes from, when it can be worked out. */
+  flightRoute: FlightRoute | null;
   computedAt: number;
 }
 
@@ -57,8 +61,21 @@ export async function planJourney(
   options: { forceRefresh?: boolean } = {},
 ): Promise<JourneyPlan> {
   const airport = findAirport(input.airportIata) ?? DEFAULT_AIRPORT;
+  // The terminal on the booking wins; otherwise the one the timetable or
+  // schedule names for this flight. Each terminal has its own road in, so
+  // this changes the drive by up to a couple of minutes.
+  const flightRoute = input.scenarioId
+    ? null
+    : await loadFlightRoute(input.kind, input.flightNumber, input.scheduledTime, signal).catch(() => null);
+  const known = (code: string | null | undefined): string | null =>
+    code && airport.terminals.some((terminal) => terminal.code === code) ? code : null;
+  const terminal = known(input.terminalCode)
+    ? { code: input.terminalCode as string, source: 'booking' as const }
+    : known(flightRoute?.terminal)
+      ? { code: flightRoute?.terminal as string, source: 'timetable' as const }
+      : null;
   // Routing goes to the terminal approach; weather is measured at the airport.
-  const destination = routingDestination(airport, input.terminalCode);
+  const destination = routingDestination(airport, terminal?.code ?? null);
   const airportPoint = {
     latitude: airport.latitude,
     longitude: airport.longitude,
@@ -138,6 +155,8 @@ export async function planJourney(
     weather,
     airportConditions,
     roadDisruption: matchedRoadDisruption,
+    terminal,
+    flightRoute,
     computedAt: now,
   };
 }

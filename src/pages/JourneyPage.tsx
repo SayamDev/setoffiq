@@ -143,7 +143,16 @@ export function JourneyPage({
 
       {recommendation && monitor.plan ? (
         <>
-          <RecommendationCard recommendation={recommendation} airport={airport} now={now}>
+          <RecommendationCard
+            recommendation={recommendation}
+            airport={airport}
+            now={now}
+            flight={{
+              number: journey.input.flightNumber,
+              route: monitor.plan?.flightRoute ?? route ?? null,
+              terminal: monitor.plan?.terminal ?? null,
+            }}
+          >
             <div className={styles.actions}>
               <CheckNowButton
                 onCheck={monitor.check}

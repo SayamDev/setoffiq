@@ -19,6 +19,15 @@ export interface FlightRoute {
    */
   otherEndAt: Instant | null;
   durationMinutes: number | null;
+  /** Manchester terminal as the airport lists it, e.g. "T3", when named. */
+  terminal: string | null;
+}
+
+/** "3" or "T3" to "T3". */
+function terminalCode(raw: string | null | undefined): string | null {
+  const value = raw?.trim().toUpperCase() ?? '';
+  if (!value) return null;
+  return value.startsWith('T') ? value : `T${value}`;
 }
 
 /** A timetabled flight this far from the booked time is a different one. */
@@ -72,6 +81,7 @@ export async function loadFlightRoute(
               ? scheduledTime - minutes * 60_000
               : scheduledTime + minutes * 60_000,
         durationMinutes: minutes,
+        terminal: terminalCode(best.terminal),
       };
     }
   }
@@ -89,6 +99,7 @@ export async function loadFlightRoute(
       timeZone: onSchedule.otherEnd.timeZone ?? null,
       otherEndAt: null,
       durationMinutes: null,
+      terminal: terminalCode(onSchedule.terminal),
     };
   }
   return null;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeRoute } from './routeText';
+import { describeRoute, shortOtherEnd } from './routeText';
 
 const uk = 'Europe/London';
 // Sunday 27 September 2026, 08:15 in Manchester.
@@ -59,5 +59,16 @@ describe('describing the other end of the flight', () => {
     );
     expect(text.headline).toBe('To Belfast (BFS)');
     expect(text.detail).toBeNull();
+  });
+});
+
+describe('the short form for the recommendation card', () => {
+  it('says when a drop-off lands, in both clocks only when they differ', () => {
+    expect(
+      shortOtherEnd({ city: 'Rabat', iata: 'RBA', timeZone: 'Africa/Casablanca', otherEndAt: departs + 200 * 60_000 }, 'dropoff', uk),
+    ).toBe('lands in Rabat about 11:35');
+    expect(
+      shortOtherEnd({ city: 'Dubai', iata: 'DXB', timeZone: 'Asia/Dubai', otherEndAt: Date.UTC(2026, 8, 25, 23, 40) }, 'pickup', uk),
+    ).toBe('takes off from Dubai about 03:40 Dubai time (00:40 UK)');
   });
 });
