@@ -406,6 +406,14 @@
   background: var(--signal-wash);
 }
 
+/* How many flights a day holds, so a tab says what is behind it. */
+.dayCount {
+  margin-left: var(--space-2);
+  font-size: var(--t-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+}
+
 /* A link inside a sentence — "clear the filter" — not a control of its own. */
 .inlineButton {
   padding: 0;

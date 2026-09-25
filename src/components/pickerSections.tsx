@@ -1,57 +1,93 @@
-import { formatClock, formatDate } from '../domain/time';
+import { formatClock, formatDate, todayInZone } from '../domain/time';
 import type { AirportProfile } from '../domain/types';
 import { Button, ui } from './ui';
 import { Wordmark } from './Wordmark';
 import styles from './InboundPicker.module.css';
 
 /**
- * How far ahead the timetable is listed.
+ * How many days of the timetable the picker offers: today, tomorrow and the
+ * day after — enough for a lift arranged a couple of days ahead.
  *
- * The picker is for choosing a likely flight, not browsing the airport's whole
- * week. Two days is enough for planned lifts without expanding thousands of
- * timetable rows into the page.
+ * Days, not "next N hours". Overlapping windows sorted by time always start
+ * with the same flights, so switching from 12 to 48 hours looked as if nothing
+ * had happened. A day is a distinct list, and "tomorrow" is how people think
+ * about a pickup anyway.
  */
-export const HORIZONS = [
-  { hours: 12, label: 'Next 12 hours' },
-  { hours: 24, label: 'Next 24 hours' },
-  { hours: 48, label: 'Next 48 hours' },
-] as const;
+export const TIMETABLE_DAYS = 3;
 
-export function HorizonChoice({
-  hours,
+export interface TimetableDay {
+  /** The airport's local date, as YYYY-MM-DD. */
+  key: string;
+  label: string;
+  count: number;
+}
+
+/** The airport's local date an instant falls on. */
+export function dayKey(at: number, timeZone: string): string {
+  return todayInZone(at, timeZone);
+}
+
+/** The days the timetable offers, today first, with how many flights each holds. */
+export function timetableDays(
+  flights: { at: number }[],
+  now: number,
+  timeZone: string,
+): TimetableDay[] {
+  const counts = new Map<string, number>();
+  for (const flight of flights) {
+    const key = dayKey(flight.at, timeZone);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  const today = dayKey(now, timeZone);
+  const tomorrow = dayKey(now + 86_400_000, timeZone);
+  const days: TimetableDay[] = [];
+  // Walk forward a day at a time from today, so a day with no flights still
+  // appears as a choice (saying so) rather than silently vanishing.
+  for (let offset = 0; days.length < TIMETABLE_DAYS && offset < TIMETABLE_DAYS + 1; offset += 1) {
+    const at = now + offset * 86_400_000;
+    const key = dayKey(at, timeZone);
+    if (days.some((day) => day.key === key)) continue;
+    const label = key === today ? 'Today' : key === tomorrow ? 'Tomorrow' : formatDate(at, timeZone);
+    days.push({ key, label, count: counts.get(key) ?? 0 });
+  }
+  return days;
+}
+
+export function DayChoice({
+  days,
+  selected,
   onChange,
-  shown,
-  capped = false,
+  filtering,
 }: {
-  hours: number;
-  onChange: (hours: number) => void;
-  /** How many flights are shown in the current choice. */
-  shown: number;
-  /** Whether this is a capped browsing set rather than every match in the period. */
-  capped?: boolean;
+  days: TimetableDay[];
+  selected: string;
+  onChange: (key: string) => void;
+  /** While filtering, every day is searched, so no single day is "on". */
+  filtering: boolean;
 }): React.JSX.Element {
   return (
     <div className={styles.horizon}>
-      <div className={styles.horizonButtons} role="group" aria-label="How far ahead to list flights">
-        {HORIZONS.map((option) => (
-          <button
-            key={option.hours}
-            type="button"
-            className={option.hours === hours ? styles.horizonOn : styles.horizonOff}
-            aria-pressed={option.hours === hours}
-            onClick={() => onChange(option.hours)}
-          >
-            {option.label}
-          </button>
-        ))}
+      <div className={styles.horizonButtons} role="group" aria-label="Which day to list flights for">
+        {days.map((day) => {
+          const on = !filtering && day.key === selected;
+          return (
+            <button
+              key={day.key}
+              type="button"
+              className={on ? styles.horizonOn : styles.horizonOff}
+              aria-pressed={on}
+              aria-label={`${day.label}, ${day.count} ${day.count === 1 ? 'flight' : 'flights'}`}
+              onClick={() => onChange(day.key)}
+            >
+              {day.label}
+              <span className={styles.dayCount} aria-hidden="true">
+                {day.count}
+              </span>
+            </button>
+          );
+        })}
       </div>
-      <p className={ui.hint}>
-        {shown === 0
-          ? 'No timetabled flights in this period.'
-          : capped
-            ? `First ${shown} flights`
-            : `${shown} flights`}
-      </p>
+      {filtering ? <p className={ui.hint}>Searching all {days.length} days.</p> : null}
     </div>
   );
 }

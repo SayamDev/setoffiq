@@ -38,7 +38,6 @@ describe('planning a pickup from an aircraft in the air', () => {
     const user = userEvent.setup();
     render(<JourneyForm kind="pickup" airport={MANCHESTER} now={Date.now()} onSubmit={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: /Find a flight to fill these details/ }));
     await user.click(screen.getByRole('button', { name: /Collecting someone from a flight/ }));
     await user.click(await screen.findByRole('button', { name: /RYR61UR.*Ryanair.*from Ibiza/s }));
 
@@ -144,7 +143,6 @@ describe('planning a drop-off from a flight that usually leaves soon', () => {
     const user = userEvent.setup();
     render(<JourneyForm kind="dropoff" airport={MANCHESTER} now={now} onSubmit={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: /Find a flight to fill these details/ }));
     await user.click(screen.getByRole('button', { name: /Dropping someone off for a flight/ }));
     await user.click(await screen.findByRole('button', { name: /EZY256Q.*easyJet.*to Belfast/s }));
 
@@ -193,7 +191,6 @@ describe('choosing from the airline schedule', () => {
     const user = userEvent.setup();
     render(<JourneyForm kind="pickup" airport={MANCHESTER} now={now} onSubmit={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: /Find a flight to fill these details/ }));
     await user.click(screen.getByRole('button', { name: /Collecting someone from a flight/ }));
     expect(await screen.findByRole('button', { name: /FR3006.*Ryanair.*from Ibiza.*Cancelled/s })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /EK19.*Emirates.*from Dubai.*Delayed ~25 min/s }));
@@ -210,7 +207,6 @@ describe('choosing from the airline schedule', () => {
     const user = userEvent.setup();
     render(<JourneyForm kind="dropoff" airport={MANCHESTER} now={now} onSubmit={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: /Find a flight to fill these details/ }));
     await user.click(screen.getByRole('button', { name: /Dropping someone off for a flight/ }));
     await user.click(await screen.findByRole('button', { name: /LS811.*Jet2.*to Alicante/s }));
 
@@ -261,7 +257,6 @@ describe('the timetable, when the schedule has nothing to say', () => {
     const user = userEvent.setup();
     render(<JourneyForm kind="pickup" airport={MANCHESTER} now={now} onSubmit={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: /Find a flight to fill these details/ }));
     await user.click(screen.getByRole('button', { name: /Collecting someone from a flight/ }));
     await user.click(await screen.findByRole('button', { name: /EK21.*Emirates.*from Dubai/s }));
 
@@ -277,12 +272,61 @@ describe('the timetable, when the schedule has nothing to say', () => {
     const user = userEvent.setup();
     render(<JourneyForm kind="pickup" airport={MANCHESTER} now={now} onSubmit={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: /Find a flight to fill these details/ }));
     await user.click(screen.getByRole('button', { name: /Collecting someone from a flight/ }));
     await screen.findByRole('button', { name: /EK21/ });
     await user.type(screen.getByLabelText('Find a flight'), 'BA 1360');
 
     expect(screen.queryByRole('button', { name: /EK21/ })).not.toBeInTheDocument();
     expect(screen.getByText(/Nothing matches/)).toBeInTheDocument();
+  });
+});
+
+describe('choosing a day of the timetable', () => {
+  afterEach(() => {
+    clearAll();
+    vi.useRealTimers();
+  });
+
+  it('shows a different list for each day, opened in one click', async () => {
+    // 10:00 in Manchester, so "today" and "tomorrow" are unambiguous.
+    const now = Date.UTC(2026, 8, 25, 9, 0);
+    vi.useFakeTimers({ now, shouldAdvanceTime: true });
+    const days = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    const entry = (flight: string, city: string, departs: Date) => ({
+      flight,
+      callsign: null,
+      airline: null,
+      otherEnd: { icao: null, iata: null, city, country: 'ES' },
+      days: [days[departs.getUTCDay()]],
+      departureMinute: departs.getUTCHours() * 60 + departs.getUTCMinutes(),
+      durationMinutes: 120,
+      terminal: null,
+      aliases: [],
+    });
+    writeCache(
+      'flight-timetable:EGCC',
+      {
+        generatedAt: new Date(now).toISOString(),
+        attribution: 'Flight schedules from AirLabs (airlabs.co)',
+        arrivals: [
+          entry('TODAY1', 'Malaga', new Date(Date.UTC(2026, 8, 25, 12, 0))),
+          entry('TMRW1', 'Faro', new Date(Date.UTC(2026, 8, 26, 12, 0))),
+        ],
+        departures: [],
+      },
+      now,
+    );
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<JourneyForm kind="pickup" airport={MANCHESTER} now={now} onSubmit={vi.fn()} />);
+
+    // One click on the card opens the finder and loads the flights.
+    await user.click(screen.getByRole('button', { name: /Collecting someone from a flight/ }));
+    expect(await screen.findByRole('button', { name: /TODAY1.*from Malaga/s })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /TMRW1/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /^Tomorrow/ }));
+    expect(screen.getByRole('button', { name: /TMRW1.*from Faro/s })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /TODAY1/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Tomorrow/ })).toHaveAttribute('aria-pressed', 'true');
   });
 });

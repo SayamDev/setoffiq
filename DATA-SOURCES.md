@@ -208,16 +208,23 @@ of the picker: nobody is collected from them.
   pairs to ask about comes from the CC0 standing data already cloned for
   reported routes, plus every airport the published schedule has named, so no
   request is spent discovering the list. A pair that still returns fifty rows
-  was cut off; those airports are recorded in `truncatedAt` in the published
-  file rather than quietly dropped.
+  was cut off, so it is asked again one airline at a time (airlines taken from
+  the cut-off answer, the schedule and the previous timetable). Airports that
+  needed splitting are listed in `splitByAirline`, and any still cut off after
+  it in `truncatedAt`, rather than quietly shown as complete. The first
+  complete sweep (14 September 2026) covered 321 airports and 1,537 arrivals
+  in 642 requests; seven busy airports — ALC AMS BCN CDG DUB LHR PMI — were cut
+  off before the split existed.
 - **Budget:** the free plan's 1,000 requests a month are split, each half
   counted in the file it publishes. The schedule
   (`scripts/fetch-schedule.mjs`) refreshes only when the published copy is over
-  **4.5 hours** old and never past **500 requests** a month — observed use is
-  under 100. The timetable (`scripts/fetch-timetable.mjs`) refreshes weekly and
-  never past **400**. In between each republishes what it has; the app says how
-  old the status is, and aircraft in the air stay current from the live
-  snapshot.
+  **4.5 hours** old and never past **300 requests** a month — September 2026
+  used 228 in 25 days. The timetable (`scripts/fetch-timetable.mjs`) sweeps
+  every airport pair once every **28 days**, never past **680** requests a
+  month and **450** in one run; a sweep that reaches a cap publishes what it
+  has with `partial: true`, and the next run resumes from the airports it had
+  not reached. In between each republishes what it has; the app says how old
+  the status is, and aircraft in the air stay current from the live snapshot.
 - **Codeshares:** one aircraft is listed once per marketing number. Those
   copies are folded into the operating flight as aliases, so a typed codeshare
   number still finds it and the list shows each aircraft once.
@@ -239,8 +246,11 @@ of the picker: nobody is collected from them.
     *Cancelled*, *Delayed ~25 min* (with the expected time), *In the air*,
     *Landed*. Picking one fills in the booking time — for a drop-off, the gate
     time directly, with no allowance.
-  - Under that, both pickers list the timetable — 24 hours, 3 days or a week —
-    grouped by day, with a filter by flight number, airline or city. A
+  - Under that, both pickers list the timetable one day at a time — today,
+    tomorrow and the day after, each tab showing how many flights it holds —
+    with a filter by flight number, airline or city that searches all three.
+    Days rather than "next N hours": overlapping windows sorted by time always
+    began with the same flights, so switching between them looked broken. A
     timetabled flight the schedule already covers is dropped, including when
     the two use different codeshare numbers, so nothing appears twice. The
     section says in as many words that these times carry no status.

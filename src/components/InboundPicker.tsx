@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatAge, formatClock, formatDate } from '../domain/time';
 import type { AirportProfile, Instant } from '../domain/types';
 import {
@@ -25,12 +25,14 @@ import {
 import { describeScheduled, ScheduledList } from './ScheduledList';
 import { FilterField, LoadingRows, matches, TimetableList } from './pickerParts';
 import {
-  HORIZONS,
-  HorizonChoice,
+  DayChoice,
+  dayKey,
   NothingFound,
   RefreshPopup,
   ShowMoreControl,
+  TIMETABLE_DAYS,
   TimetableNote,
+  timetableDays,
 } from './pickerSections';
 import { Button, ui } from './ui';
 import styles from './InboundPicker.module.css';
@@ -72,7 +74,9 @@ type State =
 
 const INITIAL_VISIBLE_FLIGHTS = 5;
 const VISIBLE_FLIGHTS_STEP = 5;
-const TIMETABLE_BROWSE_LIMIT = 30;
+/** A day of the timetable is long; show a useful first screen, then more in bigger steps. */
+const TIMETABLE_INITIAL = 10;
+const TIMETABLE_STEP = 20;
 const REFRESH_FEEDBACK_MS = 1000;
 
 type VisibleSection = 'live' | 'scheduled' | 'timetable';
@@ -80,7 +84,7 @@ type VisibleSection = 'live' | 'scheduled' | 'timetable';
 const INITIAL_VISIBLE_COUNTS: Record<VisibleSection, number> = {
   live: INITIAL_VISIBLE_FLIGHTS,
   scheduled: INITIAL_VISIBLE_FLIGHTS,
-  timetable: INITIAL_VISIBLE_FLIGHTS,
+  timetable: TIMETABLE_INITIAL,
 };
 
 /**
@@ -99,13 +103,22 @@ const INITIAL_VISIBLE_COUNTS: Record<VisibleSection, number> = {
 export function InboundPicker({
   airport,
   onPick,
+  autoLoad = false,
 }: {
   airport: AirportProfile;
   onPick: (flight: PickedFlight) => void;
+  /**
+   * Load the lists as soon as the picker appears. The form opens it from one
+   * clear card, so asking for a second click to fetch anything was a dead end.
+   */
+  autoLoad?: boolean;
 }): React.JSX.Element {
-  const [state, setState] = useState<State>({ kind: 'idle' });
+  const [state, setState] = useState<State>(
+    autoLoad ? { kind: 'loading', refreshing: false } : { kind: 'idle' },
+  )
   const [query, setQuery] = useState('');
-  const [hoursAhead, setHoursAhead] = useState<number>(HORIZONS[0].hours);
+  /** The day of the timetable being listed; null means the first, today. */
+  const [day, setDay] = useState<string | null>(null);
   const [visibleCounts, setVisibleCounts] = useState(INITIAL_VISIBLE_COUNTS);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -117,13 +130,16 @@ export function InboundPicker({
   const showMore = (section: VisibleSection): void => {
     setVisibleCounts((current) => ({
       ...current,
-      [section]: current[section] + VISIBLE_FLIGHTS_STEP,
+      [section]: current[section] + (section === 'timetable' ? TIMETABLE_STEP : VISIBLE_FLIGHTS_STEP),
     }));
   };
 
-  const updateHoursAhead = (hours: number): void => {
-    setHoursAhead(hours);
-    setVisibleCounts((current) => ({ ...current, timetable: INITIAL_VISIBLE_FLIGHTS }));
+  const chooseDay = (key: string): void => {
+    setDay(key);
+    // A new day is a new list: start it from the top, and leave any filter,
+    // which searches every day, so the day just chosen is what is shown.
+    setQuery('');
+    setVisibleCounts((current) => ({ ...current, timetable: TIMETABLE_INITIAL }));
   };
 
   const load = async (refreshing = state.kind === 'ready'): Promise<void> => {
@@ -194,6 +210,13 @@ export function InboundPicker({
         : 'The flight number is filled in. Enter the time from the booking below.',
     });
   };
+
+  // Opened from the form's card: fetch straight away, once.
+  useEffect(() => {
+    if (autoLoad) void load(false);
+    // Mount only. `load` is recreated every render and must not re-run this.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const pickScheduled = (flight: ListedFlight): void => {
     onPick({
@@ -293,15 +316,19 @@ export function InboundPicker({
   // The timetable repeats what the schedule already covers, with less to say
   // about it, so the schedule wins wherever the two overlap.
   const timetabled = timetable
-    ? withoutScheduled(timetableWindow(timetable, 'arrival', now, hoursAhead), scheduled)
+    ? withoutScheduled(timetableWindow(timetable, 'arrival', now, TIMETABLE_DAYS * 24), scheduled)
     : [];
+  const days = timetableDays(timetabled, now, airport.timeZone);
+  const selectedDay = day && days.some((one) => one.key === day) ? day : (days[0]?.key ?? '');
   const isFiltering = query.trim().length > 0;
-  const timetabledMatches = timetabled.filter((flight) =>
-    matches(query, [flight.flight, flight.airlineName, flight.place, ...flight.aliases]),
-  );
-  const timetabledShown = isFiltering
-    ? timetabledMatches
-    : timetabledMatches.slice(0, TIMETABLE_BROWSE_LIMIT);
+  const offeredDays = new Set(days.map((one) => one.key));
+  // Filtering searches every day offered; otherwise the chosen day is the list.
+  const timetabledShown = timetabled.filter((flight) => {
+    const key = dayKey(flight.at, airport.timeZone);
+    if (!offeredDays.has(key)) return false;
+    if (isFiltering) return matches(query, [flight.flight, flight.airlineName, flight.place, ...flight.aliases]);
+    return key === selectedDay;
+  });
   const stillLoading = schedule === undefined || timetable === undefined;
   const nothingListed =
     !stillLoading && aircraft.length === 0 && scheduledShown.length === 0 && timetabledShown.length === 0;
@@ -398,11 +425,11 @@ export function InboundPicker({
         <>
           <h2 className={styles.sectionTitle}>Timetabled arrivals</h2>
           <TimetableNote generatedAt={timetable.generatedAt} airport={airport} direction="arrival" />
-          <HorizonChoice
-            hours={hoursAhead}
-            onChange={updateHoursAhead}
-            shown={timetabledShown.length}
-            capped={!isFiltering && timetabledMatches.length > timetabledShown.length}
+          <DayChoice
+            days={days}
+            selected={selectedDay}
+            onChange={chooseDay}
+            filtering={isFiltering}
           />
           <TimetableList
             flights={timetabledShown}

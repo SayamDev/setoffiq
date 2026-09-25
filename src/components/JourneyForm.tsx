@@ -238,24 +238,58 @@ export function JourneyForm({
           </header>
 
           <div className={styles.finderBlock}>
-            <button
-              type="button"
-              className={styles.finderToggle}
-              aria-expanded={finderOpen}
-              aria-controls={finderOpen ? `${baseId}-flight-finder` : undefined}
-              onClick={() => setFinderOpen((open) => !open)}
-            >
-              {finderOpen ? 'Hide flight finder' : 'Find a flight to fill these details'}
-            </button>
             {finderOpen ? (
-              <div id={`${baseId}-flight-finder`} className={styles.finderContent}>
-                {kind === 'pickup' ? (
-                  <InboundPicker airport={airport} onPick={fillFromPick} />
-                ) : (
-                  <DeparturePicker airport={airport} onPick={fillFromPick} />
-                )}
-              </div>
-            ) : null}
+              <>
+                <div className={styles.finderHeader}>
+                  <p className={styles.finderHeading}>
+                    {kind === 'pickup' ? 'Arrivals' : 'Departures'} at {airport.name}
+                  </p>
+                  <button
+                    type="button"
+                    className={styles.finderClose}
+                    aria-expanded={true}
+                    aria-controls={`${baseId}-flight-finder`}
+                    onClick={() => setFinderOpen(false)}
+                  >
+                    Hide flight finder
+                  </button>
+                </div>
+                <div id={`${baseId}-flight-finder`} className={styles.finderContent}>
+                  {kind === 'pickup' ? (
+                    <InboundPicker airport={airport} onPick={fillFromPick} autoLoad />
+                  ) : (
+                    <DeparturePicker airport={airport} onPick={fillFromPick} autoLoad />
+                  )}
+                </div>
+              </>
+            ) : (
+              // One card, one click: it opens the finder and fetches the
+              // flights at once. It reads as a control — icon, edge, and a
+              // call to action styled as a button — not as a paragraph.
+              <button
+                type="button"
+                className={styles.finderCard}
+                aria-expanded={false}
+                onClick={() => setFinderOpen(true)}
+              >
+                <span className={styles.finderIcon} aria-hidden="true">
+                  ✈
+                </span>
+                <span className={styles.finderText}>
+                  <span className={styles.finderTitle}>
+                    {kind === 'pickup' ? 'Collecting someone from a flight?' : 'Dropping someone off for a flight?'}
+                  </span>
+                  <span className={styles.finderBody}>
+                    Pick it from the {kind === 'pickup' ? 'arrivals' : 'departures'} at {airport.name} —
+                    today, tomorrow or the day after — and the flight number and time are filled in
+                    for you.
+                  </span>
+                  <span className={styles.finderCta}>
+                    Choose a flight <span aria-hidden="true">→</span>
+                  </span>
+                </span>
+              </button>
+            )}
           </div>
 
           <div className={ui.stackTight}>

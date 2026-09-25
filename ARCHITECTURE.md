@@ -172,7 +172,7 @@ knows:
 | --- | --- | --- | --- |
 | `EGCC-arrivals.json` | adsb.lol positions | every deploy | What is in the air right now, timed from where it is |
 | `EGCC-schedule.json` | AirLabs `/schedules` | every 4.5 h | About three hours either side of now, with delays and cancellations |
-| `EGCC-timetable.json` | AirLabs `/routes` | weekly | What is meant to fly, any hour of any day, with no status at all |
+| `EGCC-timetable.json` | AirLabs `/routes` | every 28 days | What is meant to fly, any hour of any day, with no status at all |
 
 The timetable is what makes the picker work at two in the morning and for a
 pickup next week; the schedule overrides it wherever the two overlap, because it
