@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeRoute, shortOtherEnd } from './routeText';
+import { cardMeta, describeRoute } from './routeText';
 
 const uk = 'Europe/London';
 // Sunday 27 September 2026, 08:15 in Manchester.
@@ -62,13 +62,34 @@ describe('describing the other end of the flight', () => {
   });
 });
 
-describe('the short form for the recommendation card', () => {
-  it('says when a drop-off lands, in both clocks only when they differ', () => {
+describe('the line under the flight on the card', () => {
+  it('names the place once, with both clocks only when they differ', () => {
     expect(
-      shortOtherEnd({ city: 'Rabat', iata: 'RBA', timeZone: 'Africa/Casablanca', otherEndAt: departs + 200 * 60_000 }, 'dropoff', uk),
-    ).toBe('lands in Rabat about 11:35');
+      cardMeta(
+        { city: 'Rabat', iata: 'RBA', timeZone: 'Africa/Casablanca', otherEndAt: departs + 200 * 60_000, durationMinutes: 200 },
+        'dropoff',
+        uk,
+      ),
+    ).toBe('Lands 11:35 Rabat time · 3 hr 20 min in the air');
     expect(
-      shortOtherEnd({ city: 'Dubai', iata: 'DXB', timeZone: 'Asia/Dubai', otherEndAt: Date.UTC(2026, 8, 25, 23, 40) }, 'pickup', uk),
-    ).toBe('takes off from Dubai about 03:40 Dubai time (00:40 UK)');
+      cardMeta(
+        { city: 'Dubai', iata: 'DXB', timeZone: 'Asia/Dubai', otherEndAt: Date.UTC(2026, 8, 25, 23, 40), durationMinutes: 435 },
+        'pickup',
+        uk,
+      ),
+    ).toBe('Takes off 03:40 Dubai time (00:40 UK) · 7 hr 15 min in the air');
+  });
+});
+
+describe('a flight number timetabled at a different time', () => {
+  it('still says where it comes from, and flags the time entered', () => {
+    const route = {
+      city: 'Dubai', iata: 'DXB', countryName: 'United Arab Emirates', timeZone: 'Asia/Dubai',
+      otherEndAt: null, durationMinutes: 465, timetabledAt: Date.UTC(2026, 8, 26, 6, 50),
+    };
+    expect(describeRoute(route, 'pickup', uk, now).headline).toBe('From Dubai (DXB), United Arab Emirates');
+    expect(cardMeta(route, 'pickup', uk)).toBe(
+      'Timetabled to land at 07:50 on Sat 26 Sept, not the time entered — check the booking.',
+    );
   });
 });

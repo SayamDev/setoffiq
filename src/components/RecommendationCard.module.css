@@ -63,7 +63,7 @@
 
 .head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-3);
   flex-wrap: wrap;
@@ -79,65 +79,47 @@
 }
 
 /*
- * Which flight, where, and the terminal: the first thing to check that this is
- * the right journey, so it sits above the time, in plain view.
+ * The flight as the card's title: plain text on the card, not a box inside
+ * it, so it says what the card is about without competing with the time.
  */
-.flightStrip {
+.flightTitle {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  margin: var(--space-3) var(--space-5) 0;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--rule);
-  border-left: 3px solid var(--signal);
-  border-radius: var(--r-1);
-  background: var(--surface-2);
+  gap: 0.15rem;
+  min-width: 0;
 }
 
-.flightLine {
+.flightName {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--space-1) var(--space-3);
-  font-size: var(--t-sm);
-  color: var(--ink-2);
+  gap: 0 var(--space-2);
+  font-size: var(--t-lg);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--ink);
 }
 
 .flightGlyph {
   color: var(--signal);
+  font-weight: 400;
 }
 
 .flightNumber {
   font-family: var(--font-mono);
-  font-weight: 650;
-  color: var(--ink);
+  letter-spacing: -0.02em;
 }
 
-.flightPlace {
-  font-weight: 600;
-  color: var(--ink);
-}
-
-.flightWhen {
+.flightMeta {
+  font-size: var(--t-sm);
+  color: var(--ink-2);
   font-variant-numeric: tabular-nums;
 }
 
-.terminalLine {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-1) var(--space-3);
-  font-size: var(--t-sm);
-}
-
-.terminalName {
-  font-weight: 650;
-  color: var(--ink);
-}
-
-.terminalSource {
-  font-size: var(--t-xs);
-  color: var(--ink-3);
+/* "Set off at" back beside the time it labels, once the flight takes the top. */
+.eyebrowAboveTime {
+  composes: eyebrow;
+  padding: var(--space-4) var(--space-5) 0;
 }
 
 /* Time left, what to do about it right. Stacks under 34rem. */
@@ -213,10 +195,35 @@
   border-bottom: 1px solid var(--rule);
 }
 
+/* With the terminal as a fourth figure. */
+.detailsFour {
+  composes: details;
+  grid-template-columns: repeat(4, 1fr);
+}
+
 @media (max-width: 34rem) {
-  .details {
+  .details,
+  .detailsFour {
     grid-template-columns: 1fr 1fr;
   }
+}
+
+.valueMuted {
+  font-size: var(--t-sm);
+  color: var(--ink-3);
+}
+
+/* Marks a figure explained in the note under the row. */
+.marker {
+  margin-left: 0.15em;
+  color: var(--ink-3);
+  font-weight: 400;
+}
+
+.detailsNote {
+  padding: var(--space-2) var(--space-5) 0;
+  font-size: var(--t-xs);
+  color: var(--ink-3);
 }
 
 /* Wraps to two lines in a narrow column; the reserved height keeps the three

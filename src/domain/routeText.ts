@@ -8,6 +8,8 @@ export interface RouteForText {
   timeZone: string | null;
   otherEndAt: Instant | null;
   durationMinutes: number | null;
+  /** Nearest timetabled time here, when it is far from the time entered. */
+  timetabledAt?: Instant | null;
 }
 
 export interface RouteText {
@@ -45,7 +47,9 @@ export function describeRoute(
   const basis =
     "From the airlines' published timetable and the time on your booking. Not live: a delay on the day moves it.";
 
-  if (route.otherEndAt === null) return { headline, detail: null, basis };
+  if (route.otherEndAt === null) {
+    return { headline, detail: mismatch(route, kind, homeZone), basis };
+  }
 
   const at = route.otherEndAt;
   const place = route.city ?? route.iata ?? 'there';
@@ -73,23 +77,35 @@ export function describeRoute(
 }
 
 /**
- * The same, in a phrase short enough for the top of the recommendation card:
- * "lands about 11:35 in Rabat", or with both clocks when they differ.
+ * The line under the flight on the recommendation card: when it is at the
+ * other end, naming the place only where the clock needs it, and how long it
+ * flies. "Lands 11:35 Rabat time · 3 hr 20 min in the air".
  */
-export function shortOtherEnd(
-  route: Pick<RouteForText, 'city' | 'iata' | 'timeZone' | 'otherEndAt'>,
+export function cardMeta(
+  route: Pick<RouteForText, 'city' | 'iata' | 'timeZone' | 'otherEndAt' | 'durationMinutes' | 'timetabledAt'>,
   kind: JourneyKind,
   homeZone: string,
 ): string | null {
-  if (route.otherEndAt === null) return null;
+  if (route.otherEndAt === null) return mismatch(route, kind, homeZone);
   const place = route.city ?? route.iata ?? 'there';
   const home = formatClock(route.otherEndAt, homeZone);
   const local = route.timeZone ? formatClock(route.otherEndAt, route.timeZone) : null;
   const clocks =
-    local === null ? `${home} UK time` : local === home ? home : `${local} ${place} time (${home} UK)`;
-  return kind === 'pickup'
-    ? `takes off from ${place} about ${clocks}`
-    : local === home || local === null
-      ? `lands in ${place} about ${clocks}`
-      : `lands about ${clocks}`;
+    local === null ? `${home} UK time` : local === home ? `${local} ${place} time` : `${local} ${place} time (${home} UK)`;
+  const verb = kind === 'pickup' ? 'Takes off' : 'Lands';
+  const flying = route.durationMinutes !== null ? ` · ${duration(route.durationMinutes)} in the air` : '';
+  return `${verb} ${clocks}${flying}`;
+}
+
+/**
+ * "Timetabled to land at 07:50 on Sat 26 Sept — check the time on the
+ * booking." Said when the number is timetabled, just not near the time given.
+ */
+function mismatch(
+  route: Pick<RouteForText, 'timetabledAt'>,
+  kind: JourneyKind,
+  homeZone: string,
+): string | null {
+  if (!route.timetabledAt) return null;
+  return `Timetabled to ${kind === 'pickup' ? 'land' : 'leave'} at ${formatClock(route.timetabledAt, homeZone)} on ${formatDate(route.timetabledAt, homeZone)}, not the time entered — check the booking.`;
 }

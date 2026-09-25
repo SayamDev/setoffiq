@@ -1,6 +1,6 @@
 import { advisoryAt } from '../domain/engine';
 import { formatClock, formatClockRange, formatDate, formatMinuteRange } from '../domain/time';
-import { shortOtherEnd } from '../domain/routeText';
+import { cardMeta } from '../domain/routeText';
 import type { AdvisoryKind, AirportProfile, Instant, Recommendation } from '../domain/types';
 import type { FlightRoute } from '../services/flight';
 import { ConfidenceBadge } from './ConfidenceBadge';
@@ -48,22 +48,32 @@ export function RecommendationCard({
   // Rederived as the clock moves: the stored advisory is only as fresh as the
   // last check, and "get ready" goes on being shown long after it stops being true.
   const advisory = advisoryAt(recommendation, now, zone);
+  const showFlight = Boolean(flight && (flight.number || flight.route));
+  const terminal = flight?.terminal
+    ? (airport.terminals.find((one) => one.code === flight.terminal?.code)?.code ?? flight.terminal.code)
+    : null;
 
   return (
     <section className={styles.card} aria-labelledby="recommendation-heading">
       <div className={SIGNAL_CLASS[advisory.kind]} aria-hidden="true" />
 
       <div className={styles.head}>
-        <p className={styles.eyebrow} id="recommendation-heading">
-          Set off at
-        </p>
+        {/* Which flight this is, first: everything below is about it. */}
+        {showFlight && flight ? <FlightTitle flight={flight} kind={recommendation.kind} airport={airport} /> : null}
+        {showFlight ? null : (
+          <p className={styles.eyebrow} id="recommendation-heading">
+            Set off at
+          </p>
+        )}
         <div className={styles.confidence}>
           <ConfidenceBadge confidence={recommendation.confidence} />
         </div>
       </div>
 
-      {flight && (flight.number || flight.route || flight.terminal) ? (
-        <FlightStrip flight={flight} kind={recommendation.kind} airport={airport} />
+      {showFlight ? (
+        <p className={styles.eyebrowAboveTime} id="recommendation-heading">
+          Set off at
+        </p>
       ) : null}
 
       <div className={styles.body}>
@@ -81,7 +91,20 @@ export function RecommendationCard({
         </div>
       </div>
 
-      <dl className={styles.details}>
+      <dl className={flight ? styles.detailsFour : styles.details}>
+        {flight ? (
+          <div>
+            <dt className={styles.term}>Terminal</dt>
+            <dd className={terminal ? styles.value : styles.valueMuted}>
+              {terminal ?? 'Not known'}
+              {terminal && flight.terminal?.source === 'timetable' ? (
+                <span className={styles.marker} aria-hidden="true">
+                  *
+                </span>
+              ) : null}
+            </dd>
+          </div>
+        ) : null}
         {recommendation.kind === 'pickup' ? (
           <div>
             <dt className={styles.term}>Passenger likely ready</dt>
@@ -110,13 +133,20 @@ export function RecommendationCard({
           <dd className={styles.value}>{formatMinuteRange(recommendation.journey)}</dd>
         </div>
       </dl>
+      {flight && (!terminal || flight.terminal?.source === 'timetable') ? (
+        <p className={styles.detailsNote}>
+          {terminal
+            ? `* Terminal from the airline timetable. Check the booking — each terminal has its own road in.`
+            : 'Choose the terminal below if the booking says: each terminal has its own road in, which changes the drive.'}
+        </p>
+      ) : null}
 
       {children ? <div className={styles.footer}>{children}</div> : null}
     </section>
   );
 }
 
-function FlightStrip({
+function FlightTitle({
   flight,
   kind,
   airport,
@@ -125,41 +155,20 @@ function FlightStrip({
   kind: Recommendation['kind'];
   airport: AirportProfile;
 }): React.JSX.Element {
-  const place = flight.route?.city ?? flight.route?.iata ?? null;
-  const when = flight.route ? shortOtherEnd(flight.route, kind, airport.timeZone) : null;
-  const terminal = flight.terminal
-    ? (airport.terminals.find((one) => one.code === flight.terminal?.code)?.name ?? flight.terminal.code)
-    : null;
+  const route = flight.route;
+  const place = route?.city ?? route?.iata ?? null;
+  const where = place ? `${kind === 'pickup' ? 'from' : 'to'} ${place}${route?.city && route.iata ? ` (${route.iata})` : ''}` : null;
+  const meta = route ? cardMeta(route, kind, airport.timeZone) : null;
   return (
-    <div className={styles.flightStrip}>
-      <p className={styles.flightLine}>
+    <div className={styles.flightTitle}>
+      <p className={styles.flightName}>
         <span className={styles.flightGlyph} aria-hidden="true">
           ✈
         </span>
         {flight.number ? <span className={styles.flightNumber}>{flight.number}</span> : null}
-        {place ? (
-          <span className={styles.flightPlace}>
-            {kind === 'pickup' ? 'from' : 'to'} {place}
-          </span>
-        ) : null}
-        {when ? <span className={styles.flightWhen}>{when}</span> : null}
+        {where ? <span>{where}</span> : null}
       </p>
-      <p className={styles.terminalLine}>
-        {terminal ? (
-          <>
-            <span className={styles.terminalName}>
-              {kind === 'pickup' ? 'Pick up at' : 'Drop off at'} {terminal}
-            </span>
-            {flight.terminal?.source === 'timetable' ? (
-              <span className={styles.terminalSource}>from the airline timetable — check the booking</span>
-            ) : null}
-          </>
-        ) : (
-          <span className={styles.terminalSource}>
-            Terminal not known — choose it below if the booking says, as each terminal has its own road in.
-          </span>
-        )}
-      </p>
+      {meta ? <p className={styles.flightMeta}>{meta}</p> : null}
     </div>
   );
 }

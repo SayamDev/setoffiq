@@ -21,6 +21,12 @@ export interface FlightRoute {
   durationMinutes: number | null;
   /** Manchester terminal as the airport lists it, e.g. "T3", when named. */
   terminal: string | null;
+  /**
+   * Set when this flight number is timetabled, but not near the time entered:
+   * its nearest timetabled time here. A typo on the booking time is the
+   * likeliest cause, and it is worth saying before anyone plans around it.
+   */
+  timetabledAt: Instant | null;
 }
 
 /** "3" or "T3" to "T3". */
@@ -82,6 +88,26 @@ export async function loadFlightRoute(
               : scheduledTime + minutes * 60_000,
         durationMinutes: minutes,
         terminal: terminalCode(best.terminal),
+        timetabledAt: null,
+      };
+    }
+
+    // Not near the time entered. The number still says where it flies, and
+    // its nearest timetabled time says the entered time may be wrong.
+    const day = 24 * 3_600_000;
+    const nearby = timetableWindow(timetable, direction, scheduledTime - day, 48, 0)
+      .filter((flight) => matches(flight, wanted))
+      .sort((a, b) => Math.abs(a.at - scheduledTime) - Math.abs(b.at - scheduledTime))[0];
+    if (nearby?.otherEnd) {
+      return {
+        city: nearby.otherEnd.city,
+        iata: nearby.otherEnd.iata,
+        country: nearby.otherEnd.country,
+        timeZone: nearby.otherEnd.timeZone ?? null,
+        otherEndAt: null,
+        durationMinutes: nearby.durationMinutes,
+        terminal: terminalCode(nearby.terminal),
+        timetabledAt: nearby.at,
       };
     }
   }
@@ -100,6 +126,7 @@ export async function loadFlightRoute(
       otherEndAt: null,
       durationMinutes: null,
       terminal: terminalCode(onSchedule.terminal),
+      timetabledAt: null,
     };
   }
   return null;
