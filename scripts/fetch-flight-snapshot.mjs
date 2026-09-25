@@ -23,12 +23,15 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { haversineKm, keepInSnapshot, NEAR_RADIUS_KM, toSnapshotAircraft } from './lib/adsblol.mjs';
 import { detectArrivals, detectDepartures, mergeHistory } from './lib/history.mjs';
+import { mergeApproachSamples, readPrevious } from './lib/landings.mjs';
 import { createRouteLookup } from './lib/routes.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUTPUT = resolve(HERE, '../public/data/flights/EGCC-arrivals.json');
 const HISTORY_OUTPUT = resolve(HERE, '../public/data/flights/EGCC-history.json');
 const HISTORY_URL = 'https://sayamdev.github.io/setoffiq/data/flights/EGCC-history.json';
+const APPROACH_OUTPUT = resolve(HERE, '../public/data/flights/EGCC-approach.json');
+const APPROACH_URL = 'https://sayamdev.github.io/setoffiq/data/flights/EGCC-approach.json';
 const TIME_ZONE = 'Europe/London';
 
 const AIRPORT = { icao: 'EGCC', latitude: 53.3537, longitude: -2.275 };
@@ -92,6 +95,7 @@ async function main() {
   await mkdir(dirname(OUTPUT), { recursive: true });
   await writeFile(OUTPUT, `${JSON.stringify(snapshot, null, 2)}\n`);
   await recordArrivals(aircraft, nowMs);
+  await recordApproachSamples(aircraft, nowMs);
 
   const withRoutes = aircraft.filter((entry) => entry.route).length;
   console.log(
@@ -123,6 +127,34 @@ async function loadPreviousHistory() {
   const valid = candidates.filter((entry) => entry && typeof entry.flights === 'object' && entry.generatedAt);
   valid.sort((a, b) => Date.parse(b.generatedAt) - Date.parse(a.generatedAt));
   return valid[0] ?? null;
+}
+
+/**
+ * Where each arriving aircraft was as it closed in — kept to measure the
+ * arrival estimate against the actual landing later. See lib/landings.mjs.
+ * A failure here must never cost the snapshot, so it is caught and logged.
+ */
+async function recordApproachSamples(aircraft, nowMs) {
+  try {
+    const previous = await readPrevious({
+      cacheFile: process.env.APPROACH_CACHE_FILE,
+      localFile: APPROACH_OUTPUT,
+      url: APPROACH_URL,
+      isValid: (entry) => Boolean(entry?.generatedAt && Array.isArray(entry.arrivals)),
+      readFile,
+      fetch,
+    });
+    const record = mergeApproachSamples(previous, aircraft, nowMs, AIRPORT, (one) => haversineKm(one, AIRPORT));
+    const body = `${JSON.stringify(record)}\n`;
+    await writeFile(APPROACH_OUTPUT, body);
+    if (process.env.APPROACH_CACHE_FILE) {
+      await mkdir(dirname(process.env.APPROACH_CACHE_FILE), { recursive: true });
+      await writeFile(process.env.APPROACH_CACHE_FILE, body);
+    }
+    console.log(`Approach samples: ${record.arrivals.length} arrivals since ${record.since}.`);
+  } catch (error) {
+    console.error(`Approach samples not recorded: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 async function recordArrivals(aircraft, nowMs) {

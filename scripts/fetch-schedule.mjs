@@ -18,12 +18,15 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { toScheduleEntries } from './lib/airlabs.mjs';
+import { mergeLandings, readPrevious } from './lib/landings.mjs';
 import { createIataLookup } from './lib/routes.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUTPUT = resolve(HERE, '../public/data/flights/EGCC-schedule.json');
 const PUBLISHED = 'https://sayamdev.github.io/setoffiq/data/flights/EGCC-schedule.json';
 const AIRPORT_IATA = 'MAN';
+const LANDINGS_OUTPUT = resolve(HERE, '../public/data/flights/EGCC-landings.json');
+const LANDINGS_URL = 'https://sayamdev.github.io/setoffiq/data/flights/EGCC-landings.json';
 
 /** How old the published schedule may get before it is refreshed. */
 const REFRESH_HOURS = 4.5;
@@ -78,7 +81,38 @@ async function fetchDirection(key, param, usage) {
   return rows;
 }
 
+/**
+ * Fold whatever schedule is being published into the landing record, so actual
+ * landing times are kept after they drop out of the schedule's short window.
+ * No request is made for this. A failure here never costs the schedule.
+ */
+async function recordLandings(schedule) {
+  try {
+    const previous = await readPrevious({
+      cacheFile: process.env.LANDINGS_CACHE_FILE,
+      localFile: LANDINGS_OUTPUT,
+      url: LANDINGS_URL,
+      isValid: (entry) => Boolean(entry?.generatedAt && entry.landings && typeof entry.landings === 'object'),
+      readFile,
+      fetch,
+    });
+    const record = mergeLandings(previous, schedule, Date.now());
+    const body = `${JSON.stringify(record)}\n`;
+    await mkdir(dirname(LANDINGS_OUTPUT), { recursive: true });
+    await writeFile(LANDINGS_OUTPUT, body);
+    if (process.env.LANDINGS_CACHE_FILE) {
+      await mkdir(dirname(process.env.LANDINGS_CACHE_FILE), { recursive: true });
+      await writeFile(process.env.LANDINGS_CACHE_FILE, body);
+    }
+    const all = Object.values(record.landings);
+    console.log(`Landing record: ${all.length} arrivals, ${all.filter((entry) => entry.actual !== null).length} with an actual time, since ${record.since}.`);
+  } catch (error) {
+    console.error(`Landing record not updated: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 async function write(schedule) {
+  await recordLandings(schedule);
   const body = `${JSON.stringify(schedule)}\n`;
   await mkdir(dirname(OUTPUT), { recursive: true });
   await writeFile(OUTPUT, body);

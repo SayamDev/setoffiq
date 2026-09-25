@@ -82,6 +82,7 @@ jobs:
         env:
           STANDING_DATA_DIR: .cache/standing-data
           HISTORY_CACHE_FILE: .cache/history/EGCC-history.json
+          APPROACH_CACHE_FILE: .cache/history/EGCC-approach.json
         run: node scripts/fetch-flight-snapshot.mjs
 
       # Manchester's schedule from AirLabs, keyed. The key is a repository
@@ -95,6 +96,7 @@ jobs:
           AIRLABS_KEY: ${{ secrets.AIRLABS_KEY }}
           STANDING_DATA_DIR: .cache/standing-data
           SCHEDULE_CACHE_FILE: .cache/schedule/EGCC-schedule.json
+          LANDINGS_CACHE_FILE: .cache/schedule/EGCC-landings.json
         run: node scripts/fetch-schedule.mjs
 
       # Manchester's weekly timetable from AirLabs, keyed, refreshed monthly.
