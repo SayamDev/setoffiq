@@ -38,6 +38,25 @@ describe('calculatePickupRecommendation', () => {
     expect(at(result.readiness.window.latest)).toBe('19:27');
   });
 
+  it('drops the baggage wait for a passenger with hand luggage only — and nothing else', () => {
+    const checked = calculatePickupRecommendation(pickupInput({ luggage: 'checked' }));
+    const handOnly = calculatePickupRecommendation(pickupInput({ luggage: 'hand-only' }));
+    const notSure = calculatePickupRecommendation(pickupInput({ luggage: null }));
+    if (checked.kind !== 'pickup' || handOnly.kind !== 'pickup' || notSure.kind !== 'pickup') {
+      throw new Error('expected pickup recommendations');
+    }
+
+    // International baggage at Manchester is 5–18 min after border control.
+    expect(handOnly.readiness.processing).toEqual({ minMinutes: 19, maxMinutes: 49 });
+    // The earliest readiness moves by the shortest baggage wait, so they leave 5 min earlier.
+    expect(minutesBetween(handOnly.recommendedDeparture, checked.recommendedDeparture)).toBe(5);
+    // Not knowing keeps the bags in: the cautious reading for a pickup.
+    expect(notSure.readiness.processing).toEqual(checked.readiness.processing);
+    expect(handOnly.factors.find((factor) => factor.id === 'processing')?.detail).toMatch(
+      /No baggage wait/,
+    );
+  });
+
   it('sets departure so the slowest plausible drive lands on the earliest readiness', () => {
     const result = calculatePickupRecommendation(pickupInput());
     if (result.kind !== 'pickup') throw new Error('expected a pickup recommendation');

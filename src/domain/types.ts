@@ -446,6 +446,12 @@ export interface JourneyInput {
   scheduledTime: Instant;
   passengerRoute: PassengerRoute;
   terminalCode: string | null;
+  /**
+   * Whether the passenger has checked bags. "hand-only" removes the baggage
+   * wait, because it does not happen; null (not sure, or a journey saved
+   * before this was asked) keeps it, the cautious reading for a pickup.
+   */
+  luggage?: 'checked' | 'hand-only' | null;
   origin: GeoPoint;
   pickupMode: PickupMode | null;
   dropoffMode: DropoffMode | null;

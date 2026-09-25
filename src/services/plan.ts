@@ -109,6 +109,7 @@ export async function planJourney(
     journeyKind: input.kind,
     airport,
     passengerRoute: input.passengerRoute,
+    luggage: input.luggage ?? null,
     distanceKm,
     flight: toProviderInput(flight),
     route: toProviderInput(route),

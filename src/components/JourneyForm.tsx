@@ -24,6 +24,8 @@ interface FormState {
   time: string;
   passengerRoute: PassengerRoute;
   terminalCode: string;
+  /** Pickup only. Empty means not sure, which keeps the baggage wait. */
+  luggage: '' | 'checked' | 'hand-only';
   postcode: string;
   mode: string;
 }
@@ -53,6 +55,8 @@ export function JourneyForm({
   const [whenFrom, setWhenFrom] = useState<PickedFlight['basis'] | null>(null);
   /** Whether someone chose the date, rather than leaving the default. */
   const [dateChosen, setDateChosen] = useState(false);
+  /** Whether the terminal came from the flight picked, rather than the user. */
+  const [terminalFromPick, setTerminalFromPick] = useState(false);
   /** Whether a time already past today was taken to mean tomorrow. */
   const [takenAsTomorrow, setTakenAsTomorrow] = useState(false);
   const [state, setState] = useState<FormState>({
@@ -61,6 +65,7 @@ export function JourneyForm({
     time: '',
     passengerRoute: 'international',
     terminalCode: '',
+    luggage: '',
     postcode: '',
     mode: kind === 'pickup' ? PICKUP_DEFAULT : DROPOFF_DEFAULT,
   });
@@ -86,6 +91,15 @@ export function JourneyForm({
     }
     if (flight.otherEndCountry) {
       update('passengerRoute', flight.otherEndCountry === 'GB' ? 'domestic' : 'international');
+    }
+    // The schedule names the terminal as "2"; the form knows it as "T2". Each
+    // terminal has its own road approach, so this changes the drive, not just
+    // a label — by up to two minutes from Manchester city centre.
+    const raw = flight.terminal?.trim().toUpperCase() ?? '';
+    const code = raw ? (raw.startsWith('T') ? raw : `T${raw}`) : '';
+    if (code && airport.terminals.some((terminal) => terminal.code === code)) {
+      update('terminalCode', code);
+      setTerminalFromPick(true);
     }
   };
 
@@ -163,6 +177,7 @@ export function JourneyForm({
         scheduledTime,
         passengerRoute: state.passengerRoute,
         terminalCode: state.terminalCode || null,
+        luggage: kind === 'pickup' ? state.luggage || null : null,
         origin: located.value,
         pickupMode: kind === 'pickup' ? (state.mode as PickupMode) : null,
         dropoffMode: kind === 'dropoff' ? (state.mode as DropoffMode) : null,
@@ -436,12 +451,59 @@ export function JourneyForm({
         </div>
       </fieldset>
 
-      <Field id={`${baseId}-terminal`} label="Terminal (optional)" hint="Confirm with your airline.">
+      {kind === 'pickup' ? (
+        <fieldset className={styles.fieldset}>
+          <legend className={styles.legend}>Do they have checked bags?</legend>
+          <p className={styles.routeHint}>
+            With hand luggage only there is no wait at the baggage belt, so they are ready sooner.
+          </p>
+          <div className={styles.inlineThree}>
+            {(
+              [
+                ['checked', 'Checked bags', 'Allows time at the baggage belt'],
+                ['hand-only', 'Hand luggage only', 'No baggage wait'],
+                ['', 'Not sure', 'Allows for bags, to be safe'],
+              ] as const
+            ).map(([value, label, description]) => (
+              <label
+                key={label}
+                className={state.luggage === value ? styles.inlineOptionSelected : styles.inlineOption}
+              >
+                <input
+                  className={styles.optionInput}
+                  type="radio"
+                  name={`${baseId}-luggage`}
+                  value={value}
+                  checked={state.luggage === value}
+                  onChange={() => update('luggage', value)}
+                />
+                <span className={styles.optionBody}>
+                  <span className={styles.optionLabel}>{label}</span>
+                  <span className={styles.optionDescription}>{description}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      ) : null}
+
+      <Field
+        id={`${baseId}-terminal`}
+        label="Terminal (optional)"
+        hint={
+          terminalFromPick
+            ? 'Filled in from the flight you picked. Each terminal has its own road in, so this changes the drive. Confirm with your airline.'
+            : 'Each terminal has its own road in, so this changes the drive. Confirm with your airline.'
+        }
+      >
         <select
           id={`${baseId}-terminal`}
           className={ui.control}
           value={state.terminalCode}
-          onChange={(event) => update('terminalCode', event.target.value)}
+          onChange={(event) => {
+            update('terminalCode', event.target.value);
+            setTerminalFromPick(false);
+          }}
         >
           <option value="">Not sure</option>
           {airport.terminals.map((terminal) => (

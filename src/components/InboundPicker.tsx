@@ -49,6 +49,8 @@ export interface PickedFlight {
    * or the recorded take-off pattern less the gate-to-take-off allowance.
    */
   basis: 'position' | 'schedule' | 'timetable' | 'usual' | 'usual-departure';
+  /** Terminal from the schedule or timetable, e.g. "2", when it names one. */
+  terminal?: string | null;
 }
 
 type Live =
@@ -224,6 +226,7 @@ export function InboundPicker({
       fillAt: flight.scheduled,
       otherEndCountry: flight.otherEnd?.country ?? null,
       basis: 'schedule',
+      terminal: flight.terminal,
     });
     setState({
       kind: 'picked',
@@ -238,6 +241,7 @@ export function InboundPicker({
       fillAt: flight.at,
       otherEndCountry: flight.otherEnd?.country ?? null,
       basis: 'timetable',
+      terminal: flight.terminal,
     });
     setState({
       kind: 'picked',

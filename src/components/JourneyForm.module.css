@@ -283,8 +283,15 @@
   gap: 0;
 }
 
+/* Three answers on one row, so "Not sure" is not left on a line of its own. */
+.inlineThree {
+  composes: inline;
+  grid-template-columns: repeat(3, 1fr);
+}
+
 @media (max-width: 30rem) {
-  .inline {
+  .inline,
+  .inlineThree {
     grid-template-columns: 1fr;
   }
 }

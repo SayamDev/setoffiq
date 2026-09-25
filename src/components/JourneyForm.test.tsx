@@ -330,3 +330,54 @@ describe('choosing a day of the timetable', () => {
     expect(screen.getByRole('button', { name: /^Tomorrow/ })).toHaveAttribute('aria-pressed', 'true');
   });
 });
+
+describe('details a picked flight and the passenger can settle', () => {
+  afterEach(() => clearAll());
+
+  it('fills the terminal from the flight picked, since each terminal has its own road in', async () => {
+    const now = Date.now();
+    writeCache(
+      'flight-snapshot:EGCC',
+      { generatedAt: new Date(now).toISOString(), airportIcao: 'EGCC', source: 't', attribution: 't', radiusKm: 463, aircraft: [] } as FlightSnapshot,
+      now,
+    );
+    writeCache(
+      'flight-schedule:EGCC',
+      {
+        generatedAt: new Date(now).toISOString(),
+        attribution: 'Flight schedules from AirLabs (airlabs.co)',
+        arrivals: [
+          {
+            flight: 'EK19', callsign: 'UAE19', airline: 'EK', actual: null, aliases: [], terminal: '2',
+            otherEnd: { icao: 'OMDB', iata: 'DXB', city: 'Dubai', country: 'AE' },
+            scheduled: now + 2 * 3_600_000, estimated: null, status: 'scheduled', delayMinutes: null,
+          },
+        ],
+        departures: [],
+      },
+      now,
+    );
+    const user = userEvent.setup();
+    render(<JourneyForm kind="pickup" airport={MANCHESTER} now={now} onSubmit={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: /Collecting someone from a flight/ }));
+    await user.click(await screen.findByRole('button', { name: /EK19.*from Dubai/s }));
+
+    expect(screen.getByLabelText('Terminal (optional)')).toHaveValue('T2');
+    expect(screen.getByText(/Filled in from the flight you picked/)).toBeInTheDocument();
+  });
+
+  it('asks about checked bags on a pickup, starting from "not sure"', async () => {
+    const user = userEvent.setup();
+    render(<JourneyForm kind="pickup" airport={MANCHESTER} now={Date.now()} onSubmit={vi.fn()} />);
+
+    expect(screen.getByRole('radio', { name: /Not sure/ })).toBeChecked();
+    await user.click(screen.getByRole('radio', { name: /Hand luggage only/ }));
+    expect(screen.getByRole('radio', { name: /Hand luggage only/ })).toBeChecked();
+  });
+
+  it('does not ask about bags on a drop-off, where they change nothing', () => {
+    render(<JourneyForm kind="dropoff" airport={MANCHESTER} now={Date.now()} onSubmit={vi.fn()} />);
+    expect(screen.queryByRole('radio', { name: /Hand luggage only/ })).not.toBeInTheDocument();
+  });
+});

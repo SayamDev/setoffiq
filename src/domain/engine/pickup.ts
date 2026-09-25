@@ -2,6 +2,7 @@ import { processingProfileFor } from '../airports';
 import { ASSUMPTION_LABEL } from '../assumptions';
 import { addMinutes, addRanges, formatClock, formatMinuteRange, minutesBetween } from '../time';
 import type {
+  MinuteRange,
   PassengerReadinessEstimate,
   PickupOption,
   PickupRecommendation,
@@ -55,13 +56,7 @@ export function calculatePickupRecommendation(input: PickupEngineInput): Recomme
 
   const landing = flight?.estimatedArrival ?? input.scheduledArrival;
   const option = findPickupOption(input);
-  const profile = processingProfileFor(airport, input.passengerRoute);
-  const processing = addRanges(
-    profile.disembarkation,
-    profile.borderControl,
-    profile.baggage,
-    profile.terminalWalk,
-  );
+  const processing = processingFor(input);
 
   const readiness: PassengerReadinessEstimate = {
     window: {
@@ -107,6 +102,21 @@ export function calculatePickupRecommendation(input: PickupEngineInput): Recomme
   } satisfies PickupRecommendation;
 }
 
+/**
+ * Time from landing to walking out. A passenger with hand luggage only does
+ * not wait at the belt, so that step is removed rather than shortened: it is a
+ * step that does not happen, not a new guess about how long it takes.
+ */
+function processingFor(input: PickupEngineInput): MinuteRange {
+  const profile = processingProfileFor(input.airport, input.passengerRoute);
+  return addRanges(
+    profile.disembarkation,
+    profile.borderControl,
+    input.luggage === 'hand-only' ? { minMinutes: 0, maxMinutes: 0 } : profile.baggage,
+    profile.terminalWalk,
+  );
+}
+
 function findPickupOption(input: PickupEngineInput): PickupOption {
   const option = input.airport.pickupOptions.find((candidate) => candidate.id === input.mode);
   if (!option) throw new Error(`Unknown pickup mode ${input.mode} at ${input.airport.iataCode}`);
@@ -121,13 +131,7 @@ function buildFactors(
   const { airport } = input;
   const zone = airport.timeZone;
   const flight = input.flight.value;
-  const profile = processingProfileFor(airport, input.passengerRoute);
-  const processing = addRanges(
-    profile.disembarkation,
-    profile.borderControl,
-    profile.baggage,
-    profile.terminalWalk,
-  );
+  const processing = processingFor(input);
   const factors: RecommendationFactor[] = [];
 
   const source = flight?.estimatedArrivalSource ?? null;
@@ -169,7 +173,10 @@ function buildFactors(
     id: 'processing',
     label: 'Getting through the airport',
     value: formatMinuteRange(processing),
-    detail: `${ASSUMPTION_LABEL} for ${input.passengerRoute === 'international' ? 'an international' : 'a domestic'} arrival: leaving the aircraft, ${input.passengerRoute === 'international' ? 'border control, ' : ''}bags and the walk out.`,
+    detail:
+      input.luggage === 'hand-only'
+        ? `${ASSUMPTION_LABEL} for ${input.passengerRoute === 'international' ? 'an international' : 'a domestic'} arrival: leaving the aircraft, ${input.passengerRoute === 'international' ? 'border control ' : ''}and the walk out. No baggage wait — they have hand luggage only.`
+        : `${ASSUMPTION_LABEL} for ${input.passengerRoute === 'international' ? 'an international' : 'a domestic'} arrival: leaving the aircraft, ${input.passengerRoute === 'international' ? 'border control, ' : ''}bags and the walk out.`,
     basis: 'assumption',
   });
 

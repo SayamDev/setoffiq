@@ -168,6 +168,7 @@ export function DeparturePicker({
       fillAt: flight.scheduled,
       otherEndCountry: flight.otherEnd?.country ?? null,
       basis: 'schedule',
+      terminal: flight.terminal,
     });
     setState({
       kind: 'picked',
@@ -184,6 +185,7 @@ export function DeparturePicker({
       fillAt: flight.at,
       otherEndCountry: flight.otherEnd?.country ?? null,
       basis: 'timetable',
+      terminal: flight.terminal,
     });
     setState({
       kind: 'picked',

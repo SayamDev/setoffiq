@@ -62,6 +62,7 @@ The only part that decides anything.
 pickup:
   landing          = live estimate ?? the scheduled time you entered
   readiness        = landing + disembarkation + border + baggage + walk
+                     (baggage is 0 when the passenger has hand luggage only)
   airport arrival  = readiness.earliest − time needed at the airport
   departure        = airport arrival − the slowest plausible journey
 
@@ -70,6 +71,15 @@ drop-off:
   airport arrival  = terminal target − parking/walking buffer
   departure        = airport arrival − the slowest plausible journey
 ```
+
+Two answers narrow this without adding a guess. **Hand luggage only** removes
+the baggage wait — a step that does not happen, rather than a shorter estimate
+of one; "not sure" keeps it. The **terminal** routes the drive to that
+terminal's own road approach (up to about two minutes different from the
+Terminal 1 default), and is filled in from the schedule or timetable when a
+flight is picked. Passport type (e-gates) is deliberately not asked: no free
+source measures Manchester's border times, so it would only split one
+assumption into two.
 
 The journey range takes the routed free-flow time as its lower bound and widens
 the upper bound for traffic, weekday peak hours, weather, and — when no routing

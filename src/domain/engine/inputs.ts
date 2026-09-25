@@ -37,6 +37,8 @@ export interface JourneyEngineInput {
   journeyKind: JourneyKind;
   airport: AirportProfile;
   passengerRoute: PassengerRoute;
+  /** Hand luggage only skips the baggage wait on arrival. See JourneyInput. */
+  luggage?: 'checked' | 'hand-only' | null;
   /** Straight-line origin-to-airport distance, used only if routing fails. */
   distanceKm: number;
   flight: ProviderInput<FlightStatus>;

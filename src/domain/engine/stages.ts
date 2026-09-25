@@ -59,7 +59,7 @@ export function assessReadinessStage(
       observed: flight.phase === 'landed',
       detail:
         flight.phase === 'landed'
-          ? `On the ground ${minutesSinceLanding} min ago. Still getting off, through the airport and to their bags.`
+          ? `On the ground ${minutesSinceLanding} min ago. Still getting off and through the airport.`
           : 'Expected on the ground, and now working through the airport.',
     };
   }
