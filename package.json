@@ -24,6 +24,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
+    "geo-tz": "^8.1.9",
     "jsdom": "^30.0.1",
     "oxlint": "^1.82.0",
     "typescript": "~6.0.2",

@@ -13,6 +13,8 @@ import { SignalTable } from '../components/SignalTable';
 import { signalDetails } from '../components/signalDetails';
 import { ReadinessStages } from '../components/ReadinessStages';
 import { FlightTracker } from '../components/FlightTracker';
+import { FlightRouteSummary, shortRoute } from '../components/FlightRouteSummary';
+import { useFlightRoute } from '../hooks/useFlightRoute';
 import { trackFlight } from '../domain/engine';
 import { Badge, Button, Callout, Card, Skeleton, ui } from '../components/ui';
 import { useMonitoredJourney } from '../hooks/useMonitoredJourney';
@@ -42,6 +44,7 @@ export function JourneyPage({
   const airport = DEFAULT_AIRPORT;
   const now = useNow(30_000);
   const monitor = useMonitoredJourney(journey, airport, settings, onSave);
+  const route = useFlightRoute(journey?.input ?? null);
 
   if (!journey) {
     return (
@@ -80,6 +83,8 @@ export function JourneyPage({
         <h1 className={styles.title}>{journey.label}</h1>
         <p className={styles.subtitle}>
           {journey.input.kind === 'pickup' ? 'Pick up' : 'Drop off'} at {airport.name} ·{' '}
+          {journey.input.flightNumber ? `${journey.input.flightNumber} ` : ''}
+          {shortRoute(route, journey.input.kind) ? `${shortRoute(route, journey.input.kind)} · ` : ''}
           {formatDate(journey.input.scheduledTime, zone)} at{' '}
           {formatClock(journey.input.scheduledTime, zone)}
         </p>
@@ -185,11 +190,15 @@ export function JourneyPage({
             </p>
           </RecommendationCard>
 
-          {recommendation.kind === 'pickup' && monitor.plan ? (
+          {route || (recommendation.kind === 'pickup' && monitor.plan) ? (
             <section className={styles.section} aria-labelledby="tracker-heading">
               <h2 className={styles.sectionTitle} id="tracker-heading">
                 The flight
               </h2>
+              {route ? (
+                <FlightRouteSummary route={route} kind={journey.input.kind} timeZone={zone} now={now} />
+              ) : null}
+              {recommendation.kind === 'pickup' && monitor.plan ? (
               <FlightTracker
                 view={trackFlight(monitor.plan.flight, {
                   now,
@@ -197,6 +206,7 @@ export function JourneyPage({
                   firstSeenLandedAt: firstSeenLanded(journey),
                 })}
               />
+              ) : null}
             </section>
           ) : null}
 

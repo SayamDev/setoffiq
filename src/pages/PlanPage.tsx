@@ -1,3 +1,5 @@
+import { FlightRouteSummary, shortRoute } from '../components/FlightRouteSummary';
+import { useFlightRoute } from '../hooks/useFlightRoute';
 import { useEffect, useRef, useState } from 'react';
 import { DEFAULT_AIRPORT } from '../domain/airports';
 import { formatClock, formatDate } from '../domain/time';
@@ -37,6 +39,7 @@ export function PlanPage({
   const now = useNow(30_000);
   const [input, setInput] = useState<JourneyInput | null>(null);
   const { status, plan, error, refresh } = useJourneyPlan(input);
+  const route = useFlightRoute(input);
   const resultRef = useRef<HTMLDivElement>(null);
 
   /*
@@ -56,8 +59,11 @@ export function PlanPage({
 
   const startMonitoring = (): void => {
     if (!input || !plan || plan.recommendation.kind === 'unavailable') return;
+    // The place goes in the name, so two journeys on one day are told apart
+    // at a glance: "RK1711 to Rabat · Sun 27 Sept".
+    const where = shortRoute(route, input.kind);
     const label = input.flightNumber
-      ? `${input.flightNumber} · ${formatDate(input.scheduledTime, airport.timeZone)}`
+      ? `${input.flightNumber}${where ? ` ${where}` : ''} · ${formatDate(input.scheduledTime, airport.timeZone)}`
       : `${kind === 'pickup' ? 'Pickup' : 'Drop-off'} · ${formatDate(input.scheduledTime, airport.timeZone)}`;
 
     let journey = createJourney(label, input, plan.computedAt);
@@ -195,6 +201,15 @@ export function PlanPage({
                   Where your passenger is
                 </h2>
                 <ReadinessStages progress={plan.recommendation.progress} />
+              </section>
+            ) : null}
+
+            {route && input ? (
+              <section className={styles.section} aria-labelledby="route-heading">
+                <h2 className={styles.sectionTitle} id="route-heading">
+                  The flight
+                </h2>
+                <FlightRouteSummary route={route} kind={input.kind} timeZone={airport.timeZone} now={now} />
               </section>
             ) : null}
 

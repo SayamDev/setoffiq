@@ -18,6 +18,21 @@
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { find as findTimeZones } from 'geo-tz';
+
+/**
+ * The IANA timezone at a point, from the timezone-boundary-builder data that
+ * geo-tz ships — so a flight to Lanzarote lands on Canary time, not Madrid's.
+ * Used only in the deploy job; nothing here reaches a visitor's browser.
+ */
+export function timeZoneAt(latitude, longitude) {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+  try {
+    return findTimeZones(latitude, longitude)[0] ?? null;
+  } catch {
+    return null;
+  }
+}
 
 /** Split a CSV line, honouring quoted fields ("Name, with comma"). */
 export function splitCsvLine(line) {
@@ -127,13 +142,30 @@ export function createIataLookup(standingDataDir) {
         for (const row of readCsv(join(dir, file))) {
           const iata = row[3];
           if (iata && !byIata.has(iata)) {
-            byIata.set(iata, { icao: row[2] || row[0], iata, city: row[4] || null, name: row[1] || null, country: row[5] || null });
+            byIata.set(iata, {
+              icao: row[2] || row[0],
+              iata,
+              city: row[4] || null,
+              name: row[1] || null,
+              country: row[5] || null,
+              latitude: Number.parseFloat(row[6]),
+              longitude: Number.parseFloat(row[7]),
+            });
           }
         }
       }
     }
   }
-  return (iata) => (iata ? (byIata.get(iata) ?? null) : null);
+  // Coordinates are used to find the timezone and not published: the files
+  // carry only what the app shows.
+  const zones = new Map();
+  return (iata) => {
+    const found = iata ? byIata.get(iata) : undefined;
+    if (!found) return null;
+    if (!zones.has(iata)) zones.set(iata, timeZoneAt(found.latitude, found.longitude));
+    const { latitude: _lat, longitude: _lon, ...place } = found;
+    return { ...place, timeZone: zones.get(iata) };
+  };
 }
 
 

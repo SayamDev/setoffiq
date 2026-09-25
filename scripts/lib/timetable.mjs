@@ -73,9 +73,15 @@ export function toTimetableEntries(rows, direction, placeFor) {
     // thousand of them, so only what the list uses is published.
     const place = placeFor(otherIata);
     const otherEnd = place
-      ? { icao: place.icao ?? null, iata: place.iata ?? otherIata, city: place.city ?? null, country: place.country ?? null }
+      ? {
+          icao: place.icao ?? null,
+          iata: place.iata ?? otherIata,
+          city: place.city ?? null,
+          country: place.country ?? null,
+          timeZone: place.timeZone ?? null,
+        }
       : otherIata
-        ? { icao: null, iata: otherIata, city: null, country: null }
+        ? { icao: null, iata: otherIata, city: null, country: null, timeZone: null }
         : null;
     const terminals = direction === 'arrival' ? row.arr_terminals : row.dep_terminals;
 
@@ -104,4 +110,17 @@ export function toTimetableEntries(rows, direction, placeFor) {
   return [...operating.values()]
     .filter((entry) => direction === 'departure' || entry.durationMinutes !== null)
     .sort((a, b) => a.departureMinute - b.departureMinute || a.flight.localeCompare(b.flight));
+}
+
+/**
+ * Add the other airport's timezone to entries published before it was
+ * recorded, without asking AirLabs again: the timezone comes from the
+ * airport's position, which the standing data already holds.
+ */
+export function withTimeZones(entries, placeFor) {
+  return (entries ?? []).map((entry) => {
+    if (!entry.otherEnd || entry.otherEnd.timeZone) return entry;
+    const zone = placeFor(entry.otherEnd.iata)?.timeZone ?? null;
+    return zone ? { ...entry, otherEnd: { ...entry.otherEnd, timeZone: zone } } : entry;
+  });
 }

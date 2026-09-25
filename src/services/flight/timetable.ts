@@ -11,6 +11,8 @@ interface Place {
   iata: string | null;
   city: string | null;
   country: string | null;
+  /** IANA timezone of that airport, e.g. "Africa/Casablanca", when known. */
+  timeZone?: string | null;
 }
 
 /** One line of the airlines' weekly timetable, as published by the deploy job. */
@@ -47,6 +49,8 @@ export interface TimetableFlight {
   at: Instant;
   terminal: string | null;
   aliases: string[];
+  /** Time in the air, when the timetable gives it. */
+  durationMinutes: number | null;
 }
 
 const TIMETABLE_PATH = 'data/flights/EGCC-timetable.json';
@@ -139,6 +143,7 @@ export function timetableWindow(
         at,
         terminal: entry.terminal,
         aliases: entry.aliases,
+        durationMinutes: entry.durationMinutes,
       });
     }
   }

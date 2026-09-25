@@ -2,6 +2,8 @@ import { formatClock, formatDate } from '../domain/time';
 import type { Instant, SavedJourney } from '../domain/types';
 import { hrefFor } from '../app/router';
 import { latestVersion } from '../storage/journeys';
+import { useFlightRoute } from '../hooks/useFlightRoute';
+import { shortRoute } from './FlightRouteSummary';
 import { Badge } from './ui';
 import styles from './JourneyExtras.module.css';
 
@@ -28,6 +30,9 @@ export function SavedJourneyCard({
 }): React.JSX.Element {
   const version = latestVersion(journey);
   const scheduled: Instant = journey.input.scheduledTime;
+  // Where it is going or coming from: two journeys on the same day are
+  // otherwise told apart only by a flight number.
+  const route = shortRoute(useFlightRoute(journey.input), journey.input.kind);
 
   return (
     <a className={styles.journeyCard} href={hrefFor({ name: 'journey', id: journey.id })}>
@@ -41,6 +46,7 @@ export function SavedJourneyCard({
         <span>{journey.input.kind === 'pickup' ? 'Pick up' : 'Drop off'}</span>
         <span>{journey.input.airportIata}</span>
         {journey.input.flightNumber ? <span>{journey.input.flightNumber}</span> : null}
+        {route ? <span>{route}</span> : null}
         <span>
           {formatDate(scheduled, timeZone)} · {formatClock(scheduled, timeZone)}
         </span>

@@ -28,7 +28,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { toTimetableEntries } from './lib/timetable.mjs';
+import { toTimetableEntries, withTimeZones } from './lib/timetable.mjs';
 import { createIataLookup, partnerIataCodes } from './lib/routes.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -196,7 +196,21 @@ async function main() {
     previous?.usage?.month === month(now) ? { ...previous.usage } : { month: month(now), requests: 0 };
 
   if (!isDue(previous, now)) {
-    await write(previous);
+    // Not due for AirLabs, but timezones cost nothing to add from the
+    // standing data, so a timetable published before them gains them now.
+    const missing = [...previous.arrivals, ...previous.departures].some(
+      (entry) => entry.otherEnd && !entry.otherEnd.timeZone,
+    );
+    if (missing) {
+      const zonesFor = createIataLookup(process.env.STANDING_DATA_DIR);
+      await write({
+        ...previous,
+        arrivals: withTimeZones(previous.arrivals, zonesFor),
+        departures: withTimeZones(previous.departures, zonesFor),
+      });
+    } else {
+      await write(previous);
+    }
     const ageDays = ((now - Date.parse(previous.generatedAt)) / 86_400_000).toFixed(1);
     console.log(`Timetable kept: ${ageDays} days old${previous.partial ? ' (partial)' : ''}; ${usage.requests}/${MONTHLY_BUDGET} requests this month.`);
     return;

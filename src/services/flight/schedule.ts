@@ -10,7 +10,14 @@ export interface ScheduledFlight {
   flight: string;
   callsign: string | null;
   airline: string | null;
-  otherEnd: { icao: string | null; iata: string | null; city: string | null; country: string | null } | null;
+  otherEnd: {
+    icao: string | null;
+    iata: string | null;
+    city: string | null;
+    country: string | null;
+    /** IANA timezone of that airport, when known. */
+    timeZone?: string | null;
+  } | null;
   scheduled: Instant;
   estimated: Instant | null;
   actual: Instant | null;
