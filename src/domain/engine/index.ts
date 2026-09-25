@@ -1,6 +1,6 @@
 export { calculatePickupRecommendation } from './pickup';
 export { calculateDropoffRecommendation } from './dropoff';
-export { compareRecommendations, toVersion } from './changes';
+export { compareRecommendations, flightNewsTitle, toVersion } from './changes';
 export type { RecommendationChange } from './changes';
 export { assessConfidence } from './confidence';
 export { estimateJourney, estimateMinutesWithoutRouting } from './journeyWindow';
@@ -8,3 +8,5 @@ export type { JourneyEstimate } from './journeyWindow';
 export type { DropoffEngineInput, PickupEngineInput, JourneyEngineInput, ProviderInput } from './inputs';
 export { nextPollDelayMinutes } from './polling';
 export { advisoryAt, notificationTitle } from './advisory';
+export { trackFlight, APPROACH_WITHIN_KM } from './tracker';
+export type { TrackerStep, TrackerView } from './tracker';

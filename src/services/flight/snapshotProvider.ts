@@ -174,14 +174,23 @@ export const snapshotFlightProvider: FlightProvider = {
         ? (onSchedule.actual ?? onSchedule.estimated)
         : null;
 
+    const phase: FlightStatus['phase'] = cancelled
+      ? 'cancelled'
+      : !aircraft && onSchedule?.status === 'landed' && input.scheduledArrival !== null
+        ? 'landed'
+        : phaseFor(aircraft, elsewhere, input.scheduledArrival, now);
+    // The schedule's actual time is a touchdown; an aircraft seen on the
+    // ground only says it had landed by the time it was seen.
+    const scheduleLanded =
+      phase === 'landed' && onSchedule?.status === 'landed' && onSchedule.actual !== null
+        ? onSchedule.actual
+        : null;
+    const seenOnGround = phase === 'landed' && aircraft?.onGround ? aircraft.lastContact * 1000 : null;
+
     const status: FlightStatus = {
       flightNumber,
       callsign: aircraft?.callsign.trim() ?? null,
-      phase: cancelled
-        ? 'cancelled'
-        : !aircraft && onSchedule?.status === 'landed' && input.scheduledArrival !== null
-          ? 'landed'
-          : phaseFor(aircraft, elsewhere, input.scheduledArrival, now),
+      phase,
       scheduledArrival: input.scheduledArrival,
       scheduledDeparture: input.scheduledDeparture,
       estimatedArrival: estimate ? estimate.onStand : (scheduleEstimate ?? input.scheduledArrival),
@@ -205,6 +214,8 @@ export const snapshotFlightProvider: FlightProvider = {
         : scheduleEstimate && schedule
           ? Date.parse(schedule.generatedAt)
           : observedAt,
+      landedAt: scheduleLanded ?? seenOnGround,
+      landedAtSource: scheduleLanded !== null ? 'airline-schedule' : seenOnGround !== null ? 'seen-on-ground' : null,
     };
 
     return {

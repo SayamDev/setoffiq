@@ -185,6 +185,13 @@ export interface FlightStatus {
   position: AircraftPosition | null;
   /** When the underlying observation was made at source. */
   observedAt: Instant | null;
+  /**
+   * When it landed, once it has. From the airline schedule's actual time, or
+   * — when that is not available — the moment the aircraft was first seen on
+   * the ground here, which is an upper bound ("landed by"), not a touchdown.
+   */
+  landedAt?: Instant | null;
+  landedAtSource?: 'airline-schedule' | 'seen-on-ground' | null;
 }
 
 export interface FlightSearchInput {

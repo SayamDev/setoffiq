@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   advisoryAt,
   compareRecommendations,
+  flightNewsTitle,
   nextPollDelayMinutes,
   notificationTitle,
   toVersion,
@@ -143,19 +144,32 @@ export function useMonitoredJourney(
 
           if (settingsRef.current.notificationsEnabled) {
             const advice = advisoryAt(plan.recommendation, now, airport.timeZone);
+            // News about the flight itself — landed, airborne — leads, and
+            // the time to leave follows; otherwise the time to leave is the news.
+            const news = comparison.phaseChanged ? flightNewsTitle(phase, current.input.flightNumber) : null;
+            const flight = plan.flight.value;
+            const landedLine =
+              phase === 'landed' && flight?.landedAt
+                ? flight.landedAtSource === 'airline-schedule'
+                  ? `Landed at ${formatClock(flight.landedAt, airport.timeZone)}.`
+                  : `On the ground by ${formatClock(flight.landedAt, airport.timeZone)}.`
+                : null;
+            const leaveLine =
+              advice.kind === 'running-late'
+                ? advice.detail
+                : `Leave at ${formatClock(plan.recommendation.recommendedDeparture, airport.timeZone)}.`;
             const shown = await showNotification({
               id: newId(now),
               journeyId: current.id,
               at: now,
-              title: notificationTitle(
-                advice,
-                plan.recommendation.recommendedDeparture,
-                airport.timeZone,
-              ),
+              title:
+                news ??
+                notificationTitle(advice, plan.recommendation.recommendedDeparture, airport.timeZone),
               // Behind schedule, the news that it moved matters less than
               // how far behind: say both.
-              body:
-                advice.kind === 'running-late'
+              body: news
+                ? [landedLine, leaveLine].filter(Boolean).join(' ')
+                : advice.kind === 'running-late'
                   ? `${comparison.reason} ${advice.detail}`
                   : comparison.reason,
             });

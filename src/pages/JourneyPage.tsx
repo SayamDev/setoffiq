@@ -12,6 +12,8 @@ import { CheckNowButton } from '../components/CheckNowButton';
 import { SignalTable } from '../components/SignalTable';
 import { signalDetails } from '../components/signalDetails';
 import { ReadinessStages } from '../components/ReadinessStages';
+import { FlightTracker } from '../components/FlightTracker';
+import { trackFlight } from '../domain/engine';
 import { Badge, Button, Callout, Card, Skeleton, ui } from '../components/ui';
 import { useMonitoredJourney } from '../hooks/useMonitoredJourney';
 import { useNow } from '../hooks/useNow';
@@ -183,6 +185,21 @@ export function JourneyPage({
             </p>
           </RecommendationCard>
 
+          {recommendation.kind === 'pickup' && monitor.plan ? (
+            <section className={styles.section} aria-labelledby="tracker-heading">
+              <h2 className={styles.sectionTitle} id="tracker-heading">
+                The flight
+              </h2>
+              <FlightTracker
+                view={trackFlight(monitor.plan.flight, {
+                  now,
+                  timeZone: zone,
+                  firstSeenLandedAt: firstSeenLanded(journey),
+                })}
+              />
+            </section>
+          ) : null}
+
           <section className={styles.section} aria-labelledby="timeline-heading">
             <h2 className={styles.sectionTitle} id="timeline-heading">
               Timeline
@@ -239,4 +256,15 @@ export function JourneyPage({
       </section>
     </>
   );
+}
+
+/**
+ * The first check that saw the flight landed. A seen-on-ground time refreshes
+ * with every check, so the tracker anchors "landed by" to the earliest one.
+ */
+function firstSeenLanded(journey: SavedJourney): number | null {
+  const seen = journey.versions
+    .filter((version) => version.flightPhase === 'landed' && version.dataObservedAt !== null)
+    .map((version) => version.dataObservedAt as number);
+  return seen.length ? Math.min(...seen) : null;
 }

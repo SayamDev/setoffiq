@@ -101,3 +101,24 @@ export function toVersion(
     dataObservedAt: observedAt,
   };
 }
+
+/**
+ * The notification title for news about the flight itself. "Leave at 14:40"
+ * is the wrong headline when the thing that happened is a landing: people
+ * want the landing first and the time to leave second.
+ */
+export function flightNewsTitle(phase: FlightPhase, flightNumber: string | null): string | null {
+  const name = flightNumber?.trim() || 'The flight';
+  switch (phase) {
+    case 'landed':
+      return `${name} has landed`;
+    case 'airborne':
+      return `${name} is in the air`;
+    case 'cancelled':
+      return `${name} is cancelled`;
+    case 'diverted':
+      return `${name} has been diverted`;
+    default:
+      return null;
+  }
+}

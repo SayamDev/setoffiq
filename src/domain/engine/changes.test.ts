@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compareRecommendations, toVersion } from './changes';
+import { compareRecommendations, flightNewsTitle, toVersion } from './changes';
 import { nextPollDelayMinutes } from './polling';
 import { calculatePickupRecommendation } from './pickup';
 import { manTime, flight, okRoute, weather, conditions, noRoadDisruption } from '../../test/factories';
@@ -147,5 +147,18 @@ describe('losing sight of a flight', () => {
     const change = compareRecommendations(previous, next, 'unknown');
     expect(change.meaningful).toBe(true);
     expect(change.reason).toMatch(/30 minutes later/);
+  });
+});
+
+describe('notification titles for news about the flight', () => {
+  it('leads with the landing, not the time to leave', () => {
+    expect(flightNewsTitle('landed', 'EK21')).toBe('EK21 has landed');
+    expect(flightNewsTitle('airborne', 'EK21')).toBe('EK21 is in the air');
+    expect(flightNewsTitle('cancelled', null)).toBe('The flight is cancelled');
+  });
+
+  it('has nothing to say about losing sight of a flight', () => {
+    expect(flightNewsTitle('unknown', 'EK21')).toBeNull();
+    expect(flightNewsTitle('scheduled', 'EK21')).toBeNull();
   });
 });

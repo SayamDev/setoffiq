@@ -180,6 +180,27 @@ is the one that knows whether a flight is actually running. Opening the picker
 re-fetches all three past the browser cache, with skeleton rows while it waits,
 and falls back to the last copy it holds if a fetch fails.
 
+## Tracking a monitored flight
+
+A monitored pickup shows the flight as a four-step tracker — scheduled, in the
+air, approaching (within 50 km), landed — built by `trackFlight` in
+`src/domain/engine/tracker.ts` from the same flight status the recommendation
+uses. Nothing new is fetched and nothing costs anything.
+
+- **In the air:** distance, height, ground speed and the on-stand estimate,
+  from the adsb.lol snapshot, with the position's time and age always shown.
+- **Landed:** "Landed at 14:29" only when the airline schedule gives an actual
+  time. Otherwise "on the ground by 14:35" — the first check that saw the
+  aircraft on the ground here, anchored to the earliest such check so it does
+  not drift later with each refresh. That is an upper bound, and the card says so.
+- **Not seen:** said as "not seen in the air yet", never as missing: SetoffIQ
+  only sees aircraft within about 460 km.
+- A phase change to airborne, landed, cancelled or diverted notifies with the
+  news first ("EK21 has landed") and the time to leave second.
+
+How late "landed" appears depends on how often the snapshot is rebuilt, which
+is GitHub's best-effort schedule — see HANDOFF.md.
+
 ## Build and deploy
 
 Vite builds a static bundle. `.github/workflows/deploy.yml` refreshes the flight
