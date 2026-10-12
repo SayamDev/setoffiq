@@ -64,3 +64,31 @@ npm run build
 ```
 
 Push to `main` deploys.
+
+## Voice feature branch — 12 October 2026
+
+`codex/hands-free-voice` adds an English deterministic utterance/action pipeline,
+existing-data flight matching, browser speech recognition and local-only spoken
+replies on both planning pages. The text form, prediction engine and monitoring
+implementation are reused. No backend, services, credentials or npm dependencies
+were added. Transcripts/audio are never logged or persisted.
+
+README now records usage, feature-detected support, off-device recognition privacy,
+known parser/data limits, tap-to-interrupt replies and lifecycle behaviour. The
+privacy page has the same disclosure. ARCHITECTURE and COSTS explain the boundary
+and the pre-existing CI-only AirLabs/provider keys, correcting older contradictory
+claims without changing the data jobs.
+
+Tests cover the parser corpus, structured validation, DST gaps/repeated hours,
+matching/multiple candidates, callsign/codeshare handling, a full utterance-string
+journey through real providers and the real engine to monitoring, cancellations,
+transcript storage absence, stale requests, permission failures, echo avoidance,
+silence expiry, keyboard stop and hiding/returning. Physical microphone, noisy-car,
+VoiceOver/TalkBack and actual iOS/Android locked-screen checks remain pending.
+Browser callback tests simulate lifecycle changes; they do not prove OS behaviour.
+
+Production Chrome preview verified at 390px with 48px voice buttons, no horizontal
+overflow and no console warnings/errors. The local committed flight snapshot was
+31 days old, and the real result correctly exposed the scheduled-time fallback
+and low confidence. Preview requires the Pages base explicitly:
+`npm run preview -- --host 127.0.0.1 --base /setoffiq/`.

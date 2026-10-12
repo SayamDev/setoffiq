@@ -87,3 +87,16 @@ shipping is keyless.
 There are none. `.env.example` contains two commented-out variables, both for
 the optional local model. No API key exists anywhere in this repository, which
 is the most reliable way to ensure none leaks and none is billed.
+
+## Voice mode — October 2026
+
+Voice adds no service, account, credential, runtime dependency or billing path.
+It uses the browser’s speech capabilities and existing public data adapters.
+Recognition may be processed by the browser provider; the feature offers typed
+input without recognition. No hosted language model or transcription API is
+called. Synthesis selects only browser voices marked local.
+
+Correction to the older text above: CI-only AirLabs and National Highways keys are
+already supported in this checkout. The tables and DATA-SOURCES.md describe them;
+the older “every source shipping is keyless” statement is not current. Voice
+introduces no new keys and does not change those jobs or their budgets.

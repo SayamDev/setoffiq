@@ -424,6 +424,17 @@ export function PrivacyPage(): React.JSX.Element {
             </li>
           </ul>
 
+          <h2>Voice mode</h2>
+          <p>
+            Voice is off until you tap Listen. Your browser may send microphone audio to its
+            speech recognition service, under that browser provider’s terms. Type sensitive
+            details such as your postcode instead if you prefer. SetoffIQ does not record,
+            log or persist audio or transcripts, and never sends them to a language model.
+            Only structured journey details are saved when you start monitoring. Replies
+            use local English speech voices when available. Voice pauses when the tab is
+            hidden or the screen locks; tap Listen to resume.
+          </p>
+
           <h2>Explanations and AI</h2>
           <p>
             The explanation of your recommendation never includes your address, postcode or

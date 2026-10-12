@@ -6,6 +6,7 @@ import type { JourneyInput, JourneyKind } from '../domain/types';
 import { signalDetails } from '../components/signalDetails';
 import { hrefFor, navigate } from '../app/router';
 import { ExplanationPanel } from '../components/ExplanationPanel';
+import { VoiceJourney } from '../components/VoiceJourney';
 import { JourneyForm } from '../components/JourneyForm';
 import { JourneyTimeline } from '../components/JourneyTimeline';
 import { RecommendationCard } from '../components/RecommendationCard';
@@ -64,7 +65,7 @@ export function PlanPage({
     const where = shortRoute(route, input.kind);
     const label = input.flightNumber
       ? `${input.flightNumber}${where ? ` ${where}` : ''} · ${formatDate(input.scheduledTime, airport.timeZone)}`
-      : `${kind === 'pickup' ? 'Pickup' : 'Drop-off'} · ${formatDate(input.scheduledTime, airport.timeZone)}`;
+      : `${input.kind === 'pickup' ? 'Pickup' : 'Drop-off'} · ${formatDate(input.scheduledTime, airport.timeZone)}`;
 
     let journey = createJourney(label, input, plan.computedAt);
     journey = {
@@ -109,6 +110,8 @@ export function PlanPage({
             : 'For a departing flight from Manchester Airport. Enter the flight time; we’ll calculate when to set off and reach the terminal in time.'}
         </p>
       </header>
+
+      <VoiceJourney kind={kind} input={input} plan={plan} busy={status === 'loading'} error={error} onInput={setInput} onMonitor={startMonitoring} />
 
       {input === null ? (
         <JourneyForm kind={kind} airport={airport} now={now} onSubmit={show} />

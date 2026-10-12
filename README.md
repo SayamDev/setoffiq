@@ -294,3 +294,92 @@ SetoffIQ is an independent travel-planning application and is not affiliated
 with any airline or airport. It provides estimates for planning purposes. Flight
 times, passenger processing, traffic and weather may change — allow appropriate
 additional time and follow official airport and airline guidance.
+
+## Hands-free journey planning
+
+Open **Plan a pickup** or **Plan a drop-off**, then tap **Listen** in
+**Talk through your journey**. Microphone use starts only after that tap and
+browser permission. For example:
+
+> “I'm picking someone up at 6:30 today, Ryanair from Rabat.”
+
+SetoffIQ shows a live transcript and the structured details it understood. If
+6:30 could mean morning or evening, it asks AM/PM; if the time could be a meeting
+time, it asks for the flight landing time. Say “PM” and “landing time”, or tap the
+answers. Enter the starting postcode once in the understood-details controls.
+With enough information, the existing deterministic engine runs automatically.
+Its set-off time, windows, confidence and data caveats appear on screen and are
+read aloud when a local English voice is available.
+
+- Correct a detail: “no, 7 o'clock”, “actually 19:00”, “tomorrow”, “hand luggage
+  only”, “terminal two”, or open **Understood details** and edit a field.
+- Ask “why that time?” for the standard explanation, or “start monitoring” to
+  save the structured journey and open the existing monitoring screen.
+- Multiple matches are offered as numbered options. Say “option one” or tap one.
+  Matching uses the existing schedule, timetable and inbound-position adapters,
+  including their age limits. A timetable match carries **no live status**.
+- No match means the stated time is used; it does **not** prove cancellation.
+  Ryanair/easyJet callsign limitations still apply. No fuzzy place or flight
+  guessing is used: inspect a mishearing and correct it.
+- “About half six” is accepted and visibly marked approximate, then treated as
+  the entered flight time. It does not create a fabricated uncertainty window.
+- Replies pause recognition to prevent the app hearing itself, then listening
+  resumes. Tap **Interrupt and listen** to cut a reply short. **Stop voice**,
+  “stop listening”, or Escape stops voice. After a minute without an instruction,
+  voice pauses. There is no wake word or always-on microphone.
+- Use **Or type an instruction** in any browser; it runs the same parser and
+  action validation. The original journey form is still available.
+
+### Browser support and privacy
+
+Recognition is feature-detected (`SpeechRecognition` / `webkitSpeechRecognition`),
+with English (UK) selected. Chrome and Safari commonly expose this API, but support
+varies across operating systems, installed PWAs, permissions and browser settings;
+Firefox generally needs typed input. HTTPS (or localhost), microphone permission
+and often an internet connection are required. Support is not a guarantee of
+latency or accuracy, especially with cabin noise. See the
+[Web Speech API documentation](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition).
+
+**Your browser may send microphone audio off-device to its speech service.**
+That service’s handling and retention follow its provider’s terms; SetoffIQ cannot
+control them. This is disclosed above Listen before microphone use. Type your
+postcode or other sensitive details if you prefer to keep them out of speech.
+SetoffIQ does not record, log or persist audio or transcripts, and sends no
+transcript, postcode or coordinates to any language model. Voice parsing is local,
+rule-based and independent of the optional Ollama explanation setting. Spoken
+replies use only voices the browser marks local; if none are available, the answer
+remains on screen. **Read answer** can retry after voices load or when autoplay
+restrictions require a tap. Only normal structured journey details are persisted
+when monitoring is started, through the existing storage module.
+
+Voice stops on tab hiding, page exit and screen lock when the browser dispatches
+those lifecycle events; returning requires a fresh Listen tap. Browser suspension
+can interrupt recognition without a final transcript. Monitoring retains its
+existing limitation: it works while the app is open, with a refresh on return.
+No background voice or locked-screen reliability is promised.
+
+### Remaining voice limitations
+
+- The bounded English parser is not general conversation. Today/tomorrow/ISO
+  dates, clock times, half/quarter times and common airlines work; unsupported
+  date wording or unclear instructions need the controls. More languages and
+  place aliases would need additional deterministic rules and test corpora.
+- Browser recognition owns transcription speed and accuracy. Truly private,
+  consistent offline dictation would require an on-device speech model and large
+  downloads, with device-performance testing. No hosted transcription is added.
+- Spoken barge-in during a reply is not enabled: interrupt with a tap, then speak.
+  Reliable simultaneous listening/speaking would need tested echo cancellation
+  across actual mobile devices. Replies and follow-ups otherwise need no new tap.
+- Flight data remains incomplete, region-limited and refreshed best-effort. Better
+  coverage would need a permitted, sustainably free feed or an explicit change to
+  the project’s cost constraint. Voice cannot supply missing airline information.
+- Real phone microphone, noisy-car, screen-reader speech and OS lock behaviour
+  still require device testing; CI covers utterance strings and browser callbacks,
+  not physical audio capture. Use the app while stationary.
+
+**Repository documentation correction:** this checkout already supports optional
+AirLabs schedule/timetable snapshots and CI-only provider keys (see
+DATA-SOURCES.md and ARCHITECTURE.md). Older “no schedules” / “no keys anywhere”
+statements above describe the earlier position-only version. The voice feature
+adds no backend, accounts, credentials, dependencies or metered services, and
+preserves the £0-to-run / £0-to-use design.

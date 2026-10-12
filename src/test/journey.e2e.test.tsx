@@ -2,10 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../App';
-import { clearAll } from '../services/storage';
+import { clearAll, listKeys, readRaw } from '../services/storage';
 import { resetHttpState } from '../services/http';
-import { formatClock, todayInZone } from '../domain/time';
+import { formatClock, todayInZone, parseLocalDateTime } from '../domain/time';
 import { MANCHESTER } from '../domain/airports';
+import type { ScheduledFlight } from '../services/flight/schedule';
 import { CHECK_COOLDOWN_SECONDS } from '../components/CheckNowButton';
 
 /**
@@ -21,6 +22,7 @@ import { CHECK_COOLDOWN_SECONDS } from '../components/CheckNowButton';
 
 /** Distance of the aircraft from Manchester, adjusted mid-test to move the arrival. */
 let aircraftLatitude = 54.6;
+let scheduledFlights: ScheduledFlight[] = [];
 
 function snapshot(): unknown {
   return {
@@ -82,6 +84,7 @@ function stubNetwork(): void {
           },
         });
       }
+      if (url.includes('EGCC-schedule.json')) return json({ generatedAt: new Date().toISOString(), attribution: 'test', arrivals: scheduledFlights, departures: [] });
       if (url.includes('data/flights')) {
         return json(snapshot());
       }
@@ -114,6 +117,7 @@ beforeEach(() => {
   clearAll();
   resetHttpState();
   aircraftLatitude = 54.6;
+  scheduledFlights = [];
   window.location.hash = '#/';
   stubNetwork();
 });
@@ -215,4 +219,86 @@ describe('planning and monitoring a pickup', () => {
     expect(screen.getByText(/Monitoring has been stopped/i)).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: /Set off at/i })).not.toBeInTheDocument();
   }, 30_000);
+});
+
+describe('utterance to the real planner', () => {
+  it('plans from a sentence, accepts a correction, explains and starts monitoring without saving the transcript', async () => {
+    const user = userEvent.setup();
+    window.location.hash = '#/pickup';
+    render(<App />);
+    const instruction = await screen.findByLabelText('Or type an instruction');
+    await user.type(instruction, 'landing tomorrow at 18:30, flight KL1038');
+    await user.click(screen.getByRole('button', { name: 'Use instruction' }));
+    await screen.findByText(/Enter your starting postcode below/);
+    await user.type(screen.getByLabelText('Voice starting postcode'), 'M1 4BT');
+    await user.click(screen.getByRole('button', { name: 'Calculate understood journey' }));
+    const first = await screen.findByRole('region', { name: /Set off at/ }, { timeout: 5000 });
+    const firstTime = within(first).getByText(/^\d{2}:\d{2}$/).textContent;
+    expect(screen.getByLabelText('Voice flight time')).toHaveValue('18:30');
+    await user.type(instruction, 'no, 19:00');
+    await user.click(screen.getByRole('button', { name: 'Use instruction' }));
+    const corrected = await screen.findByRole('region', { name: /Set off at/ }, { timeout: 5000 });
+    expect(screen.getByLabelText('Voice flight time')).toHaveValue('19:00');
+    expect(within(corrected).getByText(/^\d{2}:\d{2}$/).textContent).not.toBe(firstTime);
+    await user.type(instruction, 'why that time?');
+    await user.click(screen.getByRole('button', { name: 'Use instruction' }));
+    await screen.findAllByText(/Leaving at .* should get you to Manchester Airport/);
+    await user.type(instruction, 'start monitoring');
+    await user.click(screen.getByRole('button', { name: 'Use instruction' }));
+    expect(await screen.findByRole('button', { name: /Check again in/ })).toBeDisabled();
+    const stored = listKeys().map(key => readRaw(key)).join(' ');
+    expect(stored).not.toContain('landing tomorrow at');
+    expect(stored).not.toContain('why that time');
+    expect(stored).toContain('KL1038');
+  }, 15000);
+
+  it('does not calculate an ambiguous pickup until AM/PM and landing basis are settled', async () => {
+    const user = userEvent.setup();
+    window.location.hash = '#/pickup';
+    render(<App />);
+    await user.type(await screen.findByLabelText('Or type an instruction'), 'I am picking someone up at 6:30 tomorrow, Ryanair from Rabat');
+    await user.click(screen.getByRole('button', { name: 'Use instruction' }));
+    expect(await screen.findByText('Is that AM or PM?')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: /Set off at/ })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'PM' }));
+    expect(screen.getByLabelText('Voice flight time')).toHaveValue('18:30');
+    await user.type(screen.getByLabelText('Voice starting postcode'), 'M1 4BT');
+    await user.click(screen.getByRole('button', { name: 'That is the landing time' }));
+    await screen.findByRole('region', { name: /Set off at/ }, { timeout: 5000 });
+    expect(screen.getByText(/No matching flight in the available data/)).toBeInTheDocument();
+  }, 15000);
+});
+
+
+describe('voice flight choices from published data', () => {
+  const fixture = (flight: string, status: ScheduledFlight['status'] = 'scheduled'): ScheduledFlight => {
+    const date = todayInZone(Date.now() + 86400000, MANCHESTER.timeZone);
+    const at = parseLocalDateTime(date, '18:30', MANCHESTER.timeZone)!;
+    return { flight, callsign: 'RYR123', airline: 'FR', otherEnd: { icao: 'GMME', iata: 'RBA', city: 'Rabat', country: 'MA' }, scheduled: at, estimated: null, actual: null, status, delayMinutes: null, terminal: '3', aliases: [] };
+  };
+  it('requires a choice for multiple matches, then uses the chosen flight in the real planner', async () => {
+    scheduledFlights = [fixture('FR123'), fixture('FR124')];
+    const user = userEvent.setup(); window.location.hash = '#/pickup'; render(<App />);
+    await user.type(await screen.findByLabelText('Or type an instruction'), 'landing tomorrow at 18:30, Ryanair from Rabat');
+    await user.click(screen.getByRole('button', { name: 'Use instruction' }));
+    await screen.findByText(/I found 2 possible flights/);
+    expect(screen.queryByRole('region', { name: /Set off at/ })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Option 2: FR124/ }));
+    await screen.findByText(/Enter your starting postcode below/);
+    await user.type(screen.getByLabelText('Voice starting postcode'), 'M1 4BT');
+    await user.click(screen.getByRole('button', { name: 'Calculate understood journey' }));
+    await screen.findByRole('region', { name: /Set off at/ }, { timeout: 5000 });
+    expect(screen.getByLabelText('Voice flight number')).toHaveValue('FR124');
+  }, 10000);
+  it('does not recommend or monitor a matched cancelled flight', async () => {
+    scheduledFlights = [fixture('FR123', 'cancelled')];
+    const user = userEvent.setup(); window.location.hash = '#/pickup'; render(<App />);
+    await user.type(await screen.findByLabelText('Or type an instruction'), 'landing tomorrow at 18:30, Ryanair from Rabat, postcode M1 4BT');
+    await user.click(screen.getByRole('button', { name: 'Use instruction' }));
+    await screen.findAllByText(/This flight is showing as cancelled/, undefined, { timeout: 5000 });
+    expect(screen.queryByRole('region', { name: /Set off at/ })).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText('Or type an instruction'), 'start monitoring');
+    await user.click(screen.getByRole('button', { name: 'Use instruction' }));
+    expect(await screen.findByText(/Calculate a current recommendation first/)).toBeInTheDocument();
+  }, 10000);
 });
