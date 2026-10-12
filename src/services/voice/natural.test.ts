@@ -124,3 +124,29 @@ it('removes only SetoffIQ voice caches and stops the worker', async () => {
   ]);
   expect(naturalEnabled()).toBe(false);
 });
+
+it('automatically prepares on first visit but honours a saved opt-out', async () => {
+  const { prepareNaturalAutomatically } = await import('./natural');
+  const first = prepareNaturalAutomatically();
+  expect(FakeWorker.all).toHaveLength(1);
+  FakeWorker.all[0]!.deliver({ type: 'ready', engine: 'WASM' });
+  await first;
+  disableNatural();
+  await prepareNaturalAutomatically();
+  expect(FakeWorker.all).toHaveLength(1);
+});
+it.each([{ saveData: true }, { effectiveType: '2g' }, { effectiveType: '3g' }])('defers automatic downloads for a constrained connection %j', async (connection) => {
+  vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+  Object.defineProperty(navigator, 'connection', { configurable: true, value: connection });
+  const { prepareNaturalAutomatically } = await import('./natural');
+  await prepareNaturalAutomatically();
+  expect(FakeWorker.all).toHaveLength(0);
+  expect(naturalState().message).toContain('save data');
+  Reflect.deleteProperty(navigator, 'connection');
+});
+it('does not download automatically when offline', async () => {
+  vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+  const { prepareNaturalAutomatically } = await import('./natural');
+  await prepareNaturalAutomatically();
+  expect(FakeWorker.all).toHaveLength(0);
+});

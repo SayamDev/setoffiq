@@ -4,6 +4,8 @@ import { formatClock, parseLocalDateTime, todayInZone } from '../domain/time';
 import type { JourneyInput, JourneyKind } from '../domain/types';
 import type { JourneyPlan } from '../services/plan';
 import { journeyExplanation } from '../services/voice/presentation';
+import { navigate } from '../app/router';
+import { isValidPostcodeShape } from '../services/routing';
 import { NaturalVoice } from './NaturalVoice';
 import { parseUtterance } from '../services/voice/parser';
 import type { VoicePatch } from '../services/voice/parser';
@@ -29,6 +31,7 @@ export function VoiceJourney({
   error,
   onInput,
   onMonitor,
+  suspended = false,
 }: {
   kind: JourneyKind;
   input: JourneyInput | null;
@@ -37,6 +40,7 @@ export function VoiceJourney({
   error: string | null;
   onInput(input: JourneyInput | null): void;
   onMonitor(): void;
+  suspended?: boolean;
 }): React.JSX.Element {
   const [draft, setDraft] = useState<VoiceDraft>({
     kind,
@@ -48,9 +52,7 @@ export function VoiceJourney({
   const [text, setText] = useState('');
   const [transcript, setTranscript] = useState('');
   const [announcement, setAnnouncement] = useState('');
-  const [message, setMessage] = useState(
-    'Say the flight time and where it is coming from.',
-  );
+  const [message, setMessage] = useState('');
   const [state, setState] = useState<SpeechState>('idle');
   const [outputVoice, setOutputVoice] = useState<
     'natural' | 'device' | 'screen'
@@ -59,6 +61,8 @@ export function VoiceJourney({
   const [active, setActive] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [enabled, setEnabled] = useState(false);
+  const [postcodeNeeded, setPostcodeNeeded] = useState(false);
+  const [postcodeEntry, setPostcodeEntry] = useState('');
   const [working, setWorking] = useState(false);
   const [choices, setChoices] = useState<VoiceFlight[]>([]);
   const [ambiguity, setAmbiguity] = useState<{
@@ -125,15 +129,29 @@ export function VoiceJourney({
       speech.stop();
       abortRef.current?.abort();
     };
+    const guide = () => {
+      speech.stop();
+      setEnabled(false);
+    };
+    document.addEventListener('setoffiq:guide-open', guide);
     document.addEventListener('visibilitychange', suspend);
     window.addEventListener('pagehide', pagehide);
     return () => {
       speech.stop();
       abortRef.current?.abort();
+      document.removeEventListener('setoffiq:guide-open', guide);
       document.removeEventListener('visibilitychange', suspend);
       window.removeEventListener('pagehide', pagehide);
     };
   }, []);
+  useEffect(() => {
+    if (suspended) {
+      speechRef.current?.stop();
+      setEnabled(false);
+      abortRef.current?.abort();
+      setWorking(false);
+    }
+  }, [suspended]);
   // Interim text is visible immediately; screen readers get a debounced transcript.
   useEffect(() => {
     const timer = setTimeout(() => setAnnouncement(transcript), 400);
@@ -171,12 +189,12 @@ export function VoiceJourney({
     });
   }, [input]);
   useEffect(() => {
-    if (!active || busy || !plan || !input) return;
+    if (suspended || !active || busy || !plan || !input) return;
     const answer = voiceAnswer(plan);
     responseRef.current = answer;
     setMessage(answer);
     speechRef.current?.say(`${voiceAnswer(plan, true)} ${matchNote}`.trim());
-  }, [active, busy, plan, input, matchNote]);
+  }, [active, busy, plan, input, matchNote, suspended]);
 
   useEffect(() => {
     if (active && error) {
@@ -192,7 +210,16 @@ export function VoiceJourney({
     setWorking(true);
     setState('thinking');
     setChoices([]);
+    setPostcodeNeeded(false);
     try {
+      if (!next.time) {
+        respond(
+          next.kind === 'pickup'
+            ? 'What time does the flight land? Include AM or PM.'
+            : 'What time does the flight depart? Include AM or PM.',
+        );
+        return;
+      }
       let resolved = next;
       let note = '';
       const at = parseLocalDateTime(next.date, next.time || '00:00', zone);
@@ -211,7 +238,15 @@ export function VoiceJourney({
         if (matches.length > 1) {
           setChoices(matches);
           respond(
-            `I found ${matches.length} possible flights. Say “option one”, “option two”, or tap a flight. These are matches in the available data, not a guarantee.`,
+            `I found ${matches.length} possible flights. ${matches
+              .slice(0, 5)
+              .map(
+                (flight, index) =>
+                  `Option ${index + 1}: ${flight.number}, ${flight.place}, at ${formatClock(flight.at, zone)}.`,
+              )
+              .join(
+                ' ',
+              )} Say an option number, or tap a flight. These are possible matches, not a guarantee.`,
           );
           return;
         }
@@ -224,6 +259,14 @@ export function VoiceJourney({
             : 'No matching flight in the available data. Using your stated time; this does not mean the flight is cancelled.';
       }
       updateDraft(resolved);
+      if (!isValidPostcodeShape(resolved.postcode)) {
+        if (note) setMatchNote(note);
+        setPostcodeNeeded(true);
+        respond(
+          'Enter your starting postcode below, or say it. This lets me estimate the drive.',
+        );
+        return;
+      }
       const result = await voiceJourneyInput(
         resolved,
         Date.now(),
@@ -321,12 +364,54 @@ export function VoiceJourney({
     }
     const action = parseUtterance(utterance, Date.now(), zone);
     switch (action.type) {
+      case 'help':
+        respond(
+          'Tell me the flight time, date, airline or flight number. For example, landing tomorrow at six thirty PM from Rabat. Then give your starting postcode. You can say no, seven PM, why that time, repeat that, edit details, start monitoring, start again, open journeys, open settings, or go to home.',
+        );
+        return;
+      case 'repeat':
+        speechRef.current?.say(
+          responseRef.current ||
+            message ||
+            'Tell me the flight time and date to get started.',
+          true,
+        );
+        return;
+      case 'edit':
+        setDetailsOpen(true);
+        respond(
+          'The understood details are open. Change any field, or say the correction.',
+        );
+        return;
+      case 'reset':
+        invalidate();
+        updateDraft({
+          kind,
+          date: todayInZone(Date.now(), zone),
+          time: '',
+          postcode: '',
+        });
+        setPending(null);
+        setPostcodeNeeded(false);
+        setPostcodeEntry('');
+        setDetailsOpen(false);
+        setApproximate(false);
+        respond(
+          'Let’s plan a new journey. What time is the flight, and are you picking up or dropping off?',
+        );
+        return;
+      case 'navigate':
+        speechRef.current?.stop();
+        abortRef.current?.abort();
+        setEnabled(false);
+        navigate({ name: action.destination });
+        return;
       case 'stop':
         speechRef.current?.stop();
         setEnabled(false);
         abortRef.current?.abort();
         setWorking(false);
-        respond('Voice stopped.');
+        setMessage('Voice stopped.');
         return;
       case 'clarify':
         respond(action.message);
@@ -403,6 +488,8 @@ export function VoiceJourney({
   };
   commandRef.current = command;
   const edit = (patch: VoicePatch): void => {
+    speechRef.current?.stop();
+    setEnabled(false);
     setActive(true);
     invalidate();
     updateDraft(mergeVoicePatch(draftRef.current, patch));
@@ -412,6 +499,7 @@ export function VoiceJourney({
   return (
     <section
       className={styles.panel}
+      hidden={suspended}
       aria-labelledby="voice-heading"
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
@@ -425,12 +513,24 @@ export function VoiceJourney({
     >
       <div className={styles.heading}>
         <h2 id="voice-heading">Talk through your journey</h2>
-        <span className={styles.state}>{visibleState}</span>
+        <span className={styles.state} role="status">
+          {
+            {
+              idle: 'Ready when you are',
+              listening: 'Listening…',
+              thinking: 'Checking your journey…',
+              preparing: 'Preparing speech…',
+              speaking: 'Speaking…',
+            }[visibleState]
+          }
+        </span>
       </div>
-      <p id="voice-privacy" className={ui.hint}>
-        Your browser may send audio to its speech service. SetoffIQ does not
-        record or save audio or transcripts. Type your postcode if you prefer to
-        keep it out of speech.
+      <p className={styles.prompt}>
+        {active
+          ? 'One detail at a time is fine. You can correct anything.'
+          : kind === 'pickup'
+            ? '“Landing tomorrow at 6:30 PM, Ryanair from Rabat.”'
+            : '“Dropping off tomorrow at 6:30 PM for flight BA123.”'}
       </p>
       <div className={styles.actions}>
         {isSupported ? (
@@ -458,6 +558,8 @@ export function VoiceJourney({
             onClick={() => {
               speechRef.current?.stop();
               setEnabled(false);
+              abortRef.current?.abort();
+              setWorking(false);
               setMessage('Voice stopped.');
             }}
           >
@@ -473,10 +575,14 @@ export function VoiceJourney({
           </Button>
         ) : null}
       </div>
+      <p id="voice-privacy" className={ui.hint}>
+        Your browser may send audio to its speech service. We do not save audio
+        or transcripts.
+      </p>
       <p className={ui.hint}>
-        Listening resumes after replies. Tap Listen to interrupt, or press
-        Escape to stop. Spoken replies use the optional natural voice or a local
-        device voice; otherwise use the on-screen answer.
+        {enabled
+          ? 'Listening resumes after each reply. Tap Listen to interrupt. Escape stops voice.'
+          : 'Tap Listen once, then answer each question. You can also type below.'}
       </p>
       {outputVoice !== 'screen' ? (
         <p role="status" className={ui.hint}>
@@ -489,18 +595,6 @@ export function VoiceJourney({
           {audioNotice}
         </p>
       ) : null}
-      <NaturalVoice
-        onStop={() => {
-          speechRef.current?.stop();
-          setEnabled(false);
-        }}
-        onPreview={() =>
-          speechRef.current?.say(
-            "I'll help you plan the journey. You can correct the flight time, or ask why I chose that set-off time.",
-            true,
-          )
-        }
-      />
       {transcript ? (
         <p className={styles.transcript}>Heard: “{transcript}”</p>
       ) : null}
@@ -508,9 +602,50 @@ export function VoiceJourney({
         {announcement ? `Heard: ${announcement}` : ''}
       </span>
       {matchNote ? <p className={ui.hint}>{matchNote}</p> : null}
-      <p role="status" aria-atomic="true" className={styles.response}>
-        {message}
-      </p>
+      {message ? (
+        <p role="status" aria-atomic="true" className={styles.response}>
+          {message}
+        </p>
+      ) : null}
+      {postcodeNeeded ? (
+        <form
+          className={styles.typed}
+          onSubmit={(event) => {
+            event.preventDefault();
+            const next = mergeVoicePatch(draftRef.current, {
+              postcode: postcodeEntry,
+            });
+            updateDraft(next);
+            void calculate(next);
+          }}
+        >
+          <label htmlFor="quick-postcode">Starting postcode</label>
+          <div className={styles.entry}>
+            <input
+              id="quick-postcode"
+              className={ui.control}
+              autoComplete="postal-code"
+              value={postcodeEntry}
+              onChange={(event) => setPostcodeEntry(event.target.value)}
+              placeholder="M1 4BT"
+            />
+            <Button type="submit">Continue</Button>
+          </div>
+          <p className={ui.hint}>
+            Type it here to keep it out of the browser’s speech service.
+          </p>
+        </form>
+      ) : null}
+      <div className={styles.suggestions} aria-label="Things you can say">
+        {(plan && input
+          ? ['Why that time?', 'Start monitoring', 'Edit details']
+          : ['Help', 'Edit details']
+        ).map((label) => (
+          <Button key={label} variant="quiet" onClick={() => command(label)}>
+            {label}
+          </Button>
+        ))}
+      </div>
       {ambiguity ? (
         <div className={styles.actions}>
           {ambiguity.hour ? (
@@ -758,6 +893,18 @@ export function VoiceJourney({
           </form>
         ) : null}
       </details>
+      <NaturalVoice
+        onStop={() => {
+          speechRef.current?.stop();
+          setEnabled(false);
+        }}
+        onPreview={() =>
+          speechRef.current?.say(
+            "I'll help you plan the journey. You can correct the flight time, or ask why I chose that set-off time.",
+            true,
+          )
+        }
+      />
     </section>
   );
 }

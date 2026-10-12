@@ -42,7 +42,7 @@ function discard() {
   }
   pending.clear();
 }
-/** Explicit opt-in persists, never any text or generated audio. Cached weights still need a new runtime after reload. */
+/** Voice preference persists, never any text or generated audio. Cached weights still need a new runtime after reload. */
 export function enableNatural(): Promise<void> {
   writeRaw('natural-voice', 'true');
   return loadNatural();
@@ -171,4 +171,27 @@ export async function removeNatural(): Promise<void> {
       if (name.startsWith('setoffiq-voice-')) await caches.delete(name);
   }
   update({ message: 'Downloaded voice files removed.' });
+}
+
+/** First-visit default. Never override a saved opt-out or retry failures in a loop. */
+export function prepareNaturalAutomatically(): Promise<void> {
+  if (readRaw('natural-voice') === 'false' || state.status === 'error')
+    return Promise.resolve();
+  const connection = (
+    navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string };
+    }
+  ).connection;
+  if (
+    !navigator.onLine ||
+    connection?.saveData ||
+    /^(slow-2g|2g|3g)$/.test(connection?.effectiveType ?? '')
+  ) {
+    update({
+      message:
+        'Automatic voice download paused to save data. You can start it in Voice settings.',
+    });
+    return Promise.resolve();
+  }
+  return enableNatural();
 }

@@ -36,10 +36,10 @@ export function NaturalVoice({
   return (
     <details>
       <summary className={styles.summary}>
-        Voice quality · {enabled ? 'natural British voice' : 'device voice'}
+        Voice settings · {enabled ? 'natural British voice' : 'device voice'}
       </summary>
       <p className={ui.hint}>
-        For a more natural voice, download Kokoro (roughly 115 MB on CPU or 350
+        SetoffIQ prepares Kokoro automatically unless you choose the device voice (roughly 115 MB on CPU or 350
         MB with GPU acceleration, plus a 22 MB speech runtime). It speaks on
         your device, without sending your replies to a server. The first
         download and warm-up can take a few minutes. It may be slow on older

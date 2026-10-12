@@ -116,3 +116,24 @@ describe('voice controls and cancellation', () => {
     expect(onInput.mock.calls.every((call) => call[0] === null)).toBe(true);
   });
 });
+
+it('offers conversational help and reset without retaining the previous flight', async () => {
+  setup(); const user = userEvent.setup();
+  await user.type(screen.getByLabelText('Or type an instruction'), 'landing tomorrow at 18:30 flight KL1038');
+  await user.click(screen.getByRole('button', { name: 'Use instruction' }));
+  await screen.findByRole('textbox', { name: 'Starting postcode' });
+  await user.click(screen.getByRole('button', { name: 'Help' }));
+  expect(screen.getByText(/You can say no, seven PM/)).toBeInTheDocument();
+  await user.type(screen.getByLabelText('Or type an instruction'), 'start again');
+  await user.click(screen.getByRole('button', { name: 'Use instruction' }));
+  expect(screen.getByLabelText('Voice flight number')).toHaveValue('');
+  expect(screen.getByLabelText('Voice flight time')).toHaveValue('');
+  expect(screen.queryByRole('textbox', { name: 'Starting postcode' })).not.toBeInTheDocument();
+});
+it('stops the microphone when switching to the form', async () => {
+  const { rerender, onInput, onMonitor } = setup(); const user = userEvent.setup();
+  await user.click(screen.getByRole('button', { name: 'Listen' }));
+  rerender(<VoiceJourney suspended kind="pickup" input={null} plan={null} busy={false} error={null} onInput={onInput} onMonitor={onMonitor} />);
+  expect(FakeRecognition.instances[0]!.aborted).toBe(true);
+  expect(screen.queryByRole('button', { name: 'Listen' })).not.toBeInTheDocument();
+});

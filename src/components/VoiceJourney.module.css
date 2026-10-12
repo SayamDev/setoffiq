@@ -1,7 +1,8 @@
 .panel {
-  border-block: 1px solid var(--rule-strong);
+  max-width: 52rem;
+  width: 100%;
   padding-block: var(--space-5);
-  margin-bottom: var(--space-6);
+  margin-bottom: 0;
 }
 .heading {
   display: flex;
@@ -14,8 +15,6 @@
   margin: 0 0 0.75rem;
 }
 .state {
-  font-family: var(--font-mono);
-  text-transform: uppercase;
   font-size: var(--t-xs);
   color: var(--signal-ink);
 }
@@ -36,7 +35,7 @@
   overflow-wrap: anywhere;
 }
 .response {
-  border-inline-start: 3px solid var(--signal);
+  border-radius: var(--r-3);
   padding: 0.75rem 1rem;
   background: var(--signal-wash);
   color: var(--signal-ink);
@@ -112,7 +111,30 @@
 }
 
 .understood {
-  font-family: var(--font-mono);
   font-size: var(--t-sm);
   overflow-wrap: anywhere;
 }
+
+.prompt {
+  color: var(--ink-2);
+  font-size: 1.125rem;
+  line-height: 1.6;
+  max-width: 46ch;
+}
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-block: 1rem;
+}
+.panel[hidden] {
+  display: none;
+}
+.typed {
+  margin-block: 1.5rem;
+}
+
+.panel { padding-top: .5rem; }
+.heading { flex-wrap: wrap; gap: .25rem 1rem; margin-bottom: .75rem; }
+.heading h2 { margin: 0; }
+@media (max-width: 540px) { .heading { flex-direction: column; } .heading h2 { max-width: none; } }

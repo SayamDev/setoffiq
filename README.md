@@ -386,13 +386,13 @@ No background voice or locked-screen reliability is promised.
 AirLabs schedule/timetable snapshots and CI-only provider keys (see
 DATA-SOURCES.md and ARCHITECTURE.md). Older “no schedules” / “no keys anywhere”
 statements above describe the earlier position-only version. The voice feature
-adds no backend, accounts, credentials, dependencies or metered services, and
+adds no backend, accounts, credentials or metered services, and
 preserves the £0-to-run / £0-to-use design.
 
 ### Natural, contextual replies
 
-Open **Voice quality** on a planning page and choose **Download natural voice**
-for a British Kokoro voice (Emma). It is optional and off by default. Expect roughly
+SetoffIQ prepares a British Kokoro voice (Emma) automatically. **Voice settings**
+on the planning page offers a manual download or retry. It prepares automatically after the first page renders. A saved device-voice choice is respected; offline, Data Saver and reported slow connections defer the download. Expect roughly
 115 MB of model/style files on CPU, or roughly 350 MB on supported GPUs, plus a ~22 MB speech runtime; the first download and
 warm-up may take a few minutes. **Try natural voice** previews it without enabling
 the microphone. **Use device voice** cancels loading/playback; **Remove voice
@@ -431,3 +431,29 @@ policies, memory limits, noisy-car recognition and subjective voice quality need
 physical-device/user testing. Small gaps can occur between spoken sentences on
 slower devices. VoiceStudio's local API was considered, but requiring visitors to
 install/run another app conflicts with the no-setup public phone experience.
+
+### A calmer, voice-first interface
+
+The homepage leads to **Plan with voice**. On a planning page, **Talk or type**
+and **Use the form** show one input method at a time; switching to the form stops
+the microphone. The original form retains its fields and behaviour. Results
+keep the recommendation visible; the supporting timeline and source details are
+under **Why this time?** and **Travel notes and data limits**.
+
+A short first-visit guide can be skipped and replayed from **How to use SetoffIQ**
+in the footer. Its correction example runs through the real local parser without
+creating a journey or saving the example. A small, lazy-loaded Lottie transition
+honours reduced motion. Only the guide-dismissal preference is saved.
+
+Voice now also understands **help**, **repeat that**, **edit details**, **start
+again**, **open journeys**, **open settings**, and **go to home**. Navigation ends
+the voice session; return to the planner and tap Listen to resume. Multiple flight
+choices are read aloud. Missing postcodes have a focused inline field, so sensitive
+location information need not be spoken to the browser service.
+
+Natural speech prepares automatically after the first render, without requesting
+microphone access or autoplaying sound. The visible preparation notice and welcome
+guide let visitors cancel and remember their choice. Automatic preparation is
+skipped for a saved opt-out, offline mode, Data Saver, or a reported 2G/3G connection.
+Browsers do not always expose connection type: an unreported mobile connection may
+still download the model. Device speech and all text controls work while it loads.

@@ -426,12 +426,12 @@ export function PrivacyPage(): React.JSX.Element {
 
           <h2>Voice mode</h2>
           <p>
-            Voice is off until you tap Listen. Your browser may send microphone audio to its
+            Microphone access is off until you tap Listen. Your browser may send microphone audio to its
             speech recognition service, under that browser provider’s terms. Type sensitive
             details such as your postcode instead if you prefer. SetoffIQ does not record,
             log or persist audio or transcripts, and never sends them to a language model.
             Only structured journey details are saved when you start monitoring. Replies
-            use local English speech voices when available. The optional natural voice downloads
+            use local English speech voices when available. The natural voice prepares automatically (about 115–350 MB plus a 22 MB runtime), unless you chose the device voice or the browser reports Data Saver, a slow connection, or offline mode. Cancel with Use device voice. It downloads
             Kokoro files from Hugging Face (which receives your IP and file requests), then
             generates speech on your device. Reply text is not sent for synthesis. Only the
             voice preference and downloadable model files are saved; generated audio is not.

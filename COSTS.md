@@ -105,7 +105,7 @@ introduces no new keys and does not change those jobs or their budgets.
 ### Optional natural voice
 
 Kokoro adds an Apache-2.0 runtime/model, fetched as public files after explicit
-opt-in and run in a browser worker. Hugging Face file downloads are keyless;
+automatically prepared (with a persistent opt-out) and run in a browser worker. Hugging Face file downloads are keyless;
 there is no hosted inference request, account or billing mechanism. Hosting stays
 on public GitHub Pages. The user pays no fee, but the download uses their ordinary
 connection/data allowance and synthesis consumes device memory/battery. The default
