@@ -246,7 +246,7 @@ before dispatching an action, so an unfinished tail is not discarded.
 
 ### Optional local neural speech
 
-`natural.ts` manages an opt-in Kokoro worker and only persists the voice preference.
+`natural.ts` manages a cancellable Kokoro worker and only persists the voice preference.
 The library/model is lazy: no worker or model download until opted in. Worker
 messages carry text and a request id in memory; ids and abort signals reject stale
 results after corrections/Stop. Synthesis is chunked into bounded sentences to
@@ -263,7 +263,7 @@ result and device voice remain available during loading; runtime/playback errors
 fall back to local browser synthesis, never a cloud voice. Object URLs are revoked
 on completion/stop. No texts/audio are cached, logged or passed to Ollama.
 
-The bundled worker/runtime is loaded only after opt-in. Public weights/styles are
+The bundled worker/runtime is loaded after automatic preparation or an explicit retry. Public weights/styles are
 fetched from Hugging Face. These asset GETs disclose IP/file requests but no speech
 text. No new credentials or backend are involved. Node-only transitive dependency
 overrides patch sharp/global-agent advisories; browser inference uses WASM, not

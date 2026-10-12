@@ -1,39 +1,22 @@
 import { hrefFor } from '../app/router';
-import { Wordmark } from '../components/Wordmark';
+import { JourneyMotion } from '../components/JourneyMotion';
 import styles from './HomePage.module.css';
-
-const STEPS = [
-  {
-    title: 'Choose your journey',
-    body: 'Tell us whether you are collecting someone or taking them to the airport.',
-  },
-  {
-    title: 'Add the details',
-    body: 'Enter the flight time and where you are travelling from.',
-  },
-  {
-    title: 'Get your set-off time',
-    body: 'See a recommended time to leave, with the journey and flight information behind it.',
-  },
-];
 
 export function HomePage(): React.JSX.Element {
   return (
     <>
       <section className={styles.hero}>
-        <div className={styles.wordmark}>
-          <Wordmark />
-        </div>
+
         <h1 className={styles.tagline}>Know when to set off for Manchester Airport.</h1>
         <p className={styles.lede}>
-          Plan a pickup or drop-off around the flight and your journey. Get a clear time to leave,
-          with the details that shaped it.
+          Talk through the flight and your drive. Get a clear time to leave, and understand why.
         </p>
+        <a className={styles.voiceStart} href={hrefFor({ name: 'plan', kind: 'pickup' })}>Plan with voice <JourneyMotion /></a>
       </section>
 
       <section aria-labelledby="what-are-you-planning">
         <h2 className={styles.question} id="what-are-you-planning">
-          What are you planning?
+          Or choose your journey
         </h2>
         <div className={styles.choices}>
           <a className={styles.choice} href={hrefFor({ name: 'plan', kind: 'pickup' })}>
@@ -64,24 +47,7 @@ export function HomePage(): React.JSX.Element {
         </div>
       </section>
 
-      <section className={styles.steps} aria-labelledby="how-it-works">
-        <h2 className={styles.question} id="how-it-works">
-          How it works
-        </h2>
-        <div className={styles.stepList}>
-          {STEPS.map((step, index) => (
-            <div className={styles.step} key={step.title}>
-              <span className={styles.stepNumber} aria-hidden="true">
-                0{index + 1}
-              </span>
-              <div>
-                <p className={styles.stepTitle}>{step.title}</p>
-                <p className={styles.stepBody}>{step.body}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      <p className={styles.footnote}>Speak or type. No account needed. Your microphone only starts when you tap Listen.</p>
     </>
   );
 }

@@ -139,7 +139,7 @@ The site is served over HTTPS by GitHub Pages.
 ## Optional natural speech
 
 The optional speech engine runs in a same-origin module worker, loaded only after
-explicit opt-in. The document CSP allows `media-src 'self' blob:` to play transient
+automatic preparation (with a persistent opt-out). The document CSP allows `media-src 'self' blob:` to play transient
 locally generated WAVs, and limits `worker-src` to this origin. It adds no remote
 script or hosted audio permission. Model/style downloads originate in the worker
 and go to the fixed Hugging Face repository through the trusted, locked runtime;

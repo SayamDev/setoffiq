@@ -192,3 +192,19 @@ suite passes. PR CI runs the full suite. Chrome confirmed WebGPU readiness and
 actual natural-audio playback (not device fallback), cached reload, Stop during
 preparation and 390px controls with 48px targets and no horizontal overflow.
 Rollback remains a PR revert; no journey-schema migration was introduced.
+
+## Voice-first UX refinement (October 2026)
+
+- Preserved timetable/pine identity, existing routes and primary nav. Voice/form
+  input modes reduce competing controls; original form stays mounted until a plan.
+- First-visit native dialog with skip/replay, keyboard dismissal and a real-parser
+  correction example. Only `welcome-seen-v1` is persisted. No analytics.
+- Local Lottie asset at `public/projects/voice-guide/scene-1/lottie.json`, verified
+  in the official diffusionstudio/lottie Skottie player at 0/36/71 and playback.
+  Production uses lazy Lottie light (no expressions), reduced-motion still frame.
+- Cancellable automatic natural-voice preparation after paint, persistent opt-out,
+  offline/Data Saver/reported slow-network deferral. No automatic microphone/audio.
+- Bounded help/repeat/edit/reset/navigation actions. Navigation stops the session.
+  Explicit postcode step and spoken flight options improve hands-free follow-ups.
+- Supporting result sections collapsed; confidence and primary recommendation stay
+  visible. Engine/provider prediction logic unchanged.

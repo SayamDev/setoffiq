@@ -35,6 +35,7 @@ export function PlanPage({
   onSaveJourney: (journey: SavedJourney) => void;
   useLocalModel: boolean;
 }): React.JSX.Element {
+  const [entryMode, setEntryMode] = useState<'voice' | 'form'>('voice');
   const airport = DEFAULT_AIRPORT;
   const now = useNow(30_000);
   const [input, setInput] = useState<JourneyInput | null>(null);
@@ -52,6 +53,7 @@ export function PlanPage({
    */
   const show = (next: JourneyInput | null): void => {
     setInput(next);
+    if (!next) setEntryMode('form');
     window.scrollTo({ top: 0, behavior: scrollBehaviour() });
   };
 
@@ -96,10 +98,10 @@ export function PlanPage({
         </a>
         <nav className={styles.modeNav} aria-label="Journey type">
           <a className={plannedKind === 'pickup' ? styles.modeActive : styles.modeLink} href={hrefFor({ name: 'plan', kind: 'pickup' })} aria-current={plannedKind === 'pickup' ? 'page' : undefined}>
-            Collect an arriving passenger
+            Pickup
           </a>
           <a className={plannedKind === 'dropoff' ? styles.modeActive : styles.modeLink} href={hrefFor({ name: 'plan', kind: 'dropoff' })} aria-current={plannedKind === 'dropoff' ? 'page' : undefined}>
-            Take someone to a departing flight
+            Drop-off
           </a>
         </nav>
         <h1 className={styles.title}>
@@ -107,15 +109,19 @@ export function PlanPage({
         </h1>
         <p className={styles.subtitle}>
           {plannedKind === 'pickup'
-            ? 'For an arriving flight at Manchester Airport. Enter the landing time; we’ll calculate when to set off to collect your passenger.'
-            : 'For a departing flight from Manchester Airport. Enter the flight time; we’ll calculate when to set off and reach the terminal in time.'}
+            ? 'Tell us the flight landing time. We’ll work out when to leave for Manchester Airport.'
+            : 'Tell us the flight departure time. We’ll work out when to leave for Manchester Airport.'}
         </p>
       </header>
 
-      <VoiceJourney kind={kind} input={input} plan={plan} busy={status === 'loading'} error={error} onInput={setInput} onMonitor={startMonitoring} />
+      <div className={styles.entryModes} role="group" aria-label="How to plan">
+        <Button variant={entryMode === 'voice' ? 'primary' : 'quiet'} aria-pressed={entryMode === 'voice'} onClick={() => setEntryMode('voice')}>Talk or type</Button>
+        <Button variant={entryMode === 'form' ? 'primary' : 'quiet'} aria-pressed={entryMode === 'form'} onClick={() => setEntryMode('form')}>Use the form</Button>
+      </div>
+      <VoiceJourney suspended={entryMode !== 'voice'} kind={kind} input={input} plan={plan} busy={status === 'loading'} error={error} onInput={setInput} onMonitor={startMonitoring} />
 
       {input === null ? (
-        <JourneyForm kind={kind} airport={airport} now={now} onSubmit={show} />
+        <div hidden={entryMode !== 'form'}><JourneyForm kind={kind} airport={airport} now={now} onSubmit={show} /></div>
       ) : null}
 
       {status === 'loading' ? (
@@ -177,6 +183,8 @@ export function PlanPage({
               </p>
             </RecommendationCard>
 
+            <details className={styles.resultDetails}>
+              <summary>Why this time? View the journey details</summary>
             <section className={styles.section} aria-labelledby="affecting-heading">
               <h2 className={styles.sectionTitle} id="affecting-heading">
                 What's affecting your timing?
@@ -233,6 +241,9 @@ export function PlanPage({
               />
             </section>
 
+            </details>
+            <details className={styles.resultDetails}>
+            <summary>Travel notes and data limits</summary>
             <section className={styles.section} aria-labelledby="sources-heading">
               <h2 className={styles.sectionTitle} id="sources-heading">
                 Worth knowing
@@ -278,6 +289,7 @@ export function PlanPage({
                 </p>
               </div>
             </section>
+            </details>
           </>
         )
       ) : null}

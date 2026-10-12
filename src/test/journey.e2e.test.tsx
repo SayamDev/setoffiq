@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../App';
-import { clearAll, listKeys, readRaw } from '../services/storage';
+import { clearAll, listKeys, readRaw, writeRaw } from '../services/storage';
 import { resetHttpState } from '../services/http';
 import { formatClock, todayInZone, parseLocalDateTime } from '../domain/time';
 import { MANCHESTER } from '../domain/airports';
@@ -115,6 +115,8 @@ function stubNetwork(): void {
 
 beforeEach(() => {
   clearAll();
+  writeRaw('welcome-seen-v1', 'true');
+  writeRaw('natural-voice', 'false');
   resetHttpState();
   aircraftLatitude = 54.6;
   scheduledFlights = [];
@@ -135,6 +137,7 @@ describe('planning and monitoring a pickup', () => {
     // 1. Choose what we are doing.
     await user.click(screen.getByRole('link', { name: /Plan a pickup/i }));
 
+    await user.click(screen.getByRole('button', { name: 'Use the form' }));
     // 2. Fill the journey in.
     const arrival = new Date(Date.now() + 4 * 60 * 60_000);
     // Date and time inputs take a value directly rather than keystrokes.
@@ -230,8 +233,8 @@ describe('utterance to the real planner', () => {
     await user.type(instruction, 'landing tomorrow at 18:30, flight KL1038');
     await user.click(screen.getByRole('button', { name: 'Use instruction' }));
     await screen.findByText(/Enter your starting postcode below/);
-    await user.type(screen.getByLabelText('Voice starting postcode'), 'M1 4BT');
-    await user.click(screen.getByRole('button', { name: 'Calculate understood journey' }));
+    await user.type(screen.getByRole('textbox', { name: 'Starting postcode' }), 'M1 4BT');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
     const first = await screen.findByRole('region', { name: /Set off at/ }, { timeout: 5000 });
     const firstTime = within(first).getByText(/^\d{2}:\d{2}$/).textContent;
     expect(screen.getByLabelText('Voice flight time')).toHaveValue('18:30');
@@ -272,8 +275,9 @@ describe('utterance to the real planner', () => {
     expect(screen.queryByRole('region', { name: /Set off at/ })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'PM' }));
     expect(screen.getByLabelText('Voice flight time')).toHaveValue('18:30');
-    await user.type(screen.getByLabelText('Voice starting postcode'), 'M1 4BT');
     await user.click(screen.getByRole('button', { name: 'That is the landing time' }));
+    await user.type(await screen.findByRole('textbox', { name: 'Starting postcode' }), 'M1 4BT');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
     await screen.findByRole('region', { name: /Set off at/ }, { timeout: 5000 });
     expect(screen.getByText(/No matching flight in the available data/)).toBeInTheDocument();
   }, 15000);
@@ -295,8 +299,8 @@ describe('voice flight choices from published data', () => {
     expect(screen.queryByRole('region', { name: /Set off at/ })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Option 2: FR124/ }));
     await screen.findByText(/Enter your starting postcode below/);
-    await user.type(screen.getByLabelText('Voice starting postcode'), 'M1 4BT');
-    await user.click(screen.getByRole('button', { name: 'Calculate understood journey' }));
+    await user.type(screen.getByRole('textbox', { name: 'Starting postcode' }), 'M1 4BT');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
     await screen.findByRole('region', { name: /Set off at/ }, { timeout: 5000 });
     expect(screen.getByLabelText('Voice flight number')).toHaveValue('FR124');
   }, 10000);

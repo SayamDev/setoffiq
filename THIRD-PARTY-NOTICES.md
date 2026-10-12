@@ -41,3 +41,10 @@ upstream build tag. The phonemizer archive contains the distributed engine's
 unminified JavaScript and its wrapper/build configuration. Neither upstream engine
 nor wrapper was modified. The application worker integration is in
 `src/services/voice/kokoro.worker.ts`; lockfile and Vite config reproduce bundling.
+
+## Interface animation
+
+Lottie Web 5.13.0 is distributed under the MIT licence. The lazy light player
+contains no expression evaluator. Licence text is shipped at
+[public/licenses/lottie-web-LICENSE.txt](public/licenses/lottie-web-LICENSE.txt).
+The small voice-guide scene is original SetoffIQ artwork under this repository's MIT licence.

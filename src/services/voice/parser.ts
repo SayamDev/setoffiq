@@ -22,7 +22,18 @@ export type VoiceAction =
       ambiguousBasis: boolean;
       approximate: boolean;
     }
-  | { type: 'explain' | 'monitor' | 'stop' | 'calculate' }
+  | {
+      type:
+        | 'explain'
+        | 'monitor'
+        | 'stop'
+        | 'calculate'
+        | 'help'
+        | 'repeat'
+        | 'reset'
+        | 'edit';
+    }
+  | { type: 'navigate'; destination: 'home' | 'journeys' | 'settings' }
   | { type: 'clarify'; message: string };
 const numbers: Record<string, number> = {
   zero: 0,
@@ -90,6 +101,29 @@ export function parseUtterance(
     );
   if (/^(stop|stop listening|cancel voice)[.!?]?$/.test(text))
     return { type: 'stop' };
+  if (
+    /^(help|what can i say|how (do i|does this) (work|use this)|help me)[.!?]?$/.test(
+      text,
+    )
+  )
+    return { type: 'help' };
+  if (
+    /^(repeat( that)?|say (that|it) again|read (the )?answer)[.!?]?$/.test(text)
+  )
+    return { type: 'repeat' };
+  if (/^(start (again|over)|new journey|reset journey)[.!?]?$/.test(text))
+    return { type: 'reset' };
+  if (/^(edit( (the |my )?details)?|show (the |my )?details)[.!?]?$/.test(text))
+    return { type: 'edit' };
+  const navigation =
+    /^(?:go to|open|show)(?: my| the)? (home|journeys|settings)[.!?]?$/.exec(
+      text,
+    );
+  if (navigation)
+    return {
+      type: 'navigate',
+      destination: navigation[1] as 'home' | 'journeys' | 'settings',
+    };
   if (/\bwhy\b|explain/.test(text)) return { type: 'explain' };
   if (
     /^(start monitoring|monitor( this journey)?|watch this flight)[.!?]?$/.test(

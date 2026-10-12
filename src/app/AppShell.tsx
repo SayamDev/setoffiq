@@ -4,6 +4,8 @@ import { OPEN_METEO_ATTRIBUTION } from '../services/weather';
 import { OSRM_ATTRIBUTION, POSTCODES_ATTRIBUTION } from '../services/routing';
 import { FLIGHT_DATA_ATTRIBUTION, SCHEDULE_ATTRIBUTION } from '../services/flight';
 import { AWC_ATTRIBUTION } from '../services/conditions';
+import { WelcomeGuide } from '../components/WelcomeGuide';
+import { VoicePreparation } from '../components/VoicePreparation';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { Wordmark } from '../components/Wordmark';
 import type { ThemeChoice } from '../storage/settings';
@@ -79,12 +81,14 @@ export function AppShell({
         </p>
       ) : null}
 
-      <main className={styles.main} id="main">
+      <VoicePreparation />
+      <main className={[styles.main, route.name === 'plan' ? styles.plannerMain : ''].join(' ')} id="main">
         {children}
       </main>
 
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
+          <WelcomeGuide />
           <nav className={styles.footerLinks} aria-label="About SetoffIQ">
             <a href={hrefFor({ name: 'about' })}>About</a>
             <a href={hrefFor({ name: 'estimates' })}>How SetoffIQ estimates time</a>

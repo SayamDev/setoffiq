@@ -6,23 +6,6 @@
   border-bottom: 1px solid var(--rule-strong);
 }
 
-@media (min-width: 48rem) {
-  .header {
-    display: grid;
-    grid-template-columns: minmax(18rem, 0.9fr) minmax(22rem, 1.1fr);
-    align-items: end;
-    column-gap: var(--space-8);
-    padding-bottom: var(--space-6);
-  }
-
-  .back {
-    grid-column: 1 / -1;
-  }
-
-  .subtitle {
-    padding-bottom: 0.2rem;
-  }
-}
 
 .title {
   font-size: var(--t-page-title);
@@ -316,3 +299,12 @@ details[open] > .proseSummary::after {
     animation: none;
   }
 }
+
+.entryModes { display: flex; gap: .5rem; flex-wrap: wrap; }
+.resultDetails { grid-column: 1 / -1; }
+.resultDetails > summary { min-height: 48px; padding-block: .75rem; cursor: pointer; font-size: 1.125rem; font-weight: 600; color: var(--signal-2); }
+.resultDetails[open] { display: block; }
+.resultDetails > section { margin-top: 2rem; }
+
+.header { border-bottom: 0; padding-bottom: 0; }
+.modeNav { margin-bottom: .5rem; }

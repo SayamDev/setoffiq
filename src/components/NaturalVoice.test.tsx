@@ -29,14 +29,14 @@ function setup() {
 it('does not initialise or download a model for a user who has not opted in', () => {
   localStorage.clear();
   setup();
-  expect(screen.getByText('Voice quality · device voice')).toBeInTheDocument();
+  expect(screen.getByText('Voice settings · device voice')).toBeInTheDocument();
   expect(
     screen.queryByRole('button', { name: 'Try natural voice' }),
   ).not.toBeInTheDocument();
 });
 it('cancelling a download switches back without reporting intentional cancellation as an error', async () => {
   const { user, stop } = setup();
-  await user.click(screen.getByText('Voice quality · device voice'));
+  await user.click(screen.getByText('Voice settings · device voice'));
   await user.click(
     screen.getByRole('button', { name: 'Download natural voice' }),
   );
@@ -53,7 +53,7 @@ it('restores the opted-in runtime on mounting and offers a microphone-free previ
   expect(WorkerStub.instance.postMessage).toHaveBeenCalledWith({
     type: 'load',
   });
-  await user.click(screen.getByText('Voice quality · natural British voice'));
+  await user.click(screen.getByText('Voice settings · natural British voice'));
   await act(async () => {
     WorkerStub.instance.onmessage?.({ data: { type: 'ready' } });
   });
