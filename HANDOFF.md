@@ -98,3 +98,8 @@ assumed Rabat and the UK share a September clock. Node 22’s ICU data disagreed
 with local Node 26. Those formatting tests now supply an explicit UTC+1 fixture;
 production timezone handling is unchanged. All 357 tests pass locally under both
 Node 26 and CI’s exact Node 22.23.3 version.
+
+Final date review: voice-relative dates now advance the Manchester calendar
+rather than adding 24-hour durations, avoiding skipped/repeated dates near DST
+midnight. Two added regression cases bring the suite to 359 tests (50 parser
+cases), passing under Node 22.23.3; lint, typecheck and build also pass.

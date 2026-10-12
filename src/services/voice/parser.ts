@@ -131,6 +131,13 @@ export function parseUtterance(
     patch.kind = 'dropoff';
   if (/pick.?up|picking|collect/.test(text) && patch.kind === 'dropoff')
     return clarify('Is this a pickup or a drop-off?');
+  // Relative dates advance the Manchester calendar, not 24-hour durations:
+  // around DST, adding 24 hours near midnight can keep or skip a local day.
+  const relativeDate = (days: number): string => {
+    const date = new Date(`${todayInZone(now, zone)}T12:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + days);
+    return date.toISOString().slice(0, 10);
+  };
   const isoDate = /\b(\d{4}-\d{2}-\d{2})\b/.exec(text)?.[1];
   if (isoDate) {
     const date = new Date(`${isoDate}T12:00:00Z`);
@@ -141,10 +148,8 @@ export function parseUtterance(
       return clarify('That date is not valid. Use the date control.');
     patch.date = isoDate;
     text = text.replace(isoDate, '');
-  } else if (/day after tomorrow/.test(text))
-    patch.date = todayInZone(now + 2 * 86400000, zone);
-  else if (/tomorrow/.test(text))
-    patch.date = todayInZone(now + 86400000, zone);
+  } else if (/day after tomorrow/.test(text)) patch.date = relativeDate(2);
+  else if (/tomorrow/.test(text)) patch.date = relativeDate(1);
   else if (/today|tonight/.test(text)) patch.date = todayInZone(now, zone);
   else if (
     /\b(on|next|monday|tuesday|wednesday|thursday|friday|saturday|sunday|january|february|march|april|may|june|july|august|september|october|november|december)\b/.test(

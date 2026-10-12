@@ -114,3 +114,15 @@ it('keeps accented place names in the understood inputs', () =>
     type: 'update',
     patch: { place: 'Málaga' },
   }));
+
+it.each([
+  ['2026-10-24T23:30:00Z', '2026-10-26'],
+  ['2027-03-27T23:30:00Z', '2027-03-28'],
+])(
+  'advances the local calendar across DST near midnight: %s',
+  (instant, date) => {
+    expect(
+      parseUtterance('landing tomorrow at 18:30', Date.parse(instant)),
+    ).toMatchObject({ type: 'update', patch: { date } });
+  },
+);
