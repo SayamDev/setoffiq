@@ -121,3 +121,17 @@ cases), passing under Node 22.23.3; lint, typecheck and build also pass.
   flight correction through the real planner. Chrome production preview verified
   pending AM/PM after a keyboard-submitted postcode and a direction change.
 - Real-device microphone/noise/OS-lock testing remains pending as documented.
+
+## Release preparation — 12 October 2026
+
+The user authorised merging and publishing the voice feature. The release audit
+found a pre-existing high-severity source-map-js build-tool advisory
+(GHSA-68fv-2mgg-jv7q). The lockfile now selects the compatible 1.2.2 patch instead
+of 1.2.1; no runtime dependency or application API changed. npm audit reports zero
+vulnerabilities after the patch.
+
+Rollback: revert the voice PR merge on main and let the existing Pages workflow
+redeploy. There are no migrations or new saved-journey schema fields to undo;
+voice draft ownership metadata remains transient. The pre-feature main revision
+is 982a0ba080ea6c84470ccf67465b01c4062f7d78. Verify a restored deployment's hydrated
+journey form and asset hashes rather than relying only on an HTTP 200 response.
