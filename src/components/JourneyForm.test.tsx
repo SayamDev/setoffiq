@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MANCHESTER } from '../domain/airports';
@@ -217,7 +217,9 @@ describe('choosing from the airline schedule', () => {
 
 
 describe('the timetable, when the schedule has nothing to say', () => {
-  afterEach(() => clearAll());
+  // Keep the arrival three hours ahead on the selected day, including evening CI runs.
+  beforeEach(() => vi.spyOn(Date, 'now').mockReturnValue(Date.UTC(2026, 9, 12, 11)));
+  afterEach(() => { clearAll(); vi.restoreAllMocks(); });
 
   const clock = (ms: number) =>
     new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ms));

@@ -182,3 +182,51 @@ it('keeps final segments and current interim text together before executing', ()
   );
   session.stop();
 });
+
+it('prefers a British enhanced local voice over an unrelated first English voice', async () => {
+  const { selectDeviceVoice } = await import('./speech');
+  const voices = [
+    { name: 'US', lang: 'en-US', localService: true },
+    { name: 'Cloud Natural', lang: 'en-GB', localService: false },
+    { name: 'British', lang: 'en-GB', localService: true },
+    { name: 'British Enhanced', lang: 'en-GB', localService: true },
+  ] as SpeechSynthesisVoice[];
+  expect(selectDeviceVoice(voices)?.name).toBe('British Enhanced');
+});
+it('waits briefly for late voice discovery, then resumes rather than getting stuck', () => {
+  vi.useFakeTimers();
+  const { session, callbacks } = setup();
+  const synth = Object.assign(new EventTarget(), {
+    getVoices: () => [],
+    cancel: vi.fn(),
+    speak: vi.fn(),
+  });
+  vi.stubGlobal('speechSynthesis', synth);
+  session.start();
+  session.say('Result');
+  expect(callbacks.state).toHaveBeenLastCalledWith('preparing');
+  vi.advanceTimersByTime(1200);
+  expect(callbacks.state).toHaveBeenLastCalledWith('listening');
+  expect(synth.speak).not.toHaveBeenCalled();
+  session.stop();
+});
+it('recovers if a device never delivers the speech end event', () => {
+  vi.useFakeTimers();
+  const { session, callbacks } = setup();
+  vi.stubGlobal(
+    'SpeechSynthesisUtterance',
+    class {
+      constructor(public text: string) {}
+    },
+  );
+  vi.stubGlobal('speechSynthesis', {
+    getVoices: () => [{ name: 'English', lang: 'en-GB', localService: true }],
+    cancel: vi.fn(),
+    speak: vi.fn(),
+  });
+  session.start();
+  session.say('Result');
+  vi.advanceTimersByTime(60000);
+  expect(callbacks.state).toHaveBeenLastCalledWith('listening');
+  session.stop();
+});

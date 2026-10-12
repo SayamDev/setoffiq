@@ -3,8 +3,8 @@ import { DEFAULT_AIRPORT } from '../domain/airports';
 import { formatClock, parseLocalDateTime, todayInZone } from '../domain/time';
 import type { JourneyInput, JourneyKind } from '../domain/types';
 import type { JourneyPlan } from '../services/plan';
-import { buildExplanationRequest } from '../services/ai/request';
-import { ruleBasedProvider } from '../services/ai/ruleBased';
+import { journeyExplanation } from '../services/voice/presentation';
+import { NaturalVoice } from './NaturalVoice';
 import { parseUtterance } from '../services/voice/parser';
 import type { VoicePatch } from '../services/voice/parser';
 import {
@@ -52,6 +52,10 @@ export function VoiceJourney({
     'Say the flight time and where it is coming from.',
   );
   const [state, setState] = useState<SpeechState>('idle');
+  const [outputVoice, setOutputVoice] = useState<
+    'natural' | 'device' | 'screen'
+  >('screen');
+  const [audioNotice, setAudioNotice] = useState('');
   const [active, setActive] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [enabled, setEnabled] = useState(false);
@@ -96,6 +100,8 @@ export function VoiceJourney({
   useEffect(() => {
     const speech = new VoiceSpeech({
       state: setState,
+      output: setOutputVoice,
+      notice: setAudioNotice,
       transcript: setTranscript,
       final: (value) => commandRef.current(value),
       message: (value) => {
@@ -169,7 +175,7 @@ export function VoiceJourney({
     const answer = voiceAnswer(plan);
     responseRef.current = answer;
     setMessage(answer);
-    speechRef.current?.say(`${matchNote} ${answer}`.trim());
+    speechRef.current?.say(`${voiceAnswer(plan, true)} ${matchNote}`.trim());
   }, [active, busy, plan, input, matchNote]);
 
   useEffect(() => {
@@ -355,11 +361,7 @@ export function VoiceJourney({
           respond('Calculate a recommendation first.');
           return;
         }
-        void ruleBasedProvider
-          .explain(
-            buildExplanationRequest(plan, plan.recommendation, DEFAULT_AIRPORT),
-          )
-          .then((explanation) => respond(explanation.text));
+        respond(journeyExplanation(plan));
         return;
       case 'calculate':
         if (ambiguityRef.current) {
@@ -441,14 +443,16 @@ export function VoiceJourney({
             }}
           >
             {' '}
-            {state === 'speaking' ? 'Interrupt and listen' : 'Listen'}{' '}
+            {state === 'speaking' || state === 'preparing'
+              ? 'Interrupt and listen'
+              : 'Listen'}{' '}
           </Button>
         ) : (
           <p className={ui.hint}>
             Speech recognition is unavailable in this browser. Type below.
           </p>
         )}
-        {enabled || state === 'speaking' ? (
+        {enabled || state === 'speaking' || state === 'preparing' ? (
           <Button
             variant="secondary"
             onClick={() => {
@@ -471,9 +475,32 @@ export function VoiceJourney({
       </div>
       <p className={ui.hint}>
         Listening resumes after replies. Tap Listen to interrupt, or press
-        Escape to stop. Spoken replies need a local English voice; otherwise use
-        the on-screen answer.
+        Escape to stop. Spoken replies use the optional natural voice or a local
+        device voice; otherwise use the on-screen answer.
       </p>
+      {outputVoice !== 'screen' ? (
+        <p role="status" className={ui.hint}>
+          {state === 'speaking' ? 'Speaking with' : 'Last reply used'} the{' '}
+          {outputVoice === 'natural' ? 'natural British' : 'device'} voice.
+        </p>
+      ) : null}
+      {audioNotice ? (
+        <p role="status" className={ui.hint}>
+          {audioNotice}
+        </p>
+      ) : null}
+      <NaturalVoice
+        onStop={() => {
+          speechRef.current?.stop();
+          setEnabled(false);
+        }}
+        onPreview={() =>
+          speechRef.current?.say(
+            "I'll help you plan the journey. You can correct the flight time, or ask why I chose that set-off time.",
+            true,
+          )
+        }
+      />
       {transcript ? (
         <p className={styles.transcript}>Heard: “{transcript}”</p>
       ) : null}

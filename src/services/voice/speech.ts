@@ -1,4 +1,11 @@
 /* eslint-disable unicorn/prefer-add-event-listener -- Each recognition instance is privately owned; handlers are detached on pause. */
+import {
+  naturalAudio,
+  naturalEnabled,
+  naturalState,
+  loadNatural,
+} from './natural';
+import { speakable, speechChunks } from './presentation';
 /** Minimal browser seam; no recordings, logging, storage, model calls or analytics. */
 interface SpeechResult {
   isFinal: boolean;
@@ -28,9 +35,29 @@ export function recognitionConstructor(): (new () => Recognition) | undefined {
   const browser = window as Window & SpeechWindow;
   return browser.SpeechRecognition ?? browser.webkitSpeechRecognition;
 }
-export type SpeechState = 'idle' | 'listening' | 'thinking' | 'speaking';
+export type SpeechState =
+  | 'idle'
+  | 'listening'
+  | 'thinking'
+  | 'preparing'
+  | 'speaking';
+export function selectDeviceVoice(
+  voices: SpeechSynthesisVoice[],
+): SpeechSynthesisVoice | undefined {
+  return voices
+    .filter((v) => v.localService && /^en(?:-|_)/i.test(v.lang))
+    .sort((a, b) => {
+      const score = (v: SpeechSynthesisVoice) =>
+        (/^en[-_]GB$/i.test(v.lang) ? 20 : 0) +
+        (/natural|enhanced|premium/i.test(v.name) ? 10 : 0) +
+        (v.default ? 1 : 0);
+      return score(b) - score(a);
+    })[0];
+}
 export interface SpeechCallbacks {
   state(state: SpeechState): void;
+  output?(voice: 'natural' | 'device' | 'screen'): void;
+  notice?(text: string): void;
   transcript(text: string): void;
   final(text: string): void;
   message(text: string): void;
@@ -45,6 +72,28 @@ export class VoiceSpeech {
   private speaking = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private generation = 0;
+  private audio: HTMLAudioElement | null = null;
+  private audioUrl: string | null = null;
+  private output: AbortController | null = null;
+  private voiceTimer: ReturnType<typeof setTimeout> | null = null;
+  private voiceListener: (() => void) | null = null;
+  private cancelOutput(): void {
+    this.output?.abort();
+    this.output = null;
+    this.audio?.pause();
+    this.audio = null;
+    if (this.audioUrl) URL.revokeObjectURL(this.audioUrl);
+    this.audioUrl = null;
+    if (this.voiceTimer) clearTimeout(this.voiceTimer);
+    this.voiceTimer = null;
+    if (this.voiceListener)
+      window.speechSynthesis?.removeEventListener?.(
+        'voiceschanged',
+        this.voiceListener,
+      );
+    this.voiceListener = null;
+    window.speechSynthesis?.cancel();
+  }
   constructor(private callbacks: SpeechCallbacks) {}
   start(): void {
     this.stop();
@@ -140,47 +189,157 @@ export class VoiceSpeech {
     this.pause();
     this.generation++;
     this.speaking = false;
-    window.speechSynthesis?.cancel();
+    this.cancelOutput();
     this.callbacks.state('thinking');
   }
   say(text: string, force = false): void {
     this.pause();
     const token = ++this.generation;
-    window.speechSynthesis?.cancel();
-    // Use local voices only. If absent, the result is still shown on screen.
-    const voice = window.speechSynthesis
-      ?.getVoices()
-      .find(
-        (candidate) =>
-          candidate.localService && candidate.lang.startsWith('en'),
-      );
-    if ((!this.enabled && !force) || !voice || document.hidden) {
-      this.speaking = false;
-      this.callbacks.state('idle');
-      if (this.enabled) this.listen();
+    this.cancelOutput();
+    if ((!this.enabled && !force) || document.hidden) {
+      this.finish(token);
+      return;
+    }
+    this.callbacks.notice?.('');
+    const spoken = speakable(text);
+    if (naturalEnabled() && naturalState().status === 'ready') {
+      this.speaking = true;
+      this.callbacks.state('preparing');
+      const controller = new AbortController();
+      this.output = controller;
+      void this.naturalSay(spoken, token, controller.signal);
+    } else {
+      // Restore the cached runtime after reload, without delaying the current answer.
+      if (naturalEnabled() && naturalState().status !== 'error')
+        void loadNatural().catch(() => {});
+      this.deviceSay(spoken, token);
+    }
+  }
+  private async naturalSay(
+    text: string,
+    token: number,
+    signal: AbortSignal,
+  ): Promise<void> {
+    const chunks = speechChunks(text);
+    for (let index = 0; index < chunks.length; index++) {
+      if (token !== this.generation || signal.aborted || document.hidden)
+        return;
+      try {
+        this.callbacks.state('preparing');
+        const blob = await naturalAudio(chunks[index]!, signal);
+        if (token !== this.generation || document.hidden) return;
+        this.audioUrl = URL.createObjectURL(blob);
+        const audio = new Audio(this.audioUrl);
+        this.audio = audio;
+        await new Promise<void>((resolve, reject) => {
+          const abort = () => {
+            cleanup();
+            reject(new DOMException('Stopped', 'AbortError'));
+          };
+          const timer = setTimeout(() => {
+            cleanup();
+            reject(new Error('Audio timed out.'));
+          }, 60000);
+          const cleanup = () => {
+            clearTimeout(timer);
+            signal.removeEventListener('abort', abort);
+          };
+          signal.addEventListener('abort', abort, { once: true });
+          audio.onended = () => {
+            cleanup();
+            resolve();
+          };
+          audio.onerror = () => {
+            cleanup();
+            reject(new Error('Audio unavailable.'));
+          };
+          void audio.play().then(
+            () => {
+              if (token === this.generation) {
+                this.callbacks.output?.('natural');
+                this.callbacks.state('speaking');
+              }
+            },
+            (error) => {
+              cleanup();
+              reject(error);
+            },
+          );
+        });
+        if (this.audioUrl) URL.revokeObjectURL(this.audioUrl);
+        this.audioUrl = null;
+        this.audio = null;
+      } catch (error) {
+        if (token === this.generation) {
+          this.callbacks.notice?.(
+            error instanceof DOMException && error.name === 'NotAllowedError'
+              ? 'Natural audio playback was blocked by the browser. Using the device voice.'
+              : error instanceof DOMException && error.name === 'TimeoutError'
+                ? 'Natural speech took too long on this device. Using the device voice.'
+                : 'Natural speech could not play. Using the device voice.',
+          );
+          this.cancelOutput();
+          this.deviceSay(chunks.slice(index).join(' '), token);
+        }
+        return;
+      }
+    }
+    this.finish(token);
+  }
+  private finish(token: number): void {
+    if (token !== this.generation) return;
+    this.cancelOutput();
+    this.speaking = false;
+    this.callbacks.state('idle');
+    this.listen();
+  }
+  private deviceSay(text: string, token: number, wait = true): void {
+    if (token !== this.generation || document.hidden) {
+      this.finish(token);
+      return;
+    }
+    const synth = window.speechSynthesis;
+    const voices = synth?.getVoices() ?? [];
+    const voice = selectDeviceVoice(voices);
+    if (!voice) {
+      if (wait && synth && !voices.length) {
+        this.speaking = true;
+        this.callbacks.state('preparing');
+        const retry = () => {
+          if (this.voiceTimer) clearTimeout(this.voiceTimer);
+          synth.removeEventListener?.('voiceschanged', retry);
+          this.voiceTimer = null;
+          this.voiceListener = null;
+          this.deviceSay(text, token, false);
+        };
+        this.voiceListener = retry;
+        synth.addEventListener?.('voiceschanged', retry);
+        this.voiceTimer = setTimeout(retry, 1200);
+      } else {
+        this.callbacks.output?.('screen');
+        this.finish(token);
+      }
       return;
     }
     this.speaking = true;
+    this.callbacks.output?.('device');
     this.callbacks.state('speaking');
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.voice = voice;
     utterance.lang = voice.lang;
-    const finish = () => {
-      if (token !== this.generation) return;
-      this.speaking = false;
-      this.callbacks.state('idle');
-      this.listen();
-    };
-    utterance.onend = finish;
-    utterance.onerror = finish;
-    window.speechSynthesis.speak(utterance);
+    utterance.rate = 0.98;
+    utterance.onend = () => this.finish(token);
+    utterance.onerror = () => this.finish(token);
+    // Browser callbacks can be lost; never leave the microphone paused forever.
+    this.voiceTimer = setTimeout(() => this.finish(token), 60000);
+    synth!.speak(utterance);
   }
   stop(): void {
     this.enabled = false;
     this.speaking = false;
     this.generation++;
     this.pause();
-    window.speechSynthesis?.cancel();
+    this.cancelOutput();
     this.callbacks.state('idle');
   }
 }

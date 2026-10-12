@@ -7,6 +7,15 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ command }) => ({
   base: command === 'build' ? '/setoffiq/' : '/',
   plugins: [react()],
+  worker: {
+    format: 'es',
+    rolldownOptions: {
+      output: {
+        banner:
+          '/*! Optional speech worker bundle: GPL-3.0-or-later (eSpeak NG); see /setoffiq/licenses/VOICE-NOTICES.txt for licences and source. Original SetoffIQ code: MIT. */',
+      },
+    },
+  },
   // In development, serve the data snapshots from the live site. The copies in
   // public/data are only a build fallback and go stale within the hour; a
   // day-old flight snapshot in dev once looked exactly like a production bug.

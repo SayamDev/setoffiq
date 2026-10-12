@@ -134,3 +134,16 @@ The site is served over HTTPS by GitHub Pages.
   hosted model.
 - The request counter on the diagnostics page is local to the browser and is
   never transmitted.
+
+
+## Optional natural speech
+
+The optional speech engine runs in a same-origin module worker, loaded only after
+explicit opt-in. The document CSP allows `media-src 'self' blob:` to play transient
+locally generated WAVs, and limits `worker-src` to this origin. It adds no remote
+script or hosted audio permission. Model/style downloads originate in the worker
+and go to the fixed Hugging Face repository through the trusted, locked runtime;
+no journey text is in those URLs/requests. Document `connect-src` stays unchanged.
+Worker headers cannot be set on GitHub Pages; a document meta policy is not a
+network allowlist for a separately served worker. No arbitrary model URLs or
+voices can be supplied by user input. Audio object URLs are revoked on stop/end.

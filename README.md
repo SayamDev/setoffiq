@@ -185,8 +185,10 @@ drive reaches it only as a duration.
 
 There is no analytics, no advertising and no third-party tracker of any kind.
 
-Settings has a **Clear all local data** button that genuinely removes
-everything, because every write goes through a single namespaced storage module.
+Settings has a **Clear all local data** button that removes saved journeys,
+preferences, provider caches and downloaded voice model/style files. Journey data
+is managed by one namespaced storage module; voice assets use isolated caches.
+Cached app-shell and speech-runtime files may remain, without personal data.
 
 ## Costs
 
@@ -350,7 +352,7 @@ postcode or other sensitive details if you prefer to keep them out of speech.
 SetoffIQ does not record, log or persist audio or transcripts, and sends no
 transcript, postcode or coordinates to any language model. Voice parsing is local,
 rule-based and independent of the optional Ollama explanation setting. Spoken
-replies use only voices the browser marks local; if none are available, the answer
+device replies use only voices the browser marks local; if none are available, the answer
 remains on screen. **Read answer** can retry after voices load or when autoplay
 restrictions require a tap. Only normal structured journey details are persisted
 when monitoring is started, through the existing storage module.
@@ -386,3 +388,46 @@ DATA-SOURCES.md and ARCHITECTURE.md). Older “no schedules” / “no keys anyw
 statements above describe the earlier position-only version. The voice feature
 adds no backend, accounts, credentials, dependencies or metered services, and
 preserves the £0-to-run / £0-to-use design.
+
+### Natural, contextual replies
+
+Open **Voice quality** on a planning page and choose **Download natural voice**
+for a British Kokoro voice (Emma). It is optional and off by default. Expect roughly
+115 MB of model/style files on CPU, or roughly 350 MB on supported GPUs, plus a ~22 MB speech runtime; the first download and
+warm-up may take a few minutes. **Try natural voice** previews it without enabling
+the microphone. **Use device voice** cancels loading/playback; **Remove voice
+download** deletes the isolated model/style cache. Settings → **Clear all local
+data** also removes these files. Browser-cached app/runtime assets may remain.
+
+The choice is remembered through the normal SetoffIQ storage layer. Reopening a
+planning page recreates the worker from cached model files, when the browser has
+kept them. If files were evicted it downloads again. Until ready, replies use a
+local browser voice, preferring British and enhanced voices. The UI identifies
+which voice is actually speaking. Neither download nor synthesis blocks the
+on-screen result. If the model is too slow, fails, or playback is blocked, the
+app falls back to a local device voice and keeps the written answer.
+
+Replies lead with the set-off time once, use spoken clock/date/range formatting,
+and distinguish passenger readiness from terminal arrival. Late journeys retain
+the engine's warning; low confidence is not spoken as certainty. “Why that time?”
+explains the engine's exact journey range and airport allowances in plain language.
+No model interprets the journey or rewrites any numbers. Kokoro converts that
+already-determined text to audio only. Long replies are split into short sentences
+so the model cannot silently truncate the end. Stop, Escape, corrections and tab
+hiding cancel playback and discard obsolete audio; no generated audio is saved.
+
+**Privacy:** Hugging Face receives your IP and requests for public model/style
+files. Speech generation happens inside a browser worker: no reply text, postcode,
+coordinates or microphone audio is uploaded to Kokoro or a hosted voice API.
+Browser recognition may still send microphone audio to its own speech service,
+as disclosed above. Model weights are cached separately from saved journeys and
+cleared by the same Settings action. Cached weights are software assets, not
+recordings. Kokoro/Transformers.js and the model use Apache-2.0 licences; see
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+Natural speech requires workers and WebAssembly, and enough memory for the model.
+Chrome desktop download/playback/reload are checked; actual iOS/Android audio
+policies, memory limits, noisy-car recognition and subjective voice quality need
+physical-device/user testing. Small gaps can occur between spoken sentences on
+slower devices. VoiceStudio's local API was considered, but requiring visitors to
+install/run another app conflicts with the no-setup public phone experience.

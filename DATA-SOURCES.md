@@ -767,3 +767,15 @@ judgements from geometry, not air-traffic information.
 
 None of these figures are published airport statistics, and SetoffIQ never
 presents them as such.
+
+
+## Kokoro speech assets (optional — checked 12 October 2026)
+
+- [Official browser library](https://github.com/hexgrad/kokoro/tree/main/kokoro.js)
+  and [ONNX model](https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX).
+- Kokoro/Transformers.js code and Kokoro weights: Apache-2.0. Public downloads,
+  no key/account or hosted inference. British Emma (`bf_emma`), q8 WASM, or fp32 WebGPU where an adapter is available.
+- Hugging Face receives file requests/IP; no journey text/audio is sent for speech
+  generation. Assets cache locally; text/generated audio do not.
+- This supplies sound, never flight information or predicted times. Browser speech
+  recognition is separate and may involve the browser provider's servers.

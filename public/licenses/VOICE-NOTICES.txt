@@ -1,0 +1,41 @@
+SetoffIQ optional natural speech — third-party notices and source
+
+The original SetoffIQ application source is MIT.
+The optional kokoro.worker-*.js bundle includes GPL-3.0-or-later eSpeak NG and is
+conveyed under GPL-3.0-or-later. Other included code: Kokoro/Transformers.js and
+phonemizer wrapper (Apache-2.0), ONNX Runtime (MIT).
+
+Kokoro: Copyright hexgrad / contributors. Licence: ./kokoro-LICENSE
+Transformers.js: Copyright Hugging Face / contributors. ./transformers-LICENSE
+Phonemizer wrapper: Copyright Xenova / contributors. ./phonemizer-LICENSE
+Pronunciation engine eSpeak NG: GPL-3.0-or-later. Full text: ./espeak-ng-COPYING
+ONNX Runtime: Copyright Microsoft Corporation. MIT:
+https://github.com/microsoft/onnxruntime/blob/main/LICENSE
+
+Source downloads, served alongside the executable:
+./espeak-ng-source.tar.gz
+  Official espeak-ng commit 0dfd1d77dd7f96ef1ea6856c9fa5cfac01599582, including
+  emscripten build sources; all 328 language/voice files checked in the wrapper
+  match this source byte-for-byte. The npm wrapper does not state a build revision.
+  SHA256 e6b84b52a87b3ad72885331bd942b2adecd70c384fa4ecfbe10aae7d9afd5e21
+./phonemizer-source.tar.gz
+  Official xenova/phonemizer.js commit 6835144b (version 1.2.1), including its
+  unminified distributed engine and wrapper/build sources.
+  SHA256 4befad6d52bbfa04f04aa2008bf48c07921b5378bef0f0f24a3f3509dd954029
+
+Application integration source and locked npm dependencies:
+https://github.com/SayamDev/setoffiq/tree/main/src/services/voice
+https://github.com/SayamDev/setoffiq/blob/main/package-lock.json
+https://github.com/SayamDev/setoffiq/blob/main/vite.config.ts
+Build: npm ci && npm run build (Node 22).
+
+Upstream sources:
+https://github.com/espeak-ng/espeak-ng
+https://github.com/xenova/phonemizer.js
+https://github.com/hexgrad/kokoro
+https://github.com/huggingface/transformers.js
+https://github.com/microsoft/onnxruntime
+
+Model/style assets downloaded separately after opt-in:
+https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX (Apache-2.0).
+No user voice cloning is included; generated audio is transient and not saved.
