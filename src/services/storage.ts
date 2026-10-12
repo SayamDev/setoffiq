@@ -1,7 +1,9 @@
 /**
- * Every byte SetoffIQ persists goes through here, so "clear all local data"
+ * Every journey, preference and data snapshot is managed here, so "clear all local data"
  * in settings can genuinely clear everything and nothing writes to storage
- * behind the app's back. Storage can be unavailable (private browsing, a
+ * behind the app's back. Optional downloadable voice weights use isolated Cache API
+ * entries managed by services/voice/natural.ts and cleared by the same settings action.
+ * Storage can be unavailable (private browsing, a
  * blocked origin), so every call degrades to in-memory instead of throwing.
  */
 const PREFIX = 'setoffiq:';

@@ -3,6 +3,7 @@ import { DEFAULT_NOTIFICATION_THRESHOLD_MINUTES } from '../domain/assumptions';
 import { Button, Callout, Card, Field, ui } from '../components/ui';
 import { ollamaProvider } from '../services/ai';
 import { clearAll } from '../services/storage';
+import { removeNatural } from '../services/voice/natural';
 import {
   notificationSupport,
   requestNotificationPermission,
@@ -47,10 +48,18 @@ export function SettingsPage({
     onUpdate({ notificationsEnabled: result === 'granted' });
   };
 
-  const clearEverything = (): void => {
+  const [clearError, setClearError] = useState('');
+  const clearEverything = async (): Promise<void> => {
     onClearJourneys();
     clearAll();
-    setCleared(true);
+    setClearError('');
+    try {
+      await removeNatural();
+      clearAll();
+      setCleared(true);
+    } catch {
+      setClearError('Journey data cleared. Voice files could not be removed; use your browser’s site storage controls.');
+    }
   };
 
   return (
@@ -193,6 +202,7 @@ export function SettingsPage({
           Saved journeys, cached routes and weather, your preferences and the local request counter
           all live in this browser. Clearing removes every one of them.
         </p>
+        {clearError ? <p role="status">{clearError}</p> : null}
         {cleared ? (
           <Callout tone="good" role="status">
             <p>All local SetoffIQ data has been cleared from this browser.</p>

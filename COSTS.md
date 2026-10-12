@@ -90,13 +90,23 @@ is the most reliable way to ensure none leaks and none is billed.
 
 ## Voice mode — October 2026
 
-Voice adds no service, account, credential, runtime dependency or billing path.
+The initial browser voice mode adds no account, credential or billing path.
 It uses the browser’s speech capabilities and existing public data adapters.
 Recognition may be processed by the browser provider; the feature offers typed
 input without recognition. No hosted language model or transcription API is
-called. Synthesis selects only browser voices marked local.
+called. Device synthesis selects only browser voices marked local.
 
 Correction to the older text above: CI-only AirLabs and National Highways keys are
 already supported in this checkout. The tables and DATA-SOURCES.md describe them;
 the older “every source shipping is keyless” statement is not current. Voice
 introduces no new keys and does not change those jobs or their budgets.
+
+
+### Optional natural voice
+
+Kokoro adds an Apache-2.0 runtime/model, fetched as public files after explicit
+opt-in and run in a browser worker. Hugging Face file downloads are keyless;
+there is no hosted inference request, account or billing mechanism. Hosting stays
+on public GitHub Pages. The user pays no fee, but the download uses their ordinary
+connection/data allowance and synthesis consumes device memory/battery. The default
+device voice requires no model download. No paid voice service was added.

@@ -1,7 +1,6 @@
 import { DEFAULT_AIRPORT } from '../../domain/airports';
 import {
   formatClock,
-  formatClockRange,
   parseLocalDateTime,
   todayInZone,
 } from '../../domain/time';
@@ -17,7 +16,6 @@ import {
   withoutScheduled,
 } from '../flight/timetable';
 import { geocodePostcode, isValidPostcodeShape } from '../routing';
-import type { JourneyPlan } from '../plan';
 import type { VoicePatch } from './parser';
 
 export interface VoiceDraft extends VoicePatch {
@@ -313,9 +311,4 @@ export async function voiceJourneyInput(
 }
 
 /** Speech reads engine output, including confidence and fallback, without changing a number. */
-export function voiceAnswer(plan: JourneyPlan): string {
-  const result = plan.recommendation;
-  if (result.kind === 'unavailable')
-    return `${result.headline}. ${result.detail}`;
-  return `${result.advisory.headline}. Set off at ${formatClock(result.recommendedDeparture, zone)}, ${todayInZone(result.recommendedDeparture, zone)}, Manchester time. ${result.confidence.level[0]!.toUpperCase()}${result.confidence.level.slice(1)} confidence. ${result.kind === 'pickup' ? `Passenger likely ready ${formatClockRange(result.readiness.window, zone)}.` : ''} ${plan.flight.message ?? ''}`;
-}
+export { journeyReply as voiceAnswer } from './presentation';

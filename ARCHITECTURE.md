@@ -230,7 +230,7 @@ flight adapters and validates dates, times, postcode and flight identifiers befo
 producing the existing `JourneyInput`. It cannot alter an engine recommendation.
 
 The page’s existing `useJourneyPlan`, prediction cards and monitoring save path
-remain authoritative. Voice explanations use the standard rule-based provider.
+remain authoritative. Voice replies and explanations use deterministic templates in `services/voice/presentation.ts`, reading the engine result directly. The text explanation path stays unchanged.
 `services/voice/speech.ts` owns browser recognition and local-only synthesis,
 pauses recognition while speaking to avoid echo commands, rejects stale callbacks,
 bounds silence, and resumes listening for follow-ups. Page lifecycle listeners
@@ -242,3 +242,29 @@ clears inferred facts when the flight identity changes and preserves explicit
 user choices; this ownership metadata is never part of the saved JourneyInput.
 Recognition combines final and interim segments from its current results list
 before dispatching an action, so an unfinished tail is not discarded.
+
+
+### Optional local neural speech
+
+`natural.ts` manages an opt-in Kokoro worker and only persists the voice preference.
+The library/model is lazy: no worker or model download until opted in. Worker
+messages carry text and a request id in memory; ids and abort signals reject stale
+results after corrections/Stop. Synthesis is chunked into bounded sentences to
+avoid the model tokenizer truncating long answers. Worker queue entries superseded
+by a newer request are skipped. Running inference cannot be interrupted inside
+WASM, but its audio is discarded and cannot restart listening/playback.
+
+The worker maps library Cache API names into `setoffiq-voice-*` caches. Settings
+clears those explicitly; service-worker activation only removes old shell caches,
+so it cannot evict the opted-in model or another app's caches. Reopening a page
+creates a new runtime from cached weights instead of equating preference with
+readiness. Load, generation and playback have bounded deadlines. The ordinary
+result and device voice remain available during loading; runtime/playback errors
+fall back to local browser synthesis, never a cloud voice. Object URLs are revoked
+on completion/stop. No texts/audio are cached, logged or passed to Ollama.
+
+The bundled worker/runtime is loaded only after opt-in. Public weights/styles are
+fetched from Hugging Face. These asset GETs disclose IP/file requests but no speech
+text. No new credentials or backend are involved. Node-only transitive dependency
+overrides patch sharp/global-agent advisories; browser inference uses WASM, not
+those Node bindings.

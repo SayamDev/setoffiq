@@ -431,7 +431,13 @@ export function PrivacyPage(): React.JSX.Element {
             details such as your postcode instead if you prefer. SetoffIQ does not record,
             log or persist audio or transcripts, and never sends them to a language model.
             Only structured journey details are saved when you start monitoring. Replies
-            use local English speech voices when available. Voice pauses when the tab is
+            use local English speech voices when available. The optional natural voice downloads
+            Kokoro files from Hugging Face (which receives your IP and file requests), then
+            generates speech on your device. Reply text is not sent for synthesis. Only the
+            voice preference and downloadable model files are saved; generated audio is not.
+            Remove voice download or Clear all local data deletes these voice files.
+            See the <a href={`${import.meta.env.BASE_URL}licenses/VOICE-NOTICES.txt`}>voice licences and source downloads</a>.
+            Voice pauses when the tab is
             hidden or the screen locks; tap Listen to resume.
           </p>
 

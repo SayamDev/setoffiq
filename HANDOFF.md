@@ -135,3 +135,60 @@ redeploy. There are no migrations or new saved-journey schema fields to undo;
 voice draft ownership metadata remains transient. The pre-feature main revision
 is 982a0ba080ea6c84470ccf67465b01c4062f7d78. Verify a restored deployment's hydrated
 journey form and asset hashes rather than relying only on an HTTP 200 response.
+
+## Natural/contextual voice follow-up — 12 October 2026
+
+`codex/natural-contextual-voice` replaces repetitive numeric/date readouts with
+short deterministic pickup/drop-off/late/uncertain reply templates and spoken
+clock/range/date formatting. “Why that time?” reads engine ranges/allowances.
+No LLM or prediction rule changes. Original text forms/explanations stay intact.
+
+Optional Kokoro q8/WASM or accelerated fp32/WebGPU in a separate worker provides British Emma speech,
+explicitly downloaded from the planning page. First load includes model download
+and warm-up; cached files restore a new runtime after reopening. Device speech is
+immediate during load/failure and prefers British/enhanced local voices. UI records
+which voice actually played. Short chunks avoid tokenizer truncation. Audio blobs
+are transient, URLs revoked, requests cancelled/stale ids ignored. Load/generation/
+playback and late browser voice discovery have bounded timeouts.
+
+The optional worker bundle includes GPL-3.0-or-later eSpeak through phonemizer;
+original app source remains MIT. Full notices/licence/source archives ship under
+public/licenses, with a banner in the worker and a privacy-page link. See
+THIRD-PARTY-NOTICES.md. eSpeak archive language/voice data was checked against
+phonemizer’s distributed worker (328 matching files); upstream provides no build
+revision in the npm package. Archives retain the source/build files.
+
+Voice caches are isolated with setoffiq-voice-* names. Remove voice download and
+Settings clear them; SW activation now deletes only obsolete SetoffIQ shell caches.
+No transcripts, generated audio or location enter storage/model asset requests.
+
+A full-suite evening run exposed two old JourneyForm timetable fixtures relying
+on Date.now(): their arrival moved past midnight while the picker stayed on today.
+The fixtures now use an explicit midday clock; production behaviour is unchanged.
+Node-only sharp/global-agent overrides resolve newly installed transitive audit
+issues. No new provider key/account/backend was added.
+
+Chrome production-preview download/warm-up, generated preview completion and cached
+reload were checked. Actual phone RAM/battery/autoplay/lockscreen and subjective
+voice quality need physical-device/user testing; slow devices can pause between
+sentences. VoiceStudio requires a running local API and was not integrated into
+this public phone app. Keep the device/text fallbacks.
+
+
+Playback review found CPU inference exceeding the bounded generation deadline;
+WebGPU fp32 is now selected when an adapter is available (larger, disclosed ~350 MB
+model/style download), with q8 WASM otherwise (~115 MB). A separate production CSP
+issue blocked blob audio playback; media-src now permits only self/blob and
+worker-src only self. Remote scripts/audio remain disallowed. The UI reports
+actual output voice and timeout/blocked-playback fallbacks. See SECURITY.md.
+
+
+Final checks: production build, strict typecheck, lint and dependency audit (zero
+reported vulnerabilities) pass. Expanded suite has 398 tests; the whole run
+passed 397 while a single presentation assertion still assumed a reply started
+with the time even for the engine's “wait” advisory. That assertion now checks the
+single departure alongside the preserved advisory, and the complete presentation
+suite passes. PR CI runs the full suite. Chrome confirmed WebGPU readiness and
+actual natural-audio playback (not device fallback), cached reload, Stop during
+preparation and 390px controls with 48px targets and no horizontal overflow.
+Rollback remains a PR revert; no journey-schema migration was introduced.
