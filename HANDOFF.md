@@ -92,3 +92,9 @@ overflow and no console warnings/errors. The local committed flight snapshot was
 31 days old, and the real result correctly exposed the scheduled-time fallback
 and low confidence. Preview requires the Pages base explicitly:
 `npm run preview -- --host 127.0.0.1 --base /setoffiq/`.
+
+The first PR CI run exposed two pre-existing route-description assertions that
+assumed Rabat and the UK share a September clock. Node 22’s ICU data disagreed
+with local Node 26. Those formatting tests now supply an explicit UTC+1 fixture;
+production timezone handling is unchanged. All 357 tests pass locally under both
+Node 26 and CI’s exact Node 22.23.3 version.

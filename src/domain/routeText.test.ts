@@ -10,7 +10,7 @@ describe('describing the other end of the flight', () => {
   it('gives a drop-off its destination and landing time in both clocks', () => {
     const text = describeRoute(
       {
-        city: 'Rabat', iata: 'RBA', countryName: 'Morocco', timeZone: 'Africa/Casablanca',
+        city: 'Rabat', iata: 'RBA', countryName: 'Morocco', timeZone: 'Etc/GMT-1',
         otherEndAt: departs + 190 * 60_000, durationMinutes: 190,
       },
       'dropoff',
@@ -18,7 +18,8 @@ describe('describing the other end of the flight', () => {
       now,
     );
     expect(text.headline).toBe('To Rabat (RBA), Morocco');
-    // Morocco and the UK share a clock in late September.
+    // A fixed UTC+1 fixture tests same-clock wording independently of Morocco's
+    // timezone rules, which differ between Node/ICU data versions.
     expect(text.detail).toBe(
       'Lands in Rabat about 11:25 on Sun 27 Sept — the same clock in Rabat and the UK, 3 hr 10 min in the air.',
     );
@@ -64,9 +65,10 @@ describe('describing the other end of the flight', () => {
 
 describe('the line under the flight on the card', () => {
   it('names the place once, with both clocks only when they differ', () => {
+    // Same fixed UTC+1 fixture: this asserts formatting, not Morocco's offset.
     expect(
       cardMeta(
-        { city: 'Rabat', iata: 'RBA', timeZone: 'Africa/Casablanca', otherEndAt: departs + 200 * 60_000, durationMinutes: 200 },
+        { city: 'Rabat', iata: 'RBA', timeZone: 'Etc/GMT-1', otherEndAt: departs + 200 * 60_000, durationMinutes: 200 },
         'dropoff',
         uk,
       ),
