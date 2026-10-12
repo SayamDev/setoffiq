@@ -3,7 +3,7 @@ import {
   disableNatural,
   enableNatural,
   naturalEnabled,
-  loadNatural,
+  prepareNaturalAutomatically,
   naturalState,
   removeNatural,
   subscribeNatural,
@@ -23,7 +23,7 @@ export function NaturalVoice({
   useEffect(() => {
     let active = true;
     if (naturalEnabled())
-      void loadNatural().catch(() => {
+      void prepareNaturalAutomatically().catch(() => {
         if (active && naturalEnabled() && naturalState().status === 'error')
           setError(
             'The natural voice could not load. Use the device voice or retry.',

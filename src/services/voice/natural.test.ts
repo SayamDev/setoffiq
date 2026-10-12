@@ -137,6 +137,7 @@ it('automatically prepares on first visit but honours a saved opt-out', async ()
 });
 it.each([{ saveData: true }, { effectiveType: '2g' }, { effectiveType: '3g' }])('defers automatic downloads for a constrained connection %j', async (connection) => {
   vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+  localStorage.setItem('setoffiq:natural-voice', 'true');
   Object.defineProperty(navigator, 'connection', { configurable: true, value: connection });
   const { prepareNaturalAutomatically } = await import('./natural');
   await prepareNaturalAutomatically();
