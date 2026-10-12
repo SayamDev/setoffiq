@@ -25,6 +25,10 @@ export interface VoiceDraft extends VoicePatch {
   date: string;
   time: string;
   postcode: string;
+  sources?: {
+    passengerRoute?: 'user' | 'flight';
+    terminalCode?: 'user' | 'flight';
+  };
 }
 export interface VoiceFlight {
   number: string;
@@ -162,6 +166,52 @@ export async function loadVoiceFlights(
   return matchVoiceFlights(draft, [...scheduled, ...timetabled, ...positioned]);
 }
 
+/** Corrections replace inferred flight facts, while retaining explicit user choices. */
+export function mergeVoicePatch(
+  draft: VoiceDraft,
+  patch: VoicePatch,
+): VoiceDraft {
+  const next = { ...draft, ...patch, sources: { ...draft.sources } };
+  const directionChanged =
+    patch.kind !== undefined && patch.kind !== draft.kind;
+  const flightChanged =
+    (patch.flightNumber !== undefined &&
+      patch.flightNumber !== draft.flightNumber) ||
+    (Object.hasOwn(patch, 'place') && patch.place !== draft.place) ||
+    (Object.hasOwn(patch, 'airline') && patch.airline !== draft.airline) ||
+    (patch.date !== undefined && patch.date !== draft.date);
+  if (directionChanged || flightChanged) {
+    if (draft.sources?.passengerRoute !== 'user') {
+      next.passengerRoute = undefined;
+      next.sources.passengerRoute = undefined;
+    }
+    if (draft.sources?.terminalCode !== 'user') {
+      next.terminalCode = undefined;
+      next.sources.terminalCode = undefined;
+    }
+  }
+  if (directionChanged) {
+    next.flightNumber = patch.flightNumber;
+    next.airline = patch.airline;
+    next.place = patch.place;
+    next.time = patch.time ?? '';
+  } else if (Object.hasOwn(patch, 'flightNumber')) {
+    next.airline = patch.airline;
+    next.place = patch.place;
+  } else if (Object.hasOwn(patch, 'place') || Object.hasOwn(patch, 'airline')) {
+    next.flightNumber = undefined;
+  }
+  if (Object.hasOwn(patch, 'passengerRoute')) {
+    next.passengerRoute = patch.passengerRoute;
+    next.sources.passengerRoute = patch.passengerRoute ? 'user' : undefined;
+  }
+  if (Object.hasOwn(patch, 'terminalCode')) {
+    next.terminalCode = patch.terminalCode;
+    next.sources.terminalCode = patch.terminalCode ? 'user' : undefined;
+  }
+  return next;
+}
+
 export function chooseVoiceFlight(
   draft: VoiceDraft,
   flight: VoiceFlight,
@@ -174,11 +224,27 @@ export function chooseVoiceFlight(
     airline: undefined,
     place: flight.place ?? undefined,
     time: draft.time || formatClock(flight.at, zone),
+    sources: {
+      passengerRoute:
+        draft.sources?.passengerRoute === 'user'
+          ? 'user'
+          : flight.country
+            ? 'flight'
+            : undefined,
+      terminalCode: draft.sources?.terminalCode === 'user' ? 'user' : 'flight',
+    },
     passengerRoute:
-      draft.passengerRoute ??
-      (flight.country === 'GB' ? 'domestic' : 'international'),
+      draft.sources?.passengerRoute === 'user'
+        ? draft.passengerRoute
+        : flight.country
+          ? flight.country === 'GB'
+            ? 'domestic'
+            : 'international'
+          : undefined,
     terminalCode:
-      draft.terminalCode ??
+      (draft.sources?.terminalCode === 'user'
+        ? draft.terminalCode
+        : undefined) ??
       (DEFAULT_AIRPORT.terminals.some((t) => t.code === terminal)
         ? terminal
         : undefined),

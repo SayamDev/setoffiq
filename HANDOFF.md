@@ -103,3 +103,21 @@ Final date review: voice-relative dates now advance the Manchester calendar
 rather than adding 24-hour durations, avoiding skipped/repeated dates near DST
 midnight. Two added regression cases bring the suite to 359 tests (50 parser
 cases), passing under Node 22.23.3; lint, typecheck and build also pass.
+
+## Follow-up correction checks — 12 October 2026
+
+- Pending AM/PM questions now survive unrelated details such as a postcode.
+- Voice drafts distinguish user choices from route/terminal facts inferred from a
+  flight. Changing the flight, origin, airline or date clears old inferred facts;
+  explicit user choices survive. Origin/airline corrections clear the old flight
+  number so it cannot keep tracking a different journey.
+- Changing pickup to drop-off requires the new flight time and updates the page
+  heading/navigation when the structured journey is submitted.
+- Speech results preserve prior final segments together with current interim
+  text. A mixed result no longer aborts and discards the sentence's unfinished
+  tail. No extra debounce or model call was added.
+- 368 tests pass under Node 22.23.3, with lint, strict typecheck and production
+  build passing. Added regression coverage includes a domestic-to-international
+  flight correction through the real planner. Chrome production preview verified
+  pending AM/PM after a keyboard-submitted postcode and a direction change.
+- Real-device microphone/noise/OS-lock testing remains pending as documented.

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   chooseVoiceFlight,
+  mergeVoicePatch,
   matchVoiceFlights,
   voiceJourneyInput,
 } from './journey';
@@ -108,6 +109,59 @@ describe('validated journey actions', () => {
       flightNumber: null,
       passengerRoute: 'international',
       scenarioId: null,
+    });
+  });
+});
+
+describe('flight corrections and input ownership', () => {
+  const domestic = chooseVoiceFlight(draft, {
+    ...flight,
+    number: 'BA123',
+    place: 'London',
+    country: 'GB',
+    terminal: '1',
+  });
+  it('replaces route and terminal inferred from the old flight', () => {
+    const corrected = mergeVoicePatch(domestic, { flightNumber: 'FR456' });
+    const next = chooseVoiceFlight(corrected, { ...flight, number: 'FR456' });
+    expect(next).toMatchObject({
+      passengerRoute: 'international',
+      terminalCode: 'T2',
+    });
+  });
+  it('clears the old flight identifier when the origin is corrected', () => {
+    const next = mergeVoicePatch(domestic, { place: 'Rabat' });
+    expect(next.flightNumber).toBeUndefined();
+    expect(next.passengerRoute).toBeUndefined();
+    expect(next.terminalCode).toBeUndefined();
+  });
+  it('retains explicitly chosen route and terminal during a correction', () => {
+    const explicit = mergeVoicePatch(domestic, {
+      passengerRoute: 'domestic',
+      terminalCode: 'T3',
+    });
+    const next = chooseVoiceFlight(
+      mergeVoicePatch(explicit, { flightNumber: 'FR456' }),
+      { ...flight, number: 'FR456' },
+    );
+    expect(next).toMatchObject({
+      passengerRoute: 'domestic',
+      terminalCode: 'T3',
+    });
+  });
+  it('keeps flight details for a time-only correction', () => {
+    const next = mergeVoicePatch(domestic, { time: '19:00' });
+    expect(next).toMatchObject({
+      flightNumber: 'BA123',
+      passengerRoute: 'domestic',
+      terminalCode: 'T1',
+      time: '19:00',
+    });
+  });
+  it('requires the new flight time when switching pickup to drop-off', () => {
+    expect(mergeVoicePatch(domestic, { kind: 'dropoff' })).toMatchObject({
+      kind: 'dropoff',
+      time: '',
     });
   });
 });

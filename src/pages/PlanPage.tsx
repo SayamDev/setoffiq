@@ -38,6 +38,7 @@ export function PlanPage({
   const airport = DEFAULT_AIRPORT;
   const now = useNow(30_000);
   const [input, setInput] = useState<JourneyInput | null>(null);
+  const plannedKind = input?.kind ?? kind;
   const { status, plan, error, refresh } = useJourneyPlan(input);
   // Worked out with the plan, so the card, the section and the saved name agree.
   const route = plan?.flightRoute ?? null;
@@ -94,18 +95,18 @@ export function PlanPage({
           ← Back
         </a>
         <nav className={styles.modeNav} aria-label="Journey type">
-          <a className={kind === 'pickup' ? styles.modeActive : styles.modeLink} href={hrefFor({ name: 'plan', kind: 'pickup' })} aria-current={kind === 'pickup' ? 'page' : undefined}>
+          <a className={plannedKind === 'pickup' ? styles.modeActive : styles.modeLink} href={hrefFor({ name: 'plan', kind: 'pickup' })} aria-current={plannedKind === 'pickup' ? 'page' : undefined}>
             Collect an arriving passenger
           </a>
-          <a className={kind === 'dropoff' ? styles.modeActive : styles.modeLink} href={hrefFor({ name: 'plan', kind: 'dropoff' })} aria-current={kind === 'dropoff' ? 'page' : undefined}>
+          <a className={plannedKind === 'dropoff' ? styles.modeActive : styles.modeLink} href={hrefFor({ name: 'plan', kind: 'dropoff' })} aria-current={plannedKind === 'dropoff' ? 'page' : undefined}>
             Take someone to a departing flight
           </a>
         </nav>
         <h1 className={styles.title}>
-          {kind === 'pickup' ? 'Plan a pickup' : 'Plan a drop-off'}
+          {plannedKind === 'pickup' ? 'Plan a pickup' : 'Plan a drop-off'}
         </h1>
         <p className={styles.subtitle}>
-          {kind === 'pickup'
+          {plannedKind === 'pickup'
             ? 'For an arriving flight at Manchester Airport. Enter the landing time; we’ll calculate when to set off to collect your passenger.'
             : 'For a departing flight from Manchester Airport. Enter the flight time; we’ll calculate when to set off and reach the terminal in time.'}
         </p>

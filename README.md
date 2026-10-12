@@ -313,6 +313,9 @@ read aloud when a local English voice is available.
 
 - Correct a detail: “no, 7 o'clock”, “actually 19:00”, “tomorrow”, “hand luggage
   only”, “terminal two”, or open **Understood details** and edit a field.
+- Changing the flight or its origin clears route/terminal details inferred from
+  the old flight, while retaining choices you explicitly entered. Unanswered
+  time questions remain pending when you add another detail such as a postcode.
 - Ask “why that time?” for the standard explanation, or “start monitoring” to
   save the structured journey and open the existing monitoring screen.
 - Multiple matches are offered as numbered options. Say “option one” or tap one.

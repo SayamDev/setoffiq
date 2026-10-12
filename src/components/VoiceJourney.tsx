@@ -9,6 +9,7 @@ import { parseUtterance } from '../services/voice/parser';
 import type { VoicePatch } from '../services/voice/parser';
 import {
   chooseVoiceFlight,
+  mergeVoicePatch,
   loadVoiceFlights,
   voiceAnswer,
   voiceJourneyInput,
@@ -67,6 +68,7 @@ export function VoiceJourney({
   const speechRef = useRef<VoiceSpeech | null>(null);
   const commandRef = useRef<(text: string) => void>(() => {});
   const responseRef = useRef('');
+  const ownInputRef = useRef<JourneyInput | null>(null);
   const isSupported = Boolean(recognitionConstructor());
   const respond = (value: string): void => {
     responseRef.current = value;
@@ -147,7 +149,17 @@ export function VoiceJourney({
       time: formatClock(input.scheduledTime, zone),
       flightNumber: input.flightNumber ?? undefined,
       postcode: input.origin.label,
-      passengerRoute: input.passengerRoute,
+      passengerRoute:
+        ownInputRef.current === input
+          ? draftRef.current.passengerRoute
+          : input.passengerRoute,
+      sources:
+        ownInputRef.current === input
+          ? draftRef.current.sources
+          : {
+              passengerRoute: 'user',
+              terminalCode: input.terminalCode ? 'user' : undefined,
+            },
       terminalCode: input.terminalCode ?? undefined,
       luggage: input.luggage ?? undefined,
     });
@@ -224,6 +236,7 @@ export function VoiceJourney({
       }
       if (note) setMatchNote(note);
       setDetailsOpen(false);
+      ownInputRef.current = result;
       onInput(result);
     } catch {
       if (!controller.signal.aborted)
@@ -359,22 +372,21 @@ export function VoiceJourney({
         return;
       case 'update': {
         invalidate();
-        const next = { ...draftRef.current, ...action.patch };
-        if (action.patch.kind && action.patch.kind !== draftRef.current.kind) {
-          next.flightNumber = action.patch.flightNumber;
-          next.place = action.patch.place;
-          next.airline = action.patch.airline;
-        } else if (action.patch.flightNumber) {
-          next.airline = action.patch.airline;
-          next.place = action.patch.place;
-        }
+        const next = mergeVoicePatch(draftRef.current, action.patch);
         updateDraft(next);
         setApproximate(action.approximate);
         const questions = {
-          hour: action.ambiguousHour,
+          hour:
+            action.patch.time !== undefined
+              ? action.ambiguousHour
+              : Boolean(pending?.hour),
           basis:
             action.ambiguousBasis ||
-            Boolean(pending?.basis && !/land|flight arrival/i.test(utterance)),
+            Boolean(
+              pending?.basis &&
+                next.kind === 'pickup' &&
+                !/land|flight arrival/i.test(utterance),
+            ),
         };
         setPending(questions.hour || questions.basis ? questions : null);
         if (questions.hour || questions.basis)
@@ -391,7 +403,7 @@ export function VoiceJourney({
   const edit = (patch: VoicePatch): void => {
     setActive(true);
     invalidate();
-    updateDraft({ ...draftRef.current, ...patch });
+    updateDraft(mergeVoicePatch(draftRef.current, patch));
     if (patch.time) setPending(null);
   };
   const visibleState = busy || working ? 'thinking' : state;

@@ -252,6 +252,16 @@ describe('utterance to the real planner', () => {
     expect(stored).toContain('KL1038');
   }, 15000);
 
+
+  it('shows the correct journey heading when voice switches a pickup page to drop-off', async () => {
+    const user = userEvent.setup(); window.location.hash = '#/pickup'; render(<App />);
+    await user.type(await screen.findByLabelText('Or type an instruction'), 'drop off tomorrow at 19:00 postcode M1 4BT');
+    await user.click(screen.getByRole('button', { name: 'Use instruction' }));
+    await screen.findByRole('region', { name: /Set off at/ }, { timeout: 5000 });
+    expect(screen.getByRole('heading', { name: 'Plan a drop-off', level: 1 })).toBeInTheDocument();
+    expect(screen.getByLabelText('Voice journey type')).toHaveValue('dropoff');
+  }, 10000);
+
   it('does not calculate an ambiguous pickup until AM/PM and landing basis are settled', async () => {
     const user = userEvent.setup();
     window.location.hash = '#/pickup';
@@ -301,4 +311,24 @@ describe('voice flight choices from published data', () => {
     await user.click(screen.getByRole('button', { name: 'Use instruction' }));
     expect(await screen.findByText(/Calculate a current recommendation first/)).toBeInTheDocument();
   }, 10000);
+  it('corrects from a domestic flight to an international one without retaining the old terminal', async () => {
+    scheduledFlights = [
+      { ...fixture('BA123'), callsign: 'BAW123', airline: 'BA', otherEnd: { icao: 'EGLL', iata: 'LHR', city: 'London', country: 'GB' }, terminal: '1' },
+      fixture('FR456'),
+    ];
+    const user = userEvent.setup(); window.location.hash = '#/pickup'; render(<App />);
+    const instruction = await screen.findByLabelText('Or type an instruction');
+    await user.type(instruction, 'landing tomorrow at 18:30 flight BA123 postcode M1 4BT');
+    await user.click(screen.getByRole('button', { name: 'Use instruction' }));
+    await screen.findByRole('region', { name: /Set off at/ }, { timeout: 5000 });
+    expect(screen.getByLabelText('Route', { exact: true })).toHaveValue('domestic');
+    expect(screen.getByLabelText('Terminal', { exact: true })).toHaveValue('T1');
+    await user.type(instruction, 'actually flight FR456');
+    await user.click(screen.getByRole('button', { name: 'Use instruction' }));
+    await screen.findByRole('region', { name: /Set off at/ }, { timeout: 5000 });
+    expect(screen.getByLabelText('Route', { exact: true })).toHaveValue('international');
+    expect(screen.getByLabelText('Terminal', { exact: true })).toHaveValue('T3');
+    expect(screen.getByLabelText('Voice flight number')).toHaveValue('FR456');
+  }, 10000);
+
 });

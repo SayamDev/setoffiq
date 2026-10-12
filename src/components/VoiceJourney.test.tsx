@@ -103,4 +103,16 @@ describe('voice controls and cancellation', () => {
     expect(screen.getByLabelText('Voice flight time')).toHaveValue('19:00');
     expect(onInput.mock.calls.every((call) => call[0] === null)).toBe(true);
   });
+  it('keeps AM/PM pending when another journey detail arrives', async () => {
+    const { onInput } = setup();
+    const user = userEvent.setup();
+    const instruction = screen.getByLabelText('Or type an instruction');
+    await user.type(instruction, 'landing tomorrow at half six');
+    await user.click(screen.getByRole('button', { name: 'Use instruction' }));
+    expect(screen.getByText('Is that AM or PM?')).toBeInTheDocument();
+    await user.type(instruction, 'postcode M1 4BT');
+    await user.click(screen.getByRole('button', { name: 'Use instruction' }));
+    expect(screen.getByText('Is that AM or PM?')).toBeInTheDocument();
+    expect(onInput.mock.calls.every((call) => call[0] === null)).toBe(true);
+  });
 });

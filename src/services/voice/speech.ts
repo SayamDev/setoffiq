@@ -73,13 +73,17 @@ export class VoiceSpeech {
       if (this.recognition !== recognition || !this.enabled) return;
       let interim = '';
       const finals: string[] = [];
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      for (let i = 0; i < event.results.length; i++) {
         const result = event.results[i]!;
         if (result.isFinal) finals.push(result[0].transcript);
-        else interim += result[0].transcript;
+        else interim += `${result[0].transcript} `;
       }
-      this.callbacks.transcript(interim || finals.join(' '));
-      if (finals.length) {
+      // Results contain the full current session, including earlier final segments.
+      // Do not abort a sentence while the service is still transcribing its tail.
+      this.callbacks.transcript(
+        [...finals, interim.trim()].filter(Boolean).join(' '),
+      );
+      if (finals.length && !interim.trim()) {
         // One complete utterance per action; stop capturing while it is interpreted.
         this.pause();
         this.callbacks.state('thinking');

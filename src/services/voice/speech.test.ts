@@ -153,3 +153,32 @@ describe('browser speech lifecycle', () => {
     vi.restoreAllMocks();
   });
 });
+
+it('keeps final segments and current interim text together before executing', () => {
+  const { session, callbacks } = setup();
+  session.start();
+  const recognition = FakeRecognition.instances[0]!;
+  recognition.onresult?.({
+    resultIndex: 0,
+    results: [
+      { isFinal: true, 0: { transcript: 'picking someone up tomorrow' } },
+      { isFinal: false, 0: { transcript: 'at half six' } },
+    ],
+  });
+  expect(callbacks.final).not.toHaveBeenCalled();
+  expect(recognition.aborted).toBe(false);
+  expect(callbacks.transcript).toHaveBeenLastCalledWith(
+    'picking someone up tomorrow at half six',
+  );
+  recognition.onresult?.({
+    resultIndex: 1,
+    results: [
+      { isFinal: true, 0: { transcript: 'picking someone up tomorrow' } },
+      { isFinal: true, 0: { transcript: 'at half six from Rabat' } },
+    ],
+  });
+  expect(callbacks.final).toHaveBeenCalledExactlyOnceWith(
+    'picking someone up tomorrow at half six from Rabat',
+  );
+  session.stop();
+});
