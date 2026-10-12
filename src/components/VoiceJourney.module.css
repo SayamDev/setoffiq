@@ -1,0 +1,118 @@
+.panel {
+  border-block: 1px solid var(--rule-strong);
+  padding-block: var(--space-5);
+  margin-bottom: var(--space-6);
+}
+.heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.heading h2 {
+  font-size: var(--t-xl);
+  margin: 0 0 0.75rem;
+}
+.state {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  font-size: var(--t-xs);
+  color: var(--signal-ink);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-block: 1rem;
+}
+.panel button,
+.panel input,
+.panel select,
+.summary {
+  min-height: 48px;
+}
+.transcript {
+  font-size: var(--t-lg);
+  overflow-wrap: anywhere;
+}
+.response {
+  border-inline-start: 3px solid var(--signal);
+  padding: 0.75rem 1rem;
+  background: var(--signal-wash);
+  color: var(--signal-ink);
+  overflow-wrap: anywhere;
+}
+.typed label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+.entry {
+  display: flex;
+  gap: 0.5rem;
+}
+.entry input {
+  min-width: 0;
+  flex: 1;
+}
+.summary {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+.summary::before {
+  content: '+ ';
+  margin-right: 0.5rem;
+}
+.panel details[open] .summary::before {
+  content: '− ';
+}
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-block: 1rem;
+}
+.fields label {
+  display: grid;
+  gap: 0.5rem;
+  font-size: var(--t-sm);
+}
+.choices {
+  padding-left: 1.5rem;
+}
+.choices li {
+  margin-block: 0.5rem;
+}
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (max-width: 540px) {
+  .entry {
+    flex-direction: column;
+  }
+  .heading {
+    align-items: flex-start;
+  }
+  .heading h2 {
+    max-width: 70%;
+  }
+}
+@media (max-width: 340px) {
+  .fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+.understood {
+  font-family: var(--font-mono);
+  font-size: var(--t-sm);
+  overflow-wrap: anywhere;
+}

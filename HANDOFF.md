@@ -64,3 +64,74 @@ npm run build
 ```
 
 Push to `main` deploys.
+
+## Voice feature branch — 12 October 2026
+
+`codex/hands-free-voice` adds an English deterministic utterance/action pipeline,
+existing-data flight matching, browser speech recognition and local-only spoken
+replies on both planning pages. The text form, prediction engine and monitoring
+implementation are reused. No backend, services, credentials or npm dependencies
+were added. Transcripts/audio are never logged or persisted.
+
+README now records usage, feature-detected support, off-device recognition privacy,
+known parser/data limits, tap-to-interrupt replies and lifecycle behaviour. The
+privacy page has the same disclosure. ARCHITECTURE and COSTS explain the boundary
+and the pre-existing CI-only AirLabs/provider keys, correcting older contradictory
+claims without changing the data jobs.
+
+Tests cover the parser corpus, structured validation, DST gaps/repeated hours,
+matching/multiple candidates, callsign/codeshare handling, a full utterance-string
+journey through real providers and the real engine to monitoring, cancellations,
+transcript storage absence, stale requests, permission failures, echo avoidance,
+silence expiry, keyboard stop and hiding/returning. Physical microphone, noisy-car,
+VoiceOver/TalkBack and actual iOS/Android locked-screen checks remain pending.
+Browser callback tests simulate lifecycle changes; they do not prove OS behaviour.
+
+Production Chrome preview verified at 390px with 48px voice buttons, no horizontal
+overflow and no console warnings/errors. The local committed flight snapshot was
+31 days old, and the real result correctly exposed the scheduled-time fallback
+and low confidence. Preview requires the Pages base explicitly:
+`npm run preview -- --host 127.0.0.1 --base /setoffiq/`.
+
+The first PR CI run exposed two pre-existing route-description assertions that
+assumed Rabat and the UK share a September clock. Node 22’s ICU data disagreed
+with local Node 26. Those formatting tests now supply an explicit UTC+1 fixture;
+production timezone handling is unchanged. All 357 tests pass locally under both
+Node 26 and CI’s exact Node 22.23.3 version.
+
+Final date review: voice-relative dates now advance the Manchester calendar
+rather than adding 24-hour durations, avoiding skipped/repeated dates near DST
+midnight. Two added regression cases bring the suite to 359 tests (50 parser
+cases), passing under Node 22.23.3; lint, typecheck and build also pass.
+
+## Follow-up correction checks — 12 October 2026
+
+- Pending AM/PM questions now survive unrelated details such as a postcode.
+- Voice drafts distinguish user choices from route/terminal facts inferred from a
+  flight. Changing the flight, origin, airline or date clears old inferred facts;
+  explicit user choices survive. Origin/airline corrections clear the old flight
+  number so it cannot keep tracking a different journey.
+- Changing pickup to drop-off requires the new flight time and updates the page
+  heading/navigation when the structured journey is submitted.
+- Speech results preserve prior final segments together with current interim
+  text. A mixed result no longer aborts and discards the sentence's unfinished
+  tail. No extra debounce or model call was added.
+- 368 tests pass under Node 22.23.3, with lint, strict typecheck and production
+  build passing. Added regression coverage includes a domestic-to-international
+  flight correction through the real planner. Chrome production preview verified
+  pending AM/PM after a keyboard-submitted postcode and a direction change.
+- Real-device microphone/noise/OS-lock testing remains pending as documented.
+
+## Release preparation — 12 October 2026
+
+The user authorised merging and publishing the voice feature. The release audit
+found a pre-existing high-severity source-map-js build-tool advisory
+(GHSA-68fv-2mgg-jv7q). The lockfile now selects the compatible 1.2.2 patch instead
+of 1.2.1; no runtime dependency or application API changed. npm audit reports zero
+vulnerabilities after the patch.
+
+Rollback: revert the voice PR merge on main and let the existing Pages workflow
+redeploy. There are no migrations or new saved-journey schema fields to undo;
+voice draft ownership metadata remains transient. The pre-feature main revision
+is 982a0ba080ea6c84470ccf67465b01c4062f7d78. Verify a restored deployment's hydrated
+journey form and asset hashes rather than relying only on an HTTP 200 response.

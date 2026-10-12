@@ -217,3 +217,28 @@ Vite builds a static bundle. `.github/workflows/deploy.yml` refreshes the flight
 snapshot, builds, and publishes to GitHub Pages on every push and on a schedule.
 `.github/workflows/ci.yml` runs lint, typecheck, tests and a production build on
 every push and pull request.
+
+## Voice input
+
+`services/voice/parser.ts` translates bounded English into a closed `VoiceAction`
+union: update validated journey fields, calculate, explain, monitor, stop or ask
+for clarification. It has no prediction logic and never calls a model. The
+`VoiceJourney` component holds transcripts and drafts in memory, exposes every
+understood field for editing, resolves material time ambiguities, and cancels
+obsolete lookups before accepting corrections. `services/voice/journey.ts` reuses
+flight adapters and validates dates, times, postcode and flight identifiers before
+producing the existing `JourneyInput`. It cannot alter an engine recommendation.
+
+The page’s existing `useJourneyPlan`, prediction cards and monitoring save path
+remain authoritative. Voice explanations use the standard rule-based provider.
+`services/voice/speech.ts` owns browser recognition and local-only synthesis,
+pauses recognition while speaking to avoid echo commands, rejects stale callbacks,
+bounds silence, and resumes listening for follow-ups. Page lifecycle listeners
+stop speech on hiding/exit. Unsupported APIs use typed instructions through the
+same parser. No transcript or audio enters storage or provider usage logs.
+
+Voice drafts keep route/terminal input ownership in memory. `mergeVoicePatch`
+clears inferred facts when the flight identity changes and preserves explicit
+user choices; this ownership metadata is never part of the saved JourneyInput.
+Recognition combines final and interim segments from its current results list
+before dispatching an action, so an unfinished tail is not discarded.
