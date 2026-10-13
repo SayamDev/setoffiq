@@ -440,6 +440,23 @@ the microphone. The original form retains its fields and behaviour. Results
 keep the recommendation visible; the supporting timeline and source details are
 under **Why this time?** and **Travel notes and data limits**.
 
+The conversation asks for the next missing detail, including AM/PM or flight-time
+clarification when needed. The microphone control changes from **Start talking**
+to **Listening — stop**, **Checking your journey**, or **Interrupt and talk**.
+Tap a value in **Your journey details** to correct it; applying a change runs the
+same validated planning pipeline. **Edit journey**, **Explain this time**, and
+**Start monitoring** sit together beneath the result. Extended instructions live
+under **Voice help and privacy**; the microphone privacy disclosure stays visible.
+Switching a completed plan to **Use the form** fills it with the current journey;
+submitting returns to the result stage. The form's original validation is retained.
+
+Routine spoken replies are shorter and help follows the current step. The first
+result reads the engine's departure time, confidence and flight-data limitations;
+the full windows remain on screen. Kokoro is synthesised speech, not a human
+recording. No human-recorded prompt assets are included; adding them later would
+require original or appropriately licensed recordings. Dynamic answers continue
+to use local synthesis.
+
 A short first-visit guide can be skipped and replayed from **How to use SetoffIQ**
 in the footer. Its correction example runs through the real local parser without
 creating a journey or saving the example. A small, lazy-loaded Lottie transition

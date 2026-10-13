@@ -268,3 +268,13 @@ fetched from Hugging Face. These asset GETs disclose IP/file requests but no spe
 text. No new credentials or backend are involved. Node-only transitive dependency
 overrides patch sharp/global-agent advisories; browser inference uses WASM, not
 those Node bindings.
+
+The guided voice UI uses `guidance.ts` for deterministic next-question and
+microphone labels, and `JourneySummary` for local, directly editable draft values.
+Applying a summary edit stops speech and uses the same VoicePatch merge,
+validation, provider lookup and engine path as an utterance. Unsettled time
+ambiguities still block calculation. The recommendation appears before follow-up
+controls; result edits focus the summary and explanation opens the existing
+details. Brief speech formats the engine departure and confidence, while complete
+windows and source limitations stay visible. No new model, storage or service is
+introduced; transcript/audio remain ephemeral.

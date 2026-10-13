@@ -173,7 +173,7 @@ describe('planning and monitoring a pickup', () => {
     expect(within(recommendation).getAllByText(/^\d{2}:\d{2}–\d{2}:\d{2}$/).length).toBeGreaterThanOrEqual(2);
 
     // 4. Start monitoring.
-    await user.click(screen.getByRole('button', { name: /Monitor this journey/i }));
+    await user.click(screen.getByRole('button', { name: /Start monitoring/i }));
     // Just checked, so the manual check is in its cooldown rather than
     // inviting a press that could achieve nothing.
     expect(await screen.findByRole('button', { name: /Check again in \d+s/i })).toBeDisabled();
@@ -232,36 +232,103 @@ describe('utterance to the real planner', () => {
     const instruction = await screen.findByLabelText('Or type an instruction');
     await user.type(instruction, 'landing tomorrow at 18:30, flight KL1038');
     await user.click(screen.getByRole('button', { name: 'Use instruction' }));
-    await screen.findByText(/Enter your starting postcode below/);
-    await user.type(screen.getByRole('textbox', { name: 'Starting postcode' }), 'M1 4BT');
+    await screen.findByText('What is your starting postcode?');
+    await user.type(
+      screen.getByRole('textbox', { name: 'Starting postcode' }),
+      'M1 4BT',
+    );
     await user.click(screen.getByRole('button', { name: 'Continue' }));
-    const first = await screen.findByRole('region', { name: /Set off at/ }, { timeout: 5000 });
+    const first = await screen.findByRole(
+      'region',
+      { name: /Set off at/ },
+      { timeout: 5000 },
+    );
     const firstTime = within(first).getByText(/^\d{2}:\d{2}$/).textContent;
+    expect(
+      first.compareDocumentPosition(
+        screen.getByRole('heading', { name: 'Ask or change a detail' }),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(screen.getByLabelText('Voice flight time')).toHaveValue('18:30');
     await user.type(instruction, 'no, 19:00');
     await user.click(screen.getByRole('button', { name: 'Use instruction' }));
-    const corrected = await screen.findByRole('region', { name: /Set off at/ }, { timeout: 5000 });
+    const corrected = await screen.findByRole(
+      'region',
+      { name: /Set off at/ },
+      { timeout: 5000 },
+    );
     expect(screen.getByLabelText('Voice flight time')).toHaveValue('19:00');
-    expect(within(corrected).getByText(/^\d{2}:\d{2}$/).textContent).not.toBe(firstTime);
+    expect(within(corrected).getByText(/^\d{2}:\d{2}$/).textContent).not.toBe(
+      firstTime,
+    );
+    await user.click(screen.getByRole('button', { name: 'Edit journey' }));
+    expect(
+      screen.getByRole('button', { name: /Edit journey type:/ }),
+    ).toHaveFocus();
+    await user.click(
+      screen.getByRole('button', { name: 'Edit landing time: 19:00' }),
+    );
+    const timeEditor = screen.getByLabelText('New landing time', {
+      exact: true,
+    });
+    expect(timeEditor).toHaveFocus();
+    fireEvent.change(timeEditor, { target: { value: '20:00' } });
+    await user.click(screen.getByRole('button', { name: 'Apply change' }));
+    const edited = await screen.findByRole(
+      'region',
+      { name: /Set off at/ },
+      { timeout: 5000 },
+    );
+    expect(screen.getByLabelText('Voice flight time')).toHaveValue('20:00');
+    expect(within(edited).getByText(/^\d{2}:\d{2}$/).textContent).not.toBe(
+      within(corrected).queryByText(/^\d{2}:\d{2}$/)?.textContent,
+    );
+    await user.click(screen.getByRole('button', { name: 'Explain this time' }));
+    expect(
+      screen
+        .getByText('Why this time? View the journey details')
+        .closest('details'),
+    ).toHaveAttribute('open');
+    await user.click(screen.getByRole('button', { name: 'Use the form' }));
+    expect(
+      screen.getByRole('textbox', { name: /Starting postcode/i }),
+    ).toHaveValue('M1 4BT');
+    expect(screen.getByLabelText(/Flight arrival time/i)).toHaveValue('20:00');
+    expect(
+      screen.queryByRole('region', { name: /Set off at/ }),
+    ).not.toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: 'Calculate when to leave' }),
+    );
+    await screen.findByRole(
+      'region',
+      { name: /Set off at/ },
+      { timeout: 5000 },
+    );
     await user.type(instruction, 'why that time?');
     await user.click(screen.getByRole('button', { name: 'Use instruction' }));
-    await screen.findAllByText(/Leaving at .* should get you to Manchester Airport/);
+    await screen.findAllByText(
+      /Leaving at .* should get you to Manchester Airport/,
+    );
     await user.type(instruction, 'start monitoring');
     await user.click(screen.getByRole('button', { name: 'Use instruction' }));
-    expect(await screen.findByRole('button', { name: /Check again in/ })).toBeDisabled();
-    const stored = listKeys().map(key => readRaw(key)).join(' ');
+    expect(
+      await screen.findByRole('button', { name: /Check again in/ }),
+    ).toBeDisabled();
+    const stored = listKeys()
+      .map((key) => readRaw(key))
+      .join(' ');
     expect(stored).not.toContain('landing tomorrow at');
     expect(stored).not.toContain('why that time');
     expect(stored).toContain('KL1038');
   }, 15000);
-
 
   it('shows the correct journey heading when voice switches a pickup page to drop-off', async () => {
     const user = userEvent.setup(); window.location.hash = '#/pickup'; render(<App />);
     await user.type(await screen.findByLabelText('Or type an instruction'), 'drop off tomorrow at 19:00 postcode M1 4BT');
     await user.click(screen.getByRole('button', { name: 'Use instruction' }));
     await screen.findByRole('region', { name: /Set off at/ }, { timeout: 5000 });
-    expect(screen.getByRole('heading', { name: 'Plan a drop-off', level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Your drop-off plan', level: 1 })).toBeInTheDocument();
     expect(screen.getByLabelText('Voice journey type')).toHaveValue('dropoff');
   }, 10000);
 
@@ -298,7 +365,7 @@ describe('voice flight choices from published data', () => {
     await screen.findByText(/I found 2 possible flights/);
     expect(screen.queryByRole('region', { name: /Set off at/ })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Option 2: FR124/ }));
-    await screen.findByText(/Enter your starting postcode below/);
+    await screen.findByText('What is your starting postcode?');
     await user.type(screen.getByRole('textbox', { name: 'Starting postcode' }), 'M1 4BT');
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await screen.findByRole('region', { name: /Set off at/ }, { timeout: 5000 });

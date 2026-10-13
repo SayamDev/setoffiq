@@ -141,6 +141,12 @@
 .download button {
   flex-shrink: 0;
 }
+.download summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: list-item;
+  padding-block: .75rem;
+}
 @media (max-width: 540px) {
   .download {
     flex-direction: column;

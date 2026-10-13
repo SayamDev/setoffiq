@@ -143,7 +143,7 @@ export function RecommendationCard({
         <p className={styles.detailsNote}>
           {terminal
             ? `* Terminal from the airline timetable. Check the booking — each terminal has its own road in.`
-            : 'Choose the terminal below if the booking says: each terminal has its own road in, which changes the drive.'}
+            : 'Confirm the terminal on your booking: each terminal has its own road in, which changes the drive.'}
         </p>
       ) : null}
 

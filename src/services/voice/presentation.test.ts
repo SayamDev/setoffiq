@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   journeyExplanation,
   journeyReply,
+  briefJourneyReply,
   speakable,
   speechChunks,
   spokenClock,
@@ -71,6 +72,24 @@ const dropoff = calculateDropoffRecommendation({
   mode: 'drop-off',
 });
 describe('contextual speech from deterministic results', () => {
+  it('shortens the first spoken reply while retaining the exact departure, confidence and fallback', () => {
+    if (pickup.kind !== 'pickup') throw new Error('Expected pickup');
+    const source = plan(pickup);
+    const short = briefJourneyReply(source);
+    expect(short).toContain(
+      spokenClock(
+        new Intl.DateTimeFormat('en-GB', {
+          timeZone: MANCHESTER.timeZone,
+          hour: '2-digit',
+          minute: '2-digit',
+          hourCycle: 'h23',
+        }).format(new Date(pickup.recommendedDeparture)),
+      ),
+    );
+    expect(short.toLowerCase()).toContain('confidence');
+    expect(short).toContain('No matching aircraft');
+    expect(short.length).toBeLessThan(journeyReply(source, true).length);
+  });
   it.each([
     ['00:00', 'midnight'],
     ['12:00', 'noon'],

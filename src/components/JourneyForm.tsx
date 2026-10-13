@@ -40,11 +40,13 @@ export function JourneyForm({
   airport = DEFAULT_AIRPORT,
   now,
   onSubmit,
+  initialInput = null,
 }: {
   kind: JourneyKind;
   airport?: AirportProfile;
   now: number;
   onSubmit: (input: JourneyInput) => void;
+  initialInput?: JourneyInput | null;
 }): React.JSX.Element {
   const baseId = useId();
   const errorRef = useRef<HTMLDivElement>(null);
@@ -54,20 +56,20 @@ export function JourneyForm({
   /** Where the date and time came from, when not typed from a booking. */
   const [whenFrom, setWhenFrom] = useState<PickedFlight['basis'] | null>(null);
   /** Whether someone chose the date, rather than leaving the default. */
-  const [dateChosen, setDateChosen] = useState(false);
+  const [dateChosen, setDateChosen] = useState(Boolean(initialInput));
   /** Whether the terminal came from the flight picked, rather than the user. */
   const [terminalFromPick, setTerminalFromPick] = useState(false);
   /** Whether a time already past today was taken to mean tomorrow. */
   const [takenAsTomorrow, setTakenAsTomorrow] = useState(false);
   const [state, setState] = useState<FormState>({
-    flightNumber: '',
-    date: todayInZone(now, airport.timeZone),
-    time: '',
-    passengerRoute: 'international',
-    terminalCode: '',
-    luggage: '',
-    postcode: '',
-    mode: kind === 'pickup' ? PICKUP_DEFAULT : DROPOFF_DEFAULT,
+    flightNumber: initialInput?.flightNumber ?? '',
+    date: todayInZone(initialInput?.scheduledTime ?? now, airport.timeZone),
+    time: initialInput ? formatClock(initialInput.scheduledTime, airport.timeZone) : '',
+    passengerRoute: initialInput?.passengerRoute ?? 'international',
+    terminalCode: initialInput?.terminalCode ?? '',
+    luggage: initialInput?.luggage ?? '',
+    postcode: initialInput?.origin.label ?? '',
+    mode: kind === 'pickup' ? initialInput?.pickupMode ?? PICKUP_DEFAULT : initialInput?.dropoffMode ?? DROPOFF_DEFAULT,
   });
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]): void => {
