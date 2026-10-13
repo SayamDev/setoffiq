@@ -47,7 +47,7 @@ export function HomePage(): React.JSX.Element {
         </div>
       </section>
 
-      <p className={styles.footnote}>Speak or type. No account needed. Your microphone only starts when you tap Listen.</p>
+      <p className={styles.footnote}>Speak or type. No account needed. Your microphone only starts when you tap Start talking.</p>
     </>
   );
 }

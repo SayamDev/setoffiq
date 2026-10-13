@@ -55,7 +55,7 @@ describe('voice controls and cancellation', () => {
   it('stops when hidden and requires a new tap when returning', async () => {
     setup();
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: 'Listen' }));
+    await user.click(screen.getByRole('button', { name: 'Start talking' }));
     const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
     fireEvent(document, new Event('visibilitychange'));
     expect(FakeRecognition.instances[0]!.aborted).toBe(true);
@@ -65,16 +65,16 @@ describe('voice controls and cancellation', () => {
     hidden.mockReturnValue(false);
     fireEvent(document, new Event('visibilitychange'));
     expect(FakeRecognition.instances).toHaveLength(1);
-    await user.click(screen.getByRole('button', { name: 'Listen' }));
+    await user.click(screen.getByRole('button', { name: 'Start talking' }));
     expect(FakeRecognition.instances).toHaveLength(2);
   });
   it('stops with Escape and releases recognition on unmount', async () => {
     const { unmount } = setup();
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: 'Listen' }));
+    await user.click(screen.getByRole('button', { name: 'Start talking' }));
     await user.keyboard('{Escape}');
     expect(FakeRecognition.instances[0]!.aborted).toBe(true);
-    await user.click(screen.getByRole('button', { name: 'Listen' }));
+    await user.click(screen.getByRole('button', { name: 'Start talking' }));
     unmount();
     expect(FakeRecognition.instances[1]!.aborted).toBe(true);
   });
@@ -132,8 +132,8 @@ it('offers conversational help and reset without retaining the previous flight',
 });
 it('stops the microphone when switching to the form', async () => {
   const { rerender, onInput, onMonitor } = setup(); const user = userEvent.setup();
-  await user.click(screen.getByRole('button', { name: 'Listen' }));
+  await user.click(screen.getByRole('button', { name: 'Start talking' }));
   rerender(<VoiceJourney suspended kind="pickup" input={null} plan={null} busy={false} error={null} onInput={onInput} onMonitor={onMonitor} />);
   expect(FakeRecognition.instances[0]!.aborted).toBe(true);
-  expect(screen.queryByRole('button', { name: 'Listen' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Start talking' })).not.toBeInTheDocument();
 });

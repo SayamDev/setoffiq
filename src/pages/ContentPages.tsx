@@ -426,7 +426,7 @@ export function PrivacyPage(): React.JSX.Element {
 
           <h2>Voice mode</h2>
           <p>
-            Microphone access is off until you tap Listen. Your browser may send microphone audio to its
+            Microphone access is off until you tap Start talking. Your browser may send microphone audio to its
             speech recognition service, under that browser provider’s terms. Type sensitive
             details such as your postcode instead if you prefer. SetoffIQ does not record,
             log or persist audio or transcripts, and never sends them to a language model.
@@ -438,7 +438,7 @@ export function PrivacyPage(): React.JSX.Element {
             Remove voice download or Clear all local data deletes these voice files.
             See the <a href={`${import.meta.env.BASE_URL}licenses/VOICE-NOTICES.txt`}>voice licences and source downloads</a>.
             Voice pauses when the tab is
-            hidden or the screen locks; tap Listen to resume.
+            hidden or the screen locks; tap Start talking to resume.
           </p>
 
           <h2>Explanations and AI</h2>

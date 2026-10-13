@@ -179,8 +179,8 @@ export function WelcomeGuide(): React.JSX.Element {
               ) : null}
               <p className={styles.note}>
                 {step === 2
-                  ? 'Tap Listen to interrupt a reply. Stop voice or Escape ends the session. Voice pauses when the tab is hidden or the screen locks.'
-                  : 'Microphone access starts only when you tap Listen. Your browser may send audio to its speech service. SetoffIQ does not save audio or transcripts.'}
+                  ? 'Tap Start talking to interrupt a reply. Stop voice or Escape ends the session. Voice pauses when the tab is hidden or the screen locks.'
+                  : 'Microphone access starts only when you tap Start talking. Your browser may send audio to its speech service. SetoffIQ does not save audio or transcripts.'}
               </p>
             </div>
             {voice.status === 'loading' ? (

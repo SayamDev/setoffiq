@@ -121,7 +121,7 @@ export function VoiceJourney({
         abortRef.current?.abort();
         setWorking(false);
         setMessage(
-          'Voice paused while the screen was locked or the tab was hidden. Tap Listen to resume.',
+          'Voice paused while the screen was locked or the tab was hidden. Tap Start talking to resume.',
         );
       }
     };
@@ -544,8 +544,8 @@ export function VoiceJourney({
           >
             {' '}
             {state === 'speaking' || state === 'preparing'
-              ? 'Interrupt and listen'
-              : 'Listen'}{' '}
+              ? 'Interrupt and talk'
+              : 'Start talking'}{' '}
           </Button>
         ) : (
           <p className={ui.hint}>
@@ -581,8 +581,8 @@ export function VoiceJourney({
       </p>
       <p className={ui.hint}>
         {enabled
-          ? 'Listening resumes after each reply. Tap Listen to interrupt. Escape stops voice.'
-          : 'Tap Listen once, then answer each question. You can also type below.'}
+          ? 'Listening resumes after each reply. Tap Start talking to interrupt. Escape stops voice.'
+          : 'Tap Start talking once, then answer each question. You can also type below.'}
       </p>
       {outputVoice !== 'screen' ? (
         <p role="status" className={ui.hint}>

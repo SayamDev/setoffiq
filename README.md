@@ -299,7 +299,7 @@ additional time and follow official airport and airline guidance.
 
 ## Hands-free journey planning
 
-Open **Plan a pickup** or **Plan a drop-off**, then tap **Listen** in
+Open **Plan a pickup** or **Plan a drop-off**, then tap **Start talking** in
 **Talk through your journey**. Microphone use starts only after that tap and
 browser permission. For example:
 
@@ -347,7 +347,7 @@ latency or accuracy, especially with cabin noise. See the
 
 **Your browser may send microphone audio off-device to its speech service.**
 That service’s handling and retention follow its provider’s terms; SetoffIQ cannot
-control them. This is disclosed above Listen before microphone use. Type your
+control them. This is disclosed above Start talking before microphone use. Type your
 postcode or other sensitive details if you prefer to keep them out of speech.
 SetoffIQ does not record, log or persist audio or transcripts, and sends no
 transcript, postcode or coordinates to any language model. Voice parsing is local,
@@ -358,7 +358,7 @@ restrictions require a tap. Only normal structured journey details are persisted
 when monitoring is started, through the existing storage module.
 
 Voice stops on tab hiding, page exit and screen lock when the browser dispatches
-those lifecycle events; returning requires a fresh Listen tap. Browser suspension
+those lifecycle events; returning requires a fresh Start talking tap. Browser suspension
 can interrupt recognition without a final transcript. Monitoring retains its
 existing limitation: it works while the app is open, with a refresh on return.
 No background voice or locked-screen reliability is promised.
@@ -434,7 +434,7 @@ install/run another app conflicts with the no-setup public phone experience.
 
 ### A calmer, voice-first interface
 
-The homepage leads to **Plan with voice**. On a planning page, **Talk or type**
+The homepage leads to **Plan with voice**. On a planning page, **Voice or text**
 and **Use the form** show one input method at a time; switching to the form stops
 the microphone. The original form retains its fields and behaviour. Results
 keep the recommendation visible; the supporting timeline and source details are
@@ -447,7 +447,7 @@ honours reduced motion. Only the guide-dismissal preference is saved.
 
 Voice now also understands **help**, **repeat that**, **edit details**, **start
 again**, **open journeys**, **open settings**, and **go to home**. Navigation ends
-the voice session; return to the planner and tap Listen to resume. Multiple flight
+the voice session; return to the planner and tap Start talking to resume. Multiple flight
 choices are read aloud. Missing postcodes have a focused inline field, so sensitive
 location information need not be spoken to the browser service.
 

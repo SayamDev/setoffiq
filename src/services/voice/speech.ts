@@ -64,7 +64,7 @@ export interface SpeechCallbacks {
 }
 
 /** Half duplex avoids interpreting the speaker as a new user command.
- * Tap Listen to interrupt output. Auto-resume enables hands-free follow-ups.
+ * Tap Start talking to interrupt output. Auto-resume enables hands-free follow-ups.
  * Permission failures and silence stop instead of creating an endless retry loop. */
 export class VoiceSpeech {
   private recognition: Recognition | null = null;
@@ -146,7 +146,7 @@ export class VoiceSpeech {
         event.error === 'not-allowed' || event.error === 'service-not-allowed'
           ? 'Microphone permission was denied. Use typed input, or enable microphone access in your browser.'
           : event.error === 'no-speech'
-            ? 'No speech heard. Tap Listen to try again, or type below.'
+            ? 'No speech heard. Tap Start talking to try again, or type below.'
             : 'Speech recognition stopped. Check your microphone and connection, or type below.';
       this.callbacks.message(message);
     };
@@ -160,7 +160,7 @@ export class VoiceSpeech {
       this.timer = setTimeout(() => {
         this.stop();
         this.callbacks.message(
-          'Voice paused after a minute without an instruction. Tap Listen to resume.',
+          'Voice paused after a minute without an instruction. Tap Start talking to resume.',
         );
       }, 60000);
     try {
@@ -168,7 +168,7 @@ export class VoiceSpeech {
     } catch {
       this.stop();
       this.callbacks.message(
-        'Could not start listening. Tap Listen again, or type below.',
+        'Could not start listening. Tap Start talking again, or type below.',
       );
     }
   }
