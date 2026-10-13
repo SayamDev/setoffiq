@@ -53,10 +53,11 @@ it('restores the opted-in runtime on mounting and offers a microphone-free previ
   expect(WorkerStub.instance.postMessage).toHaveBeenCalledWith({
     type: 'load',
   });
-  await user.click(screen.getByText('Voice settings · natural British voice'));
+  await user.click(screen.getByText('Voice settings · natural voice loading · device voice for now'));
   await act(async () => {
     WorkerStub.instance.onmessage?.({ data: { type: 'ready' } });
   });
+  expect(screen.getByText('Voice settings · natural British voice ready')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Try natural voice' }));
   expect(preview).toHaveBeenCalledOnce();
 });

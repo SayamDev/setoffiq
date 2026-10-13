@@ -115,7 +115,7 @@ export function PlanPage({
       </header>
 
       <div className={styles.entryModes} role="group" aria-label="How to plan">
-        <Button variant={entryMode === 'voice' ? 'primary' : 'quiet'} aria-pressed={entryMode === 'voice'} onClick={() => setEntryMode('voice')}>Talk or type</Button>
+        <Button variant={entryMode === 'voice' ? 'primary' : 'quiet'} aria-pressed={entryMode === 'voice'} onClick={() => setEntryMode('voice')}>Voice or text</Button>
         <Button variant={entryMode === 'form' ? 'primary' : 'quiet'} aria-pressed={entryMode === 'form'} onClick={() => setEntryMode('form')}>Use the form</Button>
       </div>
       <VoiceJourney suspended={entryMode !== 'voice'} kind={kind} input={input} plan={plan} busy={status === 'loading'} error={error} onInput={setInput} onMonitor={startMonitoring} />
