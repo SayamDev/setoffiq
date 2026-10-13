@@ -114,9 +114,13 @@ export function PlanPage({
         </p>
       </header>
 
-      <div className={styles.entryModes} role="group" aria-label="How to plan">
-        <Button variant={entryMode === 'voice' ? 'primary' : 'quiet'} aria-pressed={entryMode === 'voice'} onClick={() => setEntryMode('voice')}>Voice or text</Button>
-        <Button variant={entryMode === 'form' ? 'primary' : 'quiet'} aria-pressed={entryMode === 'form'} onClick={() => setEntryMode('form')}>Use the form</Button>
+      <div className={styles.entryChoice}>
+        <p id="entry-choice-label" className={styles.entryLabel}>Choose how to plan</p>
+        <div className={styles.entryModes} role="group" aria-labelledby="entry-choice-label" aria-describedby="entry-choice-hint">
+          <button type="button" className={styles.entryOption} aria-pressed={entryMode === 'voice'} onClick={() => setEntryMode('voice')}>Voice or text</button>
+          <button type="button" className={styles.entryOption} aria-pressed={entryMode === 'form'} onClick={() => setEntryMode('form')}>Use the form</button>
+        </div>
+        <p id="entry-choice-hint" className={styles.entryHint}>Switch between a conversation and the step-by-step form.</p>
       </div>
       <VoiceJourney suspended={entryMode !== 'voice'} kind={kind} input={input} plan={plan} busy={status === 'loading'} error={error} onInput={setInput} onMonitor={startMonitoring} />
 
