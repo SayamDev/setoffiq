@@ -27,8 +27,14 @@ it('runs the example correction through the real parser without saving the examp
   render(<WelcomeGuide />);
   await user.click(screen.getByRole('button', { name: 'How to use SetoffIQ' }));
   await user.click(screen.getByRole('button', { name: 'Continue' }));
-  await user.click(screen.getByRole('button', { name: 'No, 7 PM' }));
+  expect(screen.getByText('18:30')).toBeInTheDocument();
+  expect(screen.getByLabelText('Try correcting this example')).toHaveValue('No, 7 PM');
+  await user.click(screen.getByRole('button', { name: 'Try correction' }));
   expect(screen.getByText('19:00')).toBeInTheDocument();
+  await user.clear(screen.getByLabelText('Try correcting this example'));
+  await user.type(screen.getByLabelText('Try correcting this example'), 'No, 8 PM');
+  await user.keyboard('{Enter}');
+  expect(screen.getByText('20:00')).toBeInTheDocument();
   expect(screen.getByRole('status')).toHaveTextContent(
     'example flight time has changed',
   );
@@ -39,7 +45,7 @@ it('runs the example correction through the real parser without saving the examp
   );
   await user.click(screen.getByRole('button', { name: 'Try correction' }));
   expect(screen.getByRole('status')).toHaveTextContent('cannot book');
-  expect(screen.getByText('19:00')).toBeInTheDocument();
+  expect(screen.getByText('20:00')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Continue' }));
   await user.click(screen.getByRole('button', { name: 'Let’s plan' }));
   expect(JSON.stringify(localStorage)).not.toContain('book a taxi');

@@ -29,7 +29,7 @@ export function WelcomeGuide(): React.JSX.Element {
   const dialog = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(() => !readRaw('welcome-seen-v1'));
   const [step, setStep] = useState(0);
-  const [demo, setDemo] = useState('Landing tomorrow at 6:30 PM');
+  const [demo, setDemo] = useState('No, 7 PM');
   const [demoTime, setDemoTime] = useState('18:30');
   const [demoMessage, setDemoMessage] = useState(
     'Example only. No journey is being calculated.',
@@ -38,6 +38,9 @@ export function WelcomeGuide(): React.JSX.Element {
   const launch = () => {
     returnFocus.current = document.activeElement as HTMLElement;
     setStep(0);
+    setDemo('No, 7 PM');
+    setDemoTime('18:30');
+    setDemoMessage('Example only. No journey is being calculated.');
     setOpen(true);
     document.dispatchEvent(new Event('setoffiq:guide-open'));
   };
@@ -106,12 +109,13 @@ export function WelcomeGuide(): React.JSX.Element {
                     Rabat.”
                   </p>
                   <p>
-                    We’ll ask for your starting postcode, then calculate the
-                    drive and time to leave.
+                    We’ll ask for your <strong>starting postcode</strong>, then
+                    calculate the <strong>drive and time to leave</strong>.
                   </p>
                   <p className={styles.note}>
-                    Manchester Airport only. Estimates are for planning; check
-                    your booking and airline guidance.
+                    <strong>Manchester Airport only.</strong> Estimates are for
+                    <strong> planning</strong>; check your <strong>booking and
+                    airline guidance</strong>.
                   </p>
                 </div>
               ) : null}
@@ -126,6 +130,10 @@ export function WelcomeGuide(): React.JSX.Element {
                   <label htmlFor="guide-example">
                     Try correcting this example
                   </label>
+                  <p className={styles.note}>
+                    The example flight lands at <strong>6:30 PM</strong>. Change
+                    it to <strong>7 PM</strong>, or type your own correction.
+                  </p>
                   <div className={styles.demoResult}>
                     Flight landing time <strong>{demoTime}</strong>
                   </div>
