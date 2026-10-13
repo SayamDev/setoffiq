@@ -7,6 +7,9 @@ import { journeyExplanation } from '../services/voice/presentation';
 import { navigate } from '../app/router';
 import { isValidPostcodeShape } from '../services/routing';
 import { NaturalVoice } from './NaturalVoice';
+import { JourneySummary } from './JourneySummary';
+import { microphoneLabel, nextQuestion } from '../services/voice/guidance';
+import { briefJourneyReply } from '../services/voice/presentation';
 import { parseUtterance } from '../services/voice/parser';
 import type { VoicePatch } from '../services/voice/parser';
 import {
@@ -32,6 +35,7 @@ export function VoiceJourney({
   onInput,
   onMonitor,
   suspended = false,
+  editRequest = 0,
 }: {
   kind: JourneyKind;
   input: JourneyInput | null;
@@ -41,6 +45,7 @@ export function VoiceJourney({
   onInput(input: JourneyInput | null): void;
   onMonitor(): void;
   suspended?: boolean;
+  editRequest?: number;
 }): React.JSX.Element {
   const [draft, setDraft] = useState<VoiceDraft>({
     kind,
@@ -60,6 +65,7 @@ export function VoiceJourney({
   const [audioNotice, setAudioNotice] = useState('');
   const [active, setActive] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [enabled, setEnabled] = useState(false);
   const [postcodeNeeded, setPostcodeNeeded] = useState(false);
   const [postcodeEntry, setPostcodeEntry] = useState('');
@@ -76,12 +82,14 @@ export function VoiceJourney({
   const speechRef = useRef<VoiceSpeech | null>(null);
   const commandRef = useRef<(text: string) => void>(() => {});
   const responseRef = useRef('');
+  const spokenResponseRef = useRef('');
   const ownInputRef = useRef<JourneyInput | null>(null);
   const isSupported = Boolean(recognitionConstructor());
-  const respond = (value: string): void => {
+  const respond = (value: string, spoken = value): void => {
     responseRef.current = value;
+    spokenResponseRef.current = spoken;
     setMessage(value);
-    speechRef.current?.say(value);
+    speechRef.current?.say(spoken);
   };
   const updateDraft = (next: VoiceDraft): void => {
     draftRef.current = next;
@@ -152,6 +160,20 @@ export function VoiceJourney({
       setWorking(false);
     }
   }, [suspended]);
+  useEffect(() => {
+    if (!editRequest) return;
+    speechRef.current?.stop();
+    setEnabled(false);
+    setActive(true);
+    document
+      .getElementById('journey-summary-title')
+      ?.scrollIntoView?.({ block: 'center', behavior: 'auto' });
+    document
+      .querySelector<HTMLButtonElement>(
+        '[aria-labelledby="journey-summary-title"] button',
+      )
+      ?.focus();
+  }, [editRequest]);
   // Interim text is visible immediately; screen readers get a debounced transcript.
   useEffect(() => {
     const timer = setTimeout(() => setAnnouncement(transcript), 400);
@@ -159,6 +181,10 @@ export function VoiceJourney({
   }, [transcript]);
   useEffect(() => {
     if (!input) return;
+    if (ownInputRef.current !== input) {
+      setMatchNote('');
+      setApproximate(false);
+    }
     updateDraft({
       airline:
         input.flightNumber === (draftRef.current.flightNumber || null)
@@ -192,8 +218,10 @@ export function VoiceJourney({
     if (suspended || !active || busy || !plan || !input) return;
     const answer = voiceAnswer(plan);
     responseRef.current = answer;
+    spokenResponseRef.current =
+      `${briefJourneyReply(plan)} ${matchNote}`.trim();
     setMessage(answer);
-    speechRef.current?.say(`${voiceAnswer(plan, true)} ${matchNote}`.trim());
+    speechRef.current?.say(spokenResponseRef.current);
   }, [active, busy, plan, input, matchNote, suspended]);
 
   useEffect(() => {
@@ -365,13 +393,19 @@ export function VoiceJourney({
     const action = parseUtterance(utterance, Date.now(), zone);
     switch (action.type) {
       case 'help':
+        setHelpOpen(true);
         respond(
-          'Tell me the flight time, date, airline or flight number. For example, landing tomorrow at six thirty PM from Rabat. Then give your starting postcode. You can say no, seven PM, why that time, repeat that, edit details, start monitoring, start again, open journeys, open settings, or go to home.',
+          plan && input
+            ? 'You can say “no, seven PM”, “why that time?” or “start monitoring”.'
+            : !draftRef.current.time
+              ? 'Tell me the flight time and date. For example, “landing tomorrow at six thirty PM from Rabat”.'
+              : 'Next, enter your starting postcode. You can type it to keep it out of the speech service.',
         );
         return;
       case 'repeat':
         speechRef.current?.say(
-          responseRef.current ||
+          spokenResponseRef.current ||
+            responseRef.current ||
             message ||
             'Tell me the flight time and date to get started.',
           true,
@@ -493,9 +527,39 @@ export function VoiceJourney({
     setActive(true);
     invalidate();
     updateDraft(mergeVoicePatch(draftRef.current, patch));
-    if (patch.time) setPending(null);
+    if (patch.time) {
+      setPending(null);
+      setApproximate(false);
+    }
   };
   const visibleState = busy || working ? 'thinking' : state;
+  const ready = Boolean(
+    plan &&
+      input &&
+      !busy &&
+      !working &&
+      plan.recommendation.kind !== 'unavailable',
+  );
+  const question =
+    busy || working
+      ? 'Looking up the drive and available flight data.'
+      : nextQuestion(draft, ambiguity, choices.length, ready);
+  const summary = (
+    <JourneySummary
+      draft={draft}
+      onBeginEdit={() => {
+        speechRef.current?.stop();
+        setEnabled(false);
+      }}
+      onApply={(patch) => {
+        const next = mergeVoicePatch(draftRef.current, patch);
+        edit(patch);
+        setDetailsOpen(false);
+        if (!ambiguityRef.current) void calculate(next);
+        else respond('Please settle the time question first.');
+      }}
+    />
+  );
   return (
     <section
       className={styles.panel}
@@ -511,12 +575,15 @@ export function VoiceJourney({
         }
       }}
     >
+      {ready ? summary : null}
       <div className={styles.heading}>
-        <h2 id="voice-heading">Talk through your journey</h2>
+        <h2 id="voice-heading">
+          {ready ? 'Ask or change a detail' : 'Talk through your journey'}
+        </h2>
         <span className={styles.state} role="status">
           {
             {
-              idle: 'Ready when you are',
+              idle: 'Microphone off',
               listening: 'Listening…',
               thinking: 'Checking your journey…',
               preparing: 'Preparing speech…',
@@ -525,34 +592,41 @@ export function VoiceJourney({
           }
         </span>
       </div>
-      <p className={styles.prompt}>
-        {active
-          ? 'One detail at a time is fine. You can correct anything.'
-          : kind === 'pickup'
-            ? '“Landing tomorrow at 6:30 PM, Ryanair from Rabat.”'
-            : '“Dropping off tomorrow at 6:30 PM for flight BA123.”'}
+      <p className={styles.prompt} role="status" aria-atomic="true">
+        {question}
       </p>
+      {!active && !input ? (
+        <p className={ui.hint}>
+          Include the date and AM or PM. For example, “
+          {kind === 'pickup' ? 'landing' : 'departing'} tomorrow at 6:30 PM”.
+        </p>
+      ) : null}
       <div className={styles.actions}>
         {isSupported ? (
           <Button
             aria-describedby="voice-privacy"
+            disabled={visibleState === 'thinking'}
             onClick={() => {
+              if (state === 'listening') {
+                speechRef.current?.stop();
+                setEnabled(false);
+                setMessage('Voice stopped.');
+                return;
+              }
               setActive(true);
               setEnabled(true);
               speechRef.current?.start();
             }}
           >
-            {' '}
-            {state === 'speaking' || state === 'preparing'
-              ? 'Interrupt and talk'
-              : 'Start talking'}{' '}
+            {microphoneLabel(visibleState)}
           </Button>
         ) : (
           <p className={ui.hint}>
             Speech recognition is unavailable in this browser. Type below.
           </p>
         )}
-        {enabled || state === 'speaking' || state === 'preparing' ? (
+        {state !== 'listening' &&
+        (enabled || state === 'speaking' || state === 'preparing') ? (
           <Button
             variant="secondary"
             onClick={() => {
@@ -560,16 +634,22 @@ export function VoiceJourney({
               setEnabled(false);
               abortRef.current?.abort();
               setWorking(false);
+              if (busy) onInput(null);
               setMessage('Voice stopped.');
             }}
           >
             Stop voice
           </Button>
         ) : null}
-        {active && responseRef.current ? (
+        {active && responseRef.current && !busy && !working ? (
           <Button
-            variant="quiet"
-            onClick={() => speechRef.current?.say(responseRef.current, true)}
+            variant="secondary"
+            onClick={() =>
+              speechRef.current?.say(
+                spokenResponseRef.current || responseRef.current,
+                true,
+              )
+            }
           >
             Read answer
           </Button>
@@ -578,11 +658,6 @@ export function VoiceJourney({
       <p id="voice-privacy" className={ui.hint}>
         Your browser may send audio to its speech service. We do not save audio
         or transcripts.
-      </p>
-      <p className={ui.hint}>
-        {enabled
-          ? 'Listening resumes after each reply. Tap Start talking to interrupt. Escape stops voice.'
-          : 'Tap Start talking once, then answer each question. You can also type below.'}
       </p>
       {outputVoice !== 'screen' ? (
         <p role="status" className={ui.hint}>
@@ -602,7 +677,15 @@ export function VoiceJourney({
         {announcement ? `Heard: ${announcement}` : ''}
       </span>
       {matchNote ? <p className={ui.hint}>{matchNote}</p> : null}
-      {message ? (
+      {message &&
+      !busy &&
+      !working &&
+      !(
+        postcodeNeeded &&
+        message.startsWith('Enter your starting postcode below')
+      ) &&
+      message !== question &&
+      !(ready && message === voiceAnswer(plan!)) ? (
         <p role="status" aria-atomic="true" className={styles.response}>
           {message}
         </p>
@@ -636,26 +719,30 @@ export function VoiceJourney({
           </p>
         </form>
       ) : null}
-      <div className={styles.quickActions}>
-        <p id="voice-actions-label" className={styles.actionsLabel}>Quick actions</p>
-        <div className={styles.suggestions} role="group" aria-labelledby="voice-actions-label">
-          {(plan && input
-            ? [
-                { label: 'Explain this time', instruction: 'Why that time?' },
-                { label: 'Start monitoring', instruction: 'Start monitoring' },
-                { label: 'Edit journey details', instruction: 'Edit details' },
-              ]
-            : [
-                { label: 'Show voice help', instruction: 'Help' },
-                { label: 'Edit journey details', instruction: 'Edit details' },
-              ]
-          ).map(({ label, instruction }) => (
-            <Button key={instruction} variant="secondary" onClick={() => command(instruction)}>
-              {label}
-            </Button>
-          ))}
+      {!ready ? (
+        <div className={styles.quickActions}>
+          <p id="voice-actions-label" className={styles.actionsLabel}>
+            Quick actions
+          </p>
+          <div
+            className={styles.suggestions}
+            role="group"
+            aria-labelledby="voice-actions-label"
+          >
+            {[{ label: 'Show voice help', instruction: 'Help' }].map(
+              ({ label, instruction }) => (
+                <Button
+                  key={instruction}
+                  variant="secondary"
+                  onClick={() => command(instruction)}
+                >
+                  {label}
+                </Button>
+              ),
+            )}
+          </div>
         </div>
-      </div>
+      ) : null}
       {ambiguity ? (
         <div className={styles.actions}>
           {ambiguity.hour ? (
@@ -712,23 +799,19 @@ export function VoiceJourney({
             value={text}
             onChange={(event) => setText(event.target.value)}
             autoComplete="off"
-            placeholder="Landing tomorrow at 18:30, Ryanair from Rabat"
+            placeholder={
+              ready
+                ? 'No, 7 PM · Why that time?'
+                : postcodeNeeded
+                  ? 'Or say another journey detail'
+                  : 'Landing tomorrow at 18:30, Ryanair from Rabat'
+            }
             maxLength={500}
           />
           <Button type="submit">Use instruction</Button>
         </div>
       </form>
-      {active ? (
-        <p className={styles.understood}>
-          Understood:{' '}
-          {draft.kind === 'pickup'
-            ? 'pickup · landing'
-            : 'drop-off · departure'}{' '}
-          · {draft.date} · {draft.time || 'time needed'} ·{' '}
-          {draft.flightNumber || draft.airline || 'no flight number'}
-          {draft.place ? ` · ${draft.place}` : ''}
-        </p>
-      ) : null}
+      {active && !ready ? summary : null}
       <details
         open={detailsOpen}
         onToggle={(event) => {
@@ -737,7 +820,7 @@ export function VoiceJourney({
         }}
       >
         <summary className={styles.summary}>
-          Understood details · edit any field
+          All details and planning assumptions
         </summary>
         {active ? (
           <form
@@ -902,6 +985,43 @@ export function VoiceJourney({
             </Button>
           </form>
         ) : null}
+      </details>
+      <details
+        open={helpOpen}
+        onToggle={(event) => setHelpOpen(event.currentTarget.open)}
+      >
+        <summary className={styles.summary}>Voice help and privacy</summary>
+        <p className={ui.hint}>
+          Tap Start talking, then answer each question. Listening resumes after
+          each reply. Interrupt and talk cuts off a spoken answer. Escape ends
+          the voice session.
+        </p>
+        <ul className={styles.helpExamples}>
+          <li>
+            <strong>“Landing tomorrow at 6:30 PM”</strong> — flight time and
+            date.
+          </li>
+          <li>
+            <strong>“No, 7 PM”</strong> — correct the time.
+          </li>
+          <li>
+            <strong>“Why that time?”</strong> — hear the assumptions.
+          </li>
+          <li>
+            <strong>“Start monitoring”</strong> — save and recheck while the app
+            is open.
+          </li>
+          <li>
+            <strong>“Repeat that” or “start again”</strong> — hear the reply or
+            reset.
+          </li>
+        </ul>
+        <p className={ui.hint}>
+          Your browser may process speech off-device. Type your postcode to keep
+          it out of that speech service. SetoffIQ saves no audio or transcripts.
+          Voice pauses when the tab is hidden or the screen locks; tap Start
+          talking to resume.
+        </p>
       </details>
       <NaturalVoice
         onStop={() => {

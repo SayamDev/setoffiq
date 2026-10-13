@@ -52,6 +52,36 @@ afterEach(() => {
   FakeRecognition.instances = [];
 });
 describe('voice controls and cancellation', () => {
+  it('uses one microphone control to stop listening and disables it during a check', async () => {
+    const user = userEvent.setup();
+    const { rerender, onInput, onMonitor } = setup();
+    expect(
+      screen.getByText('What time does the flight land?'),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Start talking' }));
+    expect(
+      screen.queryByRole('button', { name: 'Stop voice' }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Listening — stop' }));
+    expect(FakeRecognition.instances[0]!.aborted).toBe(true);
+    expect(
+      screen.getByRole('button', { name: 'Start talking' }),
+    ).toBeInTheDocument();
+    rerender(
+      <VoiceJourney
+        kind="pickup"
+        input={null}
+        plan={null}
+        busy
+        error={null}
+        onInput={onInput}
+        onMonitor={onMonitor}
+      />,
+    );
+    expect(
+      screen.getByRole('button', { name: 'Checking your journey…' }),
+    ).toBeDisabled();
+  });
   it('stops when hidden and requires a new tap when returning', async () => {
     setup();
     const user = userEvent.setup();
@@ -98,7 +128,7 @@ describe('voice controls and cancellation', () => {
       'actually 19:00',
     );
     await user.click(screen.getByRole('button', { name: 'Use instruction' }));
-    await screen.findByText(/Enter your starting postcode below/);
+    await screen.findByText('What is your starting postcode?');
     resolve([]);
     expect(screen.getByLabelText('Voice flight time')).toHaveValue('19:00');
     expect(onInput.mock.calls.every((call) => call[0] === null)).toBe(true);
@@ -118,22 +148,47 @@ describe('voice controls and cancellation', () => {
 });
 
 it('offers conversational help and reset without retaining the previous flight', async () => {
-  setup(); const user = userEvent.setup();
-  await user.type(screen.getByLabelText('Or type an instruction'), 'landing tomorrow at 18:30 flight KL1038');
+  setup();
+  const user = userEvent.setup();
+  await user.type(
+    screen.getByLabelText('Or type an instruction'),
+    'landing tomorrow at 18:30 flight KL1038',
+  );
   await user.click(screen.getByRole('button', { name: 'Use instruction' }));
   await screen.findByRole('textbox', { name: 'Starting postcode' });
   await user.click(screen.getByRole('button', { name: 'Show voice help' }));
-  expect(screen.getByText(/You can say no, seven PM/)).toBeInTheDocument();
-  await user.type(screen.getByLabelText('Or type an instruction'), 'start again');
+  expect(
+    screen.getByText(/Next, enter your starting postcode/),
+  ).toBeInTheDocument();
+  await user.type(
+    screen.getByLabelText('Or type an instruction'),
+    'start again',
+  );
   await user.click(screen.getByRole('button', { name: 'Use instruction' }));
   expect(screen.getByLabelText('Voice flight number')).toHaveValue('');
   expect(screen.getByLabelText('Voice flight time')).toHaveValue('');
-  expect(screen.queryByRole('textbox', { name: 'Starting postcode' })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('textbox', { name: 'Starting postcode' }),
+  ).not.toBeInTheDocument();
 });
 it('stops the microphone when switching to the form', async () => {
-  const { rerender, onInput, onMonitor } = setup(); const user = userEvent.setup();
+  const { rerender, onInput, onMonitor } = setup();
+  const user = userEvent.setup();
   await user.click(screen.getByRole('button', { name: 'Start talking' }));
-  rerender(<VoiceJourney suspended kind="pickup" input={null} plan={null} busy={false} error={null} onInput={onInput} onMonitor={onMonitor} />);
+  rerender(
+    <VoiceJourney
+      suspended
+      kind="pickup"
+      input={null}
+      plan={null}
+      busy={false}
+      error={null}
+      onInput={onInput}
+      onMonitor={onMonitor}
+    />,
+  );
   expect(FakeRecognition.instances[0]!.aborted).toBe(true);
-  expect(screen.queryByRole('button', { name: 'Start talking' })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Start talking' }),
+  ).not.toBeInTheDocument();
 });

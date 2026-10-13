@@ -208,3 +208,17 @@ Rollback remains a PR revert; no journey-schema migration was introduced.
   Explicit postcode step and spoken flight options improve hands-free follow-ups.
 - Supporting result sections collapsed; confidence and primary recommendation stay
   visible. Engine/provider prediction logic unchanged.
+
+### Guided conversation refinement
+
+- One stateful microphone control: Start talking, Listening — stop, Checking your
+  journey (disabled during a check), Interrupt and talk. Escape and background
+  suspension still stop the session.
+- Specific next questions and a directly editable JourneySummary, with native
+  field validation, keyboard focus/return and Cancel. Editing pauses voice;
+  applying a patch uses the existing validated journey/engine pipeline.
+- Recommendation above follow-up controls, grouped result actions and progressive
+  help/settings. Explicit microphone privacy remains visible.
+- Shorter deterministic spoken result/help and longer bounded speech chunks to
+  avoid excessive mid-sentence fragments. Kokoro remains synthesised; genuine
+  human prompt recordings require original/licensed assets and are not shipped.

@@ -60,6 +60,21 @@ export function journeyReply(plan: JourneyPlan, speech = false): string {
       : `This is a ${r.confidence.level} confidence estimate.`;
   return `${lead} ${window} All times are Manchester time. ${confidence} ${plan.flight.message ?? ''}`.trim();
 }
+/** A short first reply; windows and assumptions remain visible in the plan. */
+export function briefJourneyReply(plan: JourneyPlan): string {
+  const r = plan.recommendation;
+  if (r.kind === 'unavailable') return `${r.headline}. ${r.detail}`;
+  if (r.advisory.kind === 'blocked')
+    return `${r.advisory.headline}. ${r.advisory.detail}`;
+  const when = instant(r.recommendedDeparture, plan.computedAt, true);
+  const lead =
+    r.advisory.kind === 'running-late'
+      ? `The planned set-off time was ${when}. You're running late. ${r.advisory.detail}`
+      : r.advisory.kind === 'leave-now'
+        ? `It's time to set off. Your planned departure is ${when}.`
+        : `Set off at ${when}.`;
+  return `${lead} Manchester time. ${r.confidence.level === 'low' ? 'Confidence is low; treat this as a planning estimate.' : `This is a ${r.confidence.level} confidence estimate.`} ${plan.flight.message ?? ''}`.trim();
+}
 export function journeyExplanation(plan: JourneyPlan): string {
   const r = plan.recommendation;
   if (r.kind === 'unavailable') return `${r.headline}. ${r.detail}`;
@@ -101,7 +116,7 @@ export function speechChunks(text: string): string[] {
   for (const sentence of text.split(/(?<=[.!?])\s+(?=[A-Z])/)) {
     let chunk = '';
     for (const word of sentence.split(/\s+/)) {
-      if (chunk.length + word.length > 90 && chunk) {
+      if (chunk.length + word.length > 160 && chunk) {
         chunks.push(chunk);
         chunk = '';
       }

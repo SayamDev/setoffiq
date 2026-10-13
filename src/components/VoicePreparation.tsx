@@ -35,11 +35,14 @@ export function VoicePreparation(): React.JSX.Element | null {
         </strong>
         <p role="status">{state.message}</p>
         {state.status === 'loading' ? (
-          <p>
-            One-time download: about 115–350 MB + 22 MB runtime from Hugging
-            Face. They receive your IP, not journey text. Keep planning while it
-            loads.
-          </p>
+          <details>
+            <summary>Download size and privacy</summary>
+            <p>
+              One-time download: about 115–350 MB + 22 MB runtime from Hugging
+              Face. They receive your IP, not journey text. Keep planning while
+              it loads.
+            </p>
+          </details>
         ) : null}
       </div>
       {state.status === 'loading' ? (
