@@ -122,7 +122,7 @@ it('offers conversational help and reset without retaining the previous flight',
   await user.type(screen.getByLabelText('Or type an instruction'), 'landing tomorrow at 18:30 flight KL1038');
   await user.click(screen.getByRole('button', { name: 'Use instruction' }));
   await screen.findByRole('textbox', { name: 'Starting postcode' });
-  await user.click(screen.getByRole('button', { name: 'Help' }));
+  await user.click(screen.getByRole('button', { name: 'Show voice help' }));
   expect(screen.getByText(/You can say no, seven PM/)).toBeInTheDocument();
   await user.type(screen.getByLabelText('Or type an instruction'), 'start again');
   await user.click(screen.getByRole('button', { name: 'Use instruction' }));

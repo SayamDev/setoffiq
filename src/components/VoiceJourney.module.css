@@ -125,7 +125,18 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-block: 1rem;
+  margin-top: 0.625rem;
+}
+.suggestions button {
+  min-height: 48px;
+}
+.quickActions {
+  margin-block: 1.25rem;
+}
+.actionsLabel {
+  color: var(--ink-2);
+  font-size: var(--t-sm);
+  font-weight: 600;
 }
 .panel[hidden] {
   display: none;
