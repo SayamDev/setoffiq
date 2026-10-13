@@ -636,15 +636,25 @@ export function VoiceJourney({
           </p>
         </form>
       ) : null}
-      <div className={styles.suggestions} aria-label="Things you can say">
-        {(plan && input
-          ? ['Why that time?', 'Start monitoring', 'Edit details']
-          : ['Help', 'Edit details']
-        ).map((label) => (
-          <Button key={label} variant="quiet" onClick={() => command(label)}>
-            {label}
-          </Button>
-        ))}
+      <div className={styles.quickActions}>
+        <p id="voice-actions-label" className={styles.actionsLabel}>Quick actions</p>
+        <div className={styles.suggestions} role="group" aria-labelledby="voice-actions-label">
+          {(plan && input
+            ? [
+                { label: 'Explain this time', instruction: 'Why that time?' },
+                { label: 'Start monitoring', instruction: 'Start monitoring' },
+                { label: 'Edit journey details', instruction: 'Edit details' },
+              ]
+            : [
+                { label: 'Show voice help', instruction: 'Help' },
+                { label: 'Edit journey details', instruction: 'Edit details' },
+              ]
+          ).map(({ label, instruction }) => (
+            <Button key={instruction} variant="secondary" onClick={() => command(instruction)}>
+              {label}
+            </Button>
+          ))}
+        </div>
       </div>
       {ambiguity ? (
         <div className={styles.actions}>
