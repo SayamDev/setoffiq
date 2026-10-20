@@ -1,3 +1,4 @@
+import { openPicker } from './nativePicker';
 import { useRef, useState } from 'react';
 import type { SavedJourney } from '../domain/types';
 import { DEFAULT_AIRPORT } from '../domain/airports';
@@ -40,8 +41,8 @@ export function BookingTimeEditor({ journey, onSave }: { journey: SavedJourney; 
       }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); close(); } }}>
         <p>Copy the {journey.input.kind === 'pickup' ? 'Manchester arrival' : 'Manchester departure'} time exactly as shown on your airline booking. Do not convert it to UTC.</p>
         <div className={styles.fields}>
-          <label>Flight date<input className={ui.control} type="date" name="flight-date" autoComplete="off" value={date} onChange={event => setDate(event.target.value)} required /></label>
-          <label>Booking time at Manchester<input className={ui.control} type="time" name="flight-time" autoComplete="off" value={clock} onChange={event => setClock(event.target.value)} required autoFocus /></label>
+          <label>Flight date<input className={ui.control} type="date" onClick={openPicker} name="flight-date" autoComplete="off" value={date} onChange={event => setDate(event.target.value)} required /></label>
+          <label>Booking time at Manchester<input className={ui.control} type="time" onClick={openPicker} name="flight-time" autoComplete="off" value={clock} onChange={event => setClock(event.target.value)} required autoFocus /></label>
         </div>
         {error ? <p role="alert" className={ui.hint}>{error}</p> : null}
         <div className={styles.row}><Button type="submit">Use booking time</Button><Button variant="secondary" onClick={close}>Cancel</Button></div>

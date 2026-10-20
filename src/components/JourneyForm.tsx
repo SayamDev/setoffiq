@@ -1,3 +1,4 @@
+import { openPicker } from './nativePicker';
 import { useId, useRef, useState } from 'react';
 import { DEFAULT_AIRPORT } from '../domain/airports';
 import { formatClock, formatDate, parseLocalDateTime, todayInZone } from '../domain/time';
@@ -560,17 +561,4 @@ export function JourneyForm({
       </div>
     </form>
   );
-}
-
-/**
- * Open the browser's own date or time picker on a click anywhere in the box,
- * not only on its small icon. Keyboard entry is untouched; where a browser
- * refuses (no support, or not a user gesture), the box behaves as before.
- */
-function openPicker(event: React.MouseEvent<HTMLInputElement>): void {
-  try {
-    event.currentTarget.showPicker?.();
-  } catch {
-    // Typing still works.
-  }
 }
