@@ -1,3 +1,4 @@
+import { openPicker } from './nativePicker';
 import { useEffect, useRef, useState } from 'react';
 import type { VoiceDraft } from '../services/voice/journey';
 import type { VoicePatch } from '../services/voice/parser';
@@ -140,6 +141,7 @@ export function JourneySummary({
             </select>
           ) : (
             <input
+              onClick={openPicker}
               id="journey-detail-editor"
               className={ui.control}
               ref={(node) => {

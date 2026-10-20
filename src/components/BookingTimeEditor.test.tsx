@@ -52,3 +52,21 @@ describe('booking time and timezone trust', () => {
     expect(screen.queryByRole('button', { name: 'Use booking time' })).not.toBeInTheDocument();
   });
 });
+
+it.each([false, true])('opens both native pickers across the full field; blocked=%s', (blocked) => {
+  const showPicker = vi.fn(() => { if (blocked) throw new DOMException('Blocked', 'NotAllowedError'); });
+  Object.defineProperty(HTMLInputElement.prototype, 'showPicker', { configurable: true, value: showPicker });
+  try {
+    const onSave = vi.fn();
+    render(<BookingTimeEditor journey={journey()} onSave={onSave} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Correct flight time' }));
+    fireEvent.click(screen.getByLabelText('Flight date'));
+    fireEvent.click(screen.getByLabelText('Booking time at Manchester'));
+    expect(showPicker).toHaveBeenCalledTimes(2);
+    fireEvent.change(screen.getByLabelText('Booking time at Manchester'), { target: { value: '14:25' } });
+    expect(screen.getByLabelText('Booking time at Manchester')).toHaveValue('14:25');
+    expect(onSave).not.toHaveBeenCalled();
+  } finally {
+    Reflect.deleteProperty(HTMLInputElement.prototype, 'showPicker');
+  }
+});
