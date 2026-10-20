@@ -6,7 +6,7 @@
 
 /*
  * The way in for a pickup that is happening now, so it reads as an option in
- * its own right — a panel with the brand's green edge — rather than a link
+ * its own right — a lightly tinted panel — rather than a link
  * under a field.
  */
 .entry {
@@ -16,7 +16,6 @@
   width: 100%;
   padding: var(--space-4) var(--space-5);
   border: 1px solid var(--signal);
-  border-left-width: 4px;
   border-radius: var(--r-2);
   background: var(--signal-wash);
   color: var(--ink);
@@ -53,7 +52,6 @@
   gap: var(--space-2);
   padding: var(--space-4) var(--space-5);
   border: 1px solid var(--rule-strong);
-  border-left: 4px solid var(--signal);
   border-radius: var(--r-2);
 }
 
@@ -93,7 +91,6 @@
   width: min(100%, 26rem);
   padding: var(--space-5);
   border: 1px solid var(--rule-strong);
-  border-left: 4px solid var(--signal);
   border-radius: var(--r-2);
   background: var(--surface);
   color: var(--ink);

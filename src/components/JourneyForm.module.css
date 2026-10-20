@@ -52,7 +52,7 @@
 
 /*
  * The way into the flight finder. It has to read as something to press, not
- * as a paragraph: a panel with the brand's edge, a plane, and a call to
+ * as a paragraph: a tinted panel, a plane, and a call to
  * action drawn as a button, all of which respond to hover and focus together.
  */
 .finderCard {
@@ -62,7 +62,6 @@
   width: 100%;
   padding: var(--space-4) var(--space-5);
   border: 1px solid var(--signal);
-  border-left-width: 4px;
   border-radius: var(--r-2);
   background: var(--signal-wash);
   color: var(--ink);
