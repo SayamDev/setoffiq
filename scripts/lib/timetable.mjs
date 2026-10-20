@@ -95,6 +95,10 @@ export function toTimetableEntries(rows, direction, placeFor) {
       otherEnd,
       days,
       departureMinute,
+      // Retain the published arrival clock. Duration is an estimate, not a
+      // substitute for that clock when the two disagree.
+      arrivalMinute,
+      arrivalDayOffset: arrivalMinute === null ? null : Math.max(0, Math.round((departureMinute + (durationOf(row, departureMinute, arrivalMinute) ?? 0) - arrivalMinute) / 1440)),
       durationMinutes: durationOf(row, departureMinute, arrivalMinute),
       terminal: Array.isArray(terminals) && terminals.length === 1 ? text(terminals[0]) : null,
       aliases: [],

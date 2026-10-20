@@ -115,7 +115,7 @@ export function TimetableList({
                     ) : null}
                   </span>
                   <span className={styles.detail}>{flight.terminal ? `T${flight.terminal}` : ''}</span>
-                  <span className={styles.detail}>{formatClock(flight.at, zone)}</span>
+                  <span className={styles.detail}>{formatClock(flight.at, zone)}<br /><small>Timetable · verify booking</small></span>
                 </button>
               </li>
             ))}

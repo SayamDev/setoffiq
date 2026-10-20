@@ -1,4 +1,5 @@
 import { readJson, writeJson } from '../services/storage';
+import { formatClock, formatDate } from '../domain/time';
 import type {
   JourneyEvent,
   JourneyEventKind,
@@ -92,6 +93,16 @@ export function setMonitoring(
   now: number = Date.now(),
 ): SavedJourney {
   return { ...journey, monitoring, updatedAt: now };
+}
+
+/** Keep the identity and audit history; the monitor recalculates for the new input. */
+export function correctBookingTime(journey: SavedJourney, at: number, zone: string, now = Date.now()): SavedJourney {
+  return appendEvent({
+    ...journey,
+    input: { ...journey.input, scheduledTime: at },
+    label: journey.label.replace(formatDate(journey.input.scheduledTime, zone), formatDate(at, zone)),
+    lastCheckedAt: at === journey.input.scheduledTime ? journey.lastCheckedAt : null,
+  }, 'flight-updated', `Booking flight time changed from ${formatClock(journey.input.scheduledTime, zone)} to ${formatClock(at, zone)} on ${formatDate(at, zone)} (Manchester time).`, now);
 }
 
 export function upsert(journeys: SavedJourney[], journey: SavedJourney): SavedJourney[] {

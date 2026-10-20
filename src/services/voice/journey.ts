@@ -221,7 +221,7 @@ export function chooseVoiceFlight(
     flightNumber: flight.number,
     airline: undefined,
     place: flight.place ?? undefined,
-    time: draft.time || formatClock(flight.at, zone),
+    time: draft.time || (flight.basis === 'timetable' ? '' : formatClock(flight.at, zone)),
     sources: {
       passengerRoute:
         draft.sources?.passengerRoute === 'user'

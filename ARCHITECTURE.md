@@ -278,3 +278,12 @@ controls; result edits focus the summary and explanation opens the existing
 details. Brief speech formats the engine departure and confidence, while complete
 windows and source limitations stay visible. No new model, storage or service is
 introduced; transcript/audio remain ephemeral.
+
+### Booking-time corrections
+
+`BookingTimeEditor` validates Manchester local date/time through `bookingTime`,
+rejecting nonexistent/repeated DST clocks. `correctBookingTime` preserves the
+saved journey identity/history. Monitoring aborts an old request on a scheduled
+input change, masks its stale result and recalculates through `planJourney` and
+the existing deterministic engine. Late results cannot overwrite the correction.
+Timetable disagreement is explanatory metadata, never a replacement booking time.

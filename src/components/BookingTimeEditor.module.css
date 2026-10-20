@@ -1,0 +1,11 @@
+.section { padding-block: 1.25rem; border-block: 1px solid var(--rule-strong); }
+.section h2 { font-size: var(--t-body); margin-bottom: .375rem; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+.clock { display: flex; align-items: baseline; gap: .75rem; flex-wrap: wrap; margin-bottom: .5rem; }
+.clock strong { font-size: 1.75rem; font-variant-numeric: tabular-nums; }
+.clock span { color: var(--ink-2); font-size: var(--t-sm); }
+.editor { display: grid; gap: 1rem; margin-top: 1.25rem; }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.fields label { display: grid; gap: .5rem; font-weight: 600; }
+.section button, .fields input { min-height: 48px; }
+@media (max-width: 420px) { .fields { grid-template-columns: 1fr; } }

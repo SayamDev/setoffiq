@@ -222,3 +222,20 @@ Rollback remains a PR revert; no journey-schema migration was introduced.
 - Shorter deterministic spoken result/help and longer bounded speech chunks to
   avoid excessive mid-sentence fragments. Kokoro remains synthesised; genuine
   human prompt recordings require original/licensed assets and are not shipped.
+
+## 20 October 2026 — booking-time trust
+
+- Investigated RK1712's 15:25 weekly estimate versus the supplied 14:25 booking.
+  No blanket timezone adjustment or hardcoded flight/date exception.
+- Weekly selection requires the booking time; explicit provider UTC arrivals
+  survive new imports instead of being reconstructed from estimated duration.
+- Saved journeys expose Manchester-local flight time, a correction form,
+  provenance limits, and timetable discrepancies. Inferred take-off is labelled.
+- Corrections abort superseded checks and recalculate without losing history.
+- Skills discovery: existing Systematic Debugging (obra/superpowers) and Web
+  Design Guidelines (vercel-labs/agent-skills) cover this investigation/review;
+  no installation or new runtime dependency. Reviewed current official web
+  interface guidelines. Future priorities: date-specific authoritative feed
+  (subject to the £0 constraint), source-age visibility and more boundary tests.
+- Remaining limits: weekly schedules can be wrong for a specific date; browser
+  records cannot be silently corrected globally from one booking screenshot.

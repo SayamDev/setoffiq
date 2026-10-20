@@ -271,7 +271,7 @@ export function InboundPicker({
           <span className={styles.entryTitle}>Collecting someone from a flight?</span>
           <span className={styles.entryBody}>
             Choose it from the arrivals at {airport.name} — today, tonight or tomorrow — and the
-            flight and time are filled in for you. Delays and cancellations are shown for flights
+            flight details are selected for you. Weekly timetable times must be checked against your booking. Delays and cancellations are shown for flights
             close enough for anyone to know them.
           </span>
         </span>

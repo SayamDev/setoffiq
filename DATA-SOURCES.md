@@ -779,3 +779,21 @@ presents them as such.
   generation. Assets cache locally; text/generated audio do not.
 - This supplies sound, never flight information or predicted times. Browser speech
   recognition is separate and may involve the browser provider's servers.
+
+### Weekly arrival clocks and booking corrections (20 October 2026)
+
+The published RK1712 weekly row used 11:00 UTC departure plus an estimated
+205-minute duration, producing 15:25 Manchester time on 21 October. That does
+not establish the airline's arrival on that date; a supplied booking shows
+14:25. Do not repair this by subtracting an hour globally.
+
+New timetable imports retain AirLabs `arr_time_utc` and the arrival day offset,
+using that arrival clock in preference to the estimated duration. Existing
+snapshots without these fields retain the old approximate calculation until
+normal refresh. No extra quota, fetch cadence or paid source is introduced.
+Weekly rows remain non-date-specific; picking one no longer supplies the
+booking clock. Saved booking times can be corrected explicitly in the browser.
+
+Source: https://airlabs.co/docs/routes — route duration is estimated and route
+records are not live flight status. A definitive correction across all dates
+would require a licensed, date-specific airline/airport feed; none is added.

@@ -25,6 +25,9 @@ export interface TimetableEntry {
   days: string[];
   /** Minutes after UTC midnight that it leaves its origin. */
   departureMinute: number;
+  /** Published UTC arrival clock; absent in older snapshots. */
+  arrivalMinute?: number | null;
+  arrivalDayOffset?: number | null;
   /** Time in the air, so an arrival can be placed from the departure. */
   durationMinutes: number | null;
   terminal: string | null;
@@ -97,9 +100,9 @@ export async function loadTimetable(
  *
  * Each entry gives a departure time in UTC and the days it runs, so a flight
  * is placed by adding its time to a UTC midnight, and an arrival here by
- * adding the time in the air to that. Working from the departure rather than
- * the published arrival time keeps flights that land the day after they leave
- * on the right day.
+ * using the published UTC arrival and its day offset when available. Older
+ * snapshots fall back to departure plus estimated duration. Neither is a
+ * date-specific confirmation of an airline booking.
  */
 export function timetableWindow(
   timetable: FlightTimetable,
@@ -129,7 +132,11 @@ export function timetableWindow(
       const midnight = day * DAY_MS;
       const weekday = DAYS[new Date(midnight).getUTCDay()] as string;
       if (!entry.days.includes(weekday)) continue;
-      const at = midnight + entry.departureMinute * 60_000 + flightMinutes * 60_000;
+      const hasArrival = direction === 'arrival' && typeof entry.arrivalMinute === 'number' && Number.isInteger(entry.arrivalMinute) && entry.arrivalMinute >= 0 && entry.arrivalMinute < 1440;
+      const arrivalDays = entry.arrivalDayOffset ?? Math.max(0, Math.round((entry.departureMinute + flightMinutes - (entry.arrivalMinute ?? 0)) / 1440));
+      const at = hasArrival
+        ? midnight + arrivalDays * DAY_MS + entry.arrivalMinute! * 60_000
+        : midnight + entry.departureMinute * 60_000 + flightMinutes * 60_000;
       if (at < from || at > to) continue;
       const key = `${entry.flight}@${at}`;
       if (seen.has(key)) continue;

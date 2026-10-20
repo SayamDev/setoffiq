@@ -474,3 +474,17 @@ guide let visitors cancel and remember their choice. Automatic preparation is
 skipped for a saved opt-out, offline mode, Data Saver, or a reported 2G/3G connection.
 Browsers do not always expose connection type: an unreported mobile connection may
 still download the model. Device speech and all text controls work while it loads.
+
+### Booking time versus timetable time
+
+Use the **Manchester local arrival/departure time on your airline booking**.
+The weekly flight finder is a recurring timetable, not confirmation for your
+travel date. Selecting one fills the flight and date; enter the booking time
+separately. On a saved journey, **Correct flight time** changes the date/time,
+keeps the journey history and recalculates the plan. The screen labels BST/GMT
+and separates flight time from the recommended time to set off.
+
+If the timetable disagrees, your saved booking time stays in place. Refreshing
+the plan does not verify your booking with the airline. Other-airport times
+inferred from duration are estimates. Always check your booking and airline
+updates, especially around seasonal timetable changes.

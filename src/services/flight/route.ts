@@ -88,7 +88,7 @@ export async function loadFlightRoute(
               : scheduledTime + minutes * 60_000,
         durationMinutes: minutes,
         terminal: terminalCode(best.terminal),
-        timetabledAt: null,
+        timetabledAt: Math.abs(best.at - scheduledTime) >= 60_000 ? best.at : null,
       };
     }
 
