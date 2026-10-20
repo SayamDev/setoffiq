@@ -7,6 +7,8 @@ import { clearAll } from '../services/storage';
 import type { FlightSnapshot, SnapshotAircraft } from '../services/flight/snapshotTypes';
 import { JourneyForm } from './JourneyForm';
 
+const clock = (ms: number) => new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ms));
+
 const place = (icao: string, city: string, country: string) => ({ icao, iata: null, city, name: null, country });
 
 function inboundFromIbiza(): SnapshotAircraft {
@@ -158,9 +160,6 @@ describe('planning a drop-off from a flight that usually leaves soon', () => {
 describe('choosing from the airline schedule', () => {
   afterEach(() => clearAll());
 
-  const clock = (ms: number) =>
-    new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ms));
-
   function seedSchedule(now: number) {
     const base = { callsign: null, airline: null, actual: null, terminal: null, aliases: [] as string[] };
     writeCache(
@@ -221,9 +220,6 @@ describe('the timetable, when the schedule has nothing to say', () => {
   beforeEach(() => vi.spyOn(Date, 'now').mockReturnValue(Date.UTC(2026, 9, 12, 11)));
   afterEach(() => { clearAll(); vi.restoreAllMocks(); });
 
-  const clock = (ms: number) =>
-    new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ms));
-
   /** A flight timetabled to land three hours from now, and nothing else. */
   function seedTimetable(now: number) {
     const durationMinutes = 120;
@@ -253,7 +249,7 @@ describe('the timetable, when the schedule has nothing to say', () => {
     );
   }
 
-  it('lists a timetabled arrival when there is no schedule at all, and fills the time in', async () => {
+  it('selects a timetabled flight but requires the booking time', async () => {
     const now = Date.now();
     seedTimetable(now);
     const user = userEvent.setup();
@@ -263,7 +259,7 @@ describe('the timetable, when the schedule has nothing to say', () => {
     await user.click(await screen.findByRole('button', { name: /EK21.*Emirates.*from Dubai/s }));
 
     expect(screen.getByLabelText('Flight number (optional)')).toHaveValue('EK21');
-    expect(screen.getByLabelText('Flight arrival time')).toHaveValue(clock(now + 3 * 3_600_000));
+    expect(screen.getByLabelText('Flight arrival time')).toHaveValue('');
     // The timetable carries no status, and the interface has to say so.
     expect(screen.getByText(/published timetable, which carries no status/)).toBeInTheDocument();
   });

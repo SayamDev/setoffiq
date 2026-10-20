@@ -165,3 +165,8 @@ describe('flight corrections and input ownership', () => {
     });
   });
 });
+
+it('does not fill a missing booking clock from a weekly voice match', () => {
+  expect(chooseVoiceFlight({ ...draft, time: '' }, { ...flight, basis: 'timetable' }).time).toBe('');
+  expect(chooseVoiceFlight({ ...draft, time: '14:25' }, { ...flight, basis: 'timetable' }).time).toBe('14:25');
+});

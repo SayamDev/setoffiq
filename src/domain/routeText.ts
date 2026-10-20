@@ -45,9 +45,9 @@ export function describeRoute(
     .join(', ');
   const headline = kind === 'pickup' ? `From ${where}` : `To ${where}`;
   const basis =
-    "From the airlines' published timetable and the time on your booking. Not live: a delay on the day moves it.";
+    'Other-airport times are inferred from your saved flight time and the weekly timetable’s estimated duration. They are not airline-confirmed or live times.';
 
-  if (route.otherEndAt === null) {
+  if (route.otherEndAt === null || route.timetabledAt) {
     return { headline, detail: mismatch(route, kind, homeZone), basis };
   }
 
@@ -86,13 +86,13 @@ export function cardMeta(
   kind: JourneyKind,
   homeZone: string,
 ): string | null {
-  if (route.otherEndAt === null) return mismatch(route, kind, homeZone);
+  if (route.otherEndAt === null || route.timetabledAt) return mismatch(route, kind, homeZone);
   const place = route.city ?? route.iata ?? 'there';
   const home = formatClock(route.otherEndAt, homeZone);
   const local = route.timeZone ? formatClock(route.otherEndAt, route.timeZone) : null;
   const clocks =
     local === null ? `${home} UK time` : local === home ? `${local} ${place} time` : `${local} ${place} time (${home} UK)`;
-  const verb = kind === 'pickup' ? 'Takes off' : 'Lands';
+  const verb = kind === 'pickup' ? 'Estimated take-off' : 'Estimated arrival';
   const flying = route.durationMinutes !== null ? ` · ${duration(route.durationMinutes)} in the air` : '';
   return `${verb} ${clocks}${flying}`;
 }
@@ -107,5 +107,5 @@ function mismatch(
   homeZone: string,
 ): string | null {
   if (!route.timetabledAt) return null;
-  return `Timetabled to ${kind === 'pickup' ? 'land' : 'leave'} at ${formatClock(route.timetabledAt, homeZone)} on ${formatDate(route.timetabledAt, homeZone)}, not the time entered — check the booking.`;
+  return `Weekly timetable ${kind === 'pickup' ? 'arrival' : 'departure'}: ${formatClock(route.timetabledAt, homeZone)} Manchester time on ${formatDate(route.timetabledAt, homeZone)}. It may not apply to your booking date. Your saved flight time is kept; use your airline booking.`;
 }

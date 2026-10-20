@@ -15,6 +15,7 @@ import { ReadinessStages } from '../components/ReadinessStages';
 import { FlightTracker } from '../components/FlightTracker';
 import { FlightRouteSummary, shortRoute } from '../components/FlightRouteSummary';
 import { useFlightRoute } from '../hooks/useFlightRoute';
+import { BookingTimeEditor } from '../components/BookingTimeEditor';
 import { trackFlight } from '../domain/engine';
 import { Badge, Button, Callout, Card, Skeleton, ui } from '../components/ui';
 import { useMonitoredJourney } from '../hooks/useMonitoredJourney';
@@ -95,6 +96,8 @@ export function JourneyPage({
         </p>
       </header>
 
+      <BookingTimeEditor key={journey.id} journey={journey} onSave={onSave} />
+
       {journey.input.scenarioId ? (
         <Card>
           <ScenarioSwitcher journey={journey} onSave={onSave} />
@@ -153,6 +156,7 @@ export function JourneyPage({
               terminal: monitor.plan?.terminal ?? null,
             }}
           >
+            {monitor.plan.flight.message ? <p className={ui.hint} role="status">{monitor.plan.flight.message}</p> : null}
             <div className={styles.actions}>
               <CheckNowButton
                 onCheck={monitor.check}

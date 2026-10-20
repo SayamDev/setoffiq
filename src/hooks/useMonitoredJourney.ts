@@ -68,6 +68,9 @@ export function useMonitoredJourney(
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
   const runningRef = useRef(false);
+  const requestRef = useRef<AbortController | null>(null);
+  const completedFor = useRef<string | null>(null);
+  const inputKey = (value: SavedJourney) => `${value.id}:${value.input.scheduledTime}:${value.input.scenarioId ?? ''}`;
 
   const check = useCallback(async (forceRefresh = false): Promise<void> => {
     const current = journeyRef.current;
@@ -76,9 +79,11 @@ export function useMonitoredJourney(
     setState((previous) => ({ ...previous, status: 'checking', error: null }));
 
     const controller = new AbortController();
+    requestRef.current = controller;
     try {
       const now = Date.now();
       const plan = await planJourney(current.input, now, controller.signal, { forceRefresh });
+      if (controller.signal.aborted || !journeyRef.current || inputKey(journeyRef.current) !== inputKey(current)) return;
       const phase = plan.flight.value?.phase ?? 'unknown';
 
       let updated: SavedJourney = { ...current, lastCheckedAt: now };
@@ -186,6 +191,8 @@ export function useMonitoredJourney(
         }
       }
 
+      if (controller.signal.aborted || !journeyRef.current || inputKey(journeyRef.current) !== inputKey(current)) return;
+      completedFor.current = inputKey(current);
       onChangeRef.current(updated);
 
       const eventTime = current.input.scheduledTime;
@@ -199,6 +206,7 @@ export function useMonitoredJourney(
         outcome: { at: now, message: outcome },
       });
     } catch (error) {
+      if (controller.signal.aborted) return;
       if (error instanceof DOMException && error.name === 'AbortError') return;
       const current2 = journeyRef.current;
       if (current2) {
@@ -221,7 +229,7 @@ export function useMonitoredJourney(
         },
       }));
     } finally {
-      runningRef.current = false;
+      if (requestRef.current === controller) runningRef.current = false;
     }
   }, [airport.timeZone]);
 
@@ -235,13 +243,17 @@ export function useMonitoredJourney(
       }
     };
     document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      requestRef.current?.abort();
+      runningRef.current = false;
+    };
     // Deliberately narrow dependencies. A journey object changes on every event
     // append, so depending on the whole object would be a request loop. The
     // scenario id is included because changing it changes what the flight
     // provider will return, and the recommendation has to be rebuilt from it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [journey?.id, journey?.input.scenarioId, check]);
+  }, [journey?.id, journey?.input.scenarioId, journey?.input.scheduledTime, check]);
 
   useEffect(() => {
     if (!state.nextCheckAt || journey?.monitoring !== 'active') return;
@@ -255,7 +267,14 @@ export function useMonitoredJourney(
   }, []);
 
   // "Check now" is a deliberate act, so it bypasses the snapshot cache.
-  return { ...state, check: () => void check(true), dismissChange };
+  const matchesInput = journey && completedFor.current === inputKey(journey);
+  return { ...state,
+    plan: matchesInput ? state.plan : null,
+    change: matchesInput ? state.change : null,
+    outcome: matchesInput ? state.outcome : null,
+    nextCheckAt: matchesInput ? state.nextCheckAt : null,
+    status: !matchesInput && state.status === 'ready' ? 'checking' : state.status,
+    check: () => void check(true), dismissChange };
 }
 
 /** Clock time to the second, for a line that must change on every press. */

@@ -86,8 +86,11 @@ export function JourneyForm({
     update('flightNumber', flight.flightNumber);
     if (flight.fillAt !== null) {
       update('date', todayInZone(flight.fillAt, airport.timeZone));
-      update('time', formatClock(flight.fillAt, airport.timeZone));
-      setWhenFrom(flight.basis);
+      // A recurring timetable is not a date-specific booking confirmation.
+      // Never replace a user's booking time with its calculated arrival.
+      if (flight.basis !== 'timetable') update('time', formatClock(flight.fillAt, airport.timeZone));
+      else if (whenFrom !== null) update('time', '');
+      setWhenFrom(flight.basis === 'timetable' && state.time && whenFrom === null ? null : flight.basis);
       setDateChosen(true);
       setTakenAsTomorrow(false);
     }
@@ -113,7 +116,7 @@ export function JourneyForm({
       case 'schedule':
         return 'Filled in from the airline schedule. Check the time on the booking.';
       case 'timetable':
-        return "Filled in from the airlines' published timetable, which carries no status. Check the time on the booking.";
+        return "Flight and date selected from the published timetable, which carries no status. Enter the Manchester arrival or departure time from your airline booking; timetable times can differ.";
       case 'usual':
         return 'Filled in from when this flight usually lands. Check the time on the booking.';
       case 'usual-departure':
@@ -298,8 +301,8 @@ export function JourneyForm({
                   </span>
                   <span className={styles.finderBody}>
                     Pick it from the {kind === 'pickup' ? 'arrivals' : 'departures'} at {airport.name} —
-                    today, tomorrow or the day after — and the flight number and time are filled in
-                    for you.
+                    today, tomorrow or the day after. Check its date and enter the Manchester time
+                    from your booking when using the weekly timetable.
                   </span>
                   <span className={styles.finderCta}>
                     Choose a flight <span aria-hidden="true">→</span>

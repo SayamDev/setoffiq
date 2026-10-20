@@ -35,6 +35,8 @@ describe('reading the AirLabs weekly timetable', () => {
       callsign: 'UAE21',
       departureMinute: 5 * 60 + 40,
       durationMinutes: 435,
+      arrivalMinute: 775,
+      arrivalDayOffset: 0,
       terminal: '2',
       otherEnd: { city: 'Dubai', country: 'AE' },
     });
@@ -46,7 +48,7 @@ describe('reading the AirLabs weekly timetable', () => {
       'arrival',
       places,
     );
-    expect(entry?.durationMinutes).toBe(165);
+    expect(entry).toMatchObject({ durationMinutes: 165, arrivalMinute: 75, arrivalDayOffset: 1 });
   });
 
   it('folds a marketing number into the flight that operates it', () => {
@@ -95,6 +97,19 @@ describe('placing the timetable on real days', () => {
     expect(flight?.at).toBe(Date.UTC(2026, 8, 11, 12, 55));
     expect(flight?.flight).toBe('EK21');
     expect(flight?.place).toBe('Dubai');
+  });
+
+  it('uses the published UTC arrival instead of an estimated duration', () => {
+    const [flight] = timetableWindow(timetable([entry({ departureMinute: 660, durationMinutes: 205, arrivalMinute: 805, arrivalDayOffset: 0 })]), 'arrival', Date.UTC(2026, 9, 21), 24);
+    expect(flight?.at).toBe(Date.UTC(2026, 9, 21, 13, 25));
+    expect(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' }).format(flight!.at)).toBe('14:25');
+  });
+
+  it('preserves the arrival day for an overnight flight', () => {
+    const [flight] = timetableWindow(timetable([entry({ departureMinute: 1350, durationMinutes: 165, arrivalMinute: 75, arrivalDayOffset: 1, days: ['thu'] })]), 'arrival', night, 24);
+    expect(flight?.at).toBeUndefined();
+    const flights = timetableWindow(timetable([entry({ departureMinute: 1350, durationMinutes: 165, arrivalMinute: 75, arrivalDayOffset: 1, days: ['fri'] })]), 'arrival', night, 24);
+    expect(flights[0]?.at).toBe(Date.UTC(2026, 8, 12, 1, 15));
   });
 
   it('offers the next day too, so a list at two in the morning is never empty', () => {

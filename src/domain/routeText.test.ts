@@ -72,14 +72,14 @@ describe('the line under the flight on the card', () => {
         'dropoff',
         uk,
       ),
-    ).toBe('Lands 11:35 Rabat time · 3 hr 20 min in the air');
+    ).toBe('Estimated arrival 11:35 Rabat time · 3 hr 20 min in the air');
     expect(
       cardMeta(
         { city: 'Dubai', iata: 'DXB', timeZone: 'Asia/Dubai', otherEndAt: Date.UTC(2026, 8, 25, 23, 40), durationMinutes: 435 },
         'pickup',
         uk,
       ),
-    ).toBe('Takes off 03:40 Dubai time (00:40 UK) · 7 hr 15 min in the air');
+    ).toBe('Estimated take-off 03:40 Dubai time (00:40 UK) · 7 hr 15 min in the air');
   });
 });
 
@@ -91,7 +91,7 @@ describe('a flight number timetabled at a different time', () => {
     };
     expect(describeRoute(route, 'pickup', uk, now).headline).toBe('From Dubai (DXB), United Arab Emirates');
     expect(cardMeta(route, 'pickup', uk)).toBe(
-      'Timetabled to land at 07:50 on Sat 26 Sept, not the time entered — check the booking.',
+      'Weekly timetable arrival: 07:50 Manchester time on Sat 26 Sept. It may not apply to your booking date. Your saved flight time is kept; use your airline booking.',
     );
   });
 });
