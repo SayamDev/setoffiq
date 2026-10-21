@@ -70,7 +70,7 @@ export function useMonitoredJourney(
   const runningRef = useRef(false);
   const requestRef = useRef<AbortController | null>(null);
   const completedFor = useRef<string | null>(null);
-  const inputKey = (value: SavedJourney) => `${value.id}:${value.input.scheduledTime}:${value.input.scenarioId ?? ''}`;
+  const inputKey = (value: SavedJourney) => `${value.id}:${value.input.scheduledTime}:${value.input.scenarioId ?? ''}:${value.input.trackingCallsign ?? ''}`;
 
   const check = useCallback(async (forceRefresh = false): Promise<void> => {
     const current = journeyRef.current;
@@ -253,7 +253,7 @@ export function useMonitoredJourney(
     // scenario id is included because changing it changes what the flight
     // provider will return, and the recommendation has to be rebuilt from it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [journey?.id, journey?.input.scenarioId, journey?.input.scheduledTime, check]);
+  }, [journey?.id, journey?.input.scenarioId, journey?.input.scheduledTime, journey?.input.trackingCallsign, check]);
 
   useEffect(() => {
     if (!state.nextCheckAt || journey?.monitoring !== 'active') return;

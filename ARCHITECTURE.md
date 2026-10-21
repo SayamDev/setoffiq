@@ -287,3 +287,15 @@ saved journey identity/history. Monitoring aborts an old request on a scheduled
 input change, masks its stale result and recalculates through `planJourney` and
 the existing deterministic engine. Late results cannot overwrite the correction.
 Timetable disagreement is explanatory metadata, never a replacement booking time.
+
+
+### User-confirmed aircraft tracking
+
+`JourneyInput.trackingCallsign` is optional and journey-specific. `FlightTracking`
+validates an explicit user link; the provider looks for that exact broadcast
+callsign instead of guessing a marketing-number alias. The booking number and
+clock are preserved. Monitoring keys include the link, so changing it aborts
+superseded requests and recomputes through `planJourney`. Changing the booking
+date clears the link. UI comparisons only format provider/engine times; the
+existing position estimator and deterministic prediction engine remain the
+numeric authorities. No new API calls or direct browser flight-data requests.

@@ -77,7 +77,7 @@ so explicitly.
 callsigns (`UAE21`) while tickets show IATA flight numbers (`EK21`). SetoffIQ
 maps the airlines it can, including zero-padding variants. Ryanair and easyJet
 broadcast alphanumeric callsigns unrelated to the flight number, so those cannot
-be matched — no attempt is made to fake it.
+be matched automatically. Users can explicitly link a verified callsign for a saved pickup/date; no association is inferred.
 
 - **Fallback:** the user's scheduled time, clearly labelled as such, with
   reduced confidence.
@@ -797,3 +797,22 @@ booking clock. Saved booking times can be corrected explicitly in the browser.
 Source: https://airlabs.co/docs/routes — route duration is estimated and route
 records are not live flight status. A definitive correction across all dates
 would require a licensed, date-specific airline/airport feed; none is added.
+
+
+### Tracking review — 21 October 2026
+
+The adsb.lol public API documentation now marks the API deprecated and points
+to re-api. The replacement documentation describes feeder-only access, a key
+and station-IP restrictions. The existing static snapshot path is retained;
+this release adds no endpoint, key, account, upstream request or polling change.
+See https://www.adsb.lol/docs/open-data/api/ and
+https://www.adsb.lol/docs/feeders-only/re-api . Provider continuity remains a
+limitation requiring an eligible replacement data agreement or source review.
+
+An optional user-confirmed callsign is stored with a browser's saved journey,
+never sent to a new service. Matching uses the shared snapshot and the existing
+route/different-day checks. The individual position timestamp is also checked:
+an hour-old or future-dated position is not made fresh by republishing its file.
+Estimates between 30 and 60 minutes old remain marked stale, with reduced
+confidence under the existing policy. No aircraft map, global flight feed,
+official touchdown prediction or monotonic accuracy improvement is claimed.

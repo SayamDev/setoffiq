@@ -39,3 +39,8 @@ describe('flight number to callsign', () => {
     expect(normaliseFlightNumber(' ek-21 ')).toBe('EK21');
   });
 });
+
+it('maps Ryanair UK numeric designators without guessing an alphanumeric callsign', () => {
+  expect(candidateCallsigns('RK1712')).toContain('RUK1712');
+  expect(candidateCallsigns('RK1712')).not.toContain('RUK87AL');
+});

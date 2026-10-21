@@ -166,8 +166,8 @@ aircraft is in the air, and it does not claim to. When no aircraft is found, it
 uses the scheduled time you entered, unchanged, and says exactly that on screen.
 
 Not every airline helps, either. Ryanair and easyJet broadcast alphanumeric
-callsigns unrelated to the flight number on your ticket, so those will not match
-a flight number you type, and some airlines vary their callsigns — the standing
+callsigns unrelated to the flight number on your ticket, so those will not automatically match
+a flight number you type (you can explicitly link a verified callsign on a saved pickup), and some airlines vary their callsigns — the standing
 data lists Emirates' Dubai–Manchester service as both `UAE21` and `UAE1KM`. The
 app is honest about that rather than guessing.
 
@@ -488,3 +488,24 @@ If the timetable disagrees, your saved booking time stays in place. Refreshing
 the plan does not verify your booking with the airline. Other-airport times
 inferred from duration are estimates. Always check your booking and airline
 updates, especially around seasonal timetable changes.
+
+
+### Arrival updates and aircraft callsigns
+
+Saved pickups show the booking arrival beside the latest available estimate,
+with its source and observation time. A position-based estimate is **at the
+stand, including a taxi allowance**, not an official landing forecast. Fresh
+observations can move the plan earlier or later; no improvement is guaranteed.
+
+If the booking number does not match the aircraft (for example, Ryanair UK
+RK1712 broadcasting RUK87AL), choose **Link aircraft callsign**. Verify the
+callsign against that flight and date first. The link is saved only with this
+browser's journey; it does not rename the ticket flight, and changing its
+booking date clears the link. Remove it whenever unsure. Route, freshness and
+different-day checks still apply.
+
+Coverage is roughly 460 km around Manchester. Shared snapshots normally publish
+about every 15 minutes, but can be delayed; pressing Check now cannot create a
+new aircraft observation. Outside coverage or without a usable match, the app
+uses available schedule information or the booking time. This is not worldwide,
+second-by-second tracking, and there is no licensed Flightradar24 integration.

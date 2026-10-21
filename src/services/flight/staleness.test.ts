@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { calculatePickupRecommendation } from '../../domain/engine';
 import { MANCHESTER } from '../../domain/airports';
 import { writeCache } from '../cache';
 import { clearAll } from '../storage';
@@ -90,5 +91,51 @@ describe('the same flight number on a different day', () => {
       scheduledDeparture: null,
     });
     expect(result.value?.estimatedArrivalSource).toBe('live-position');
+  });
+});
+
+describe('explicit aircraft links and changing observations', () => {
+  afterEach(() => clearAll());
+  it('does not invent the RK1712 to RUK87AL association, but uses an explicit user link', async () => {
+    const now = Date.now();
+    seed(now, [inbound('RUK87AL', now)]);
+    const input = { flightNumber: 'RK1712', airport: MANCHESTER, scheduledArrival: now + 30 * 60_000, scheduledDeparture: null };
+    expect((await snapshotFlightProvider.getFlightStatus(input)).value?.position).toBeNull();
+    const linked = await snapshotFlightProvider.getFlightStatus({ ...input, trackingCallsign: 'RUK87AL' });
+    expect(linked.value?.flightNumber).toBe('RK1712');
+    expect(linked.value?.callsign).toBe('RUK87AL');
+    expect(linked.value?.estimatedArrivalSource).toBe('live-position');
+  });
+  it('recalculates deterministically when a newer matched position arrives', async () => {
+    const now = Date.now();
+    const input = { flightNumber: 'RK1712', trackingCallsign: 'RUK87AL', airport: MANCHESTER, scheduledArrival: now + 30 * 60_000, scheduledDeparture: null };
+    seed(now, [{ ...inbound('RUK87AL', now), latitude: 54.5 }]);
+    const first = await snapshotFlightProvider.getFlightStatus(input);
+    seed(now, [inbound('RUK87AL', now)]);
+    const next = await snapshotFlightProvider.getFlightStatus(input);
+    expect(next.value?.estimatedArrival).toBeLessThan(first.value!.estimatedArrival!);
+    expect(next.value?.scheduledArrival).toBe(input.scheduledArrival);
+    const empty = { state: 'unavailable' as const, value: null, fetchedAt: null, observedAt: null };
+    const engineInput = { now, journeyKind: 'pickup' as const, airport: MANCHESTER, passengerRoute: 'international' as const, scheduledArrival: input.scheduledArrival, mode: 'quick-pickup' as const, distanceKm: 20, route: empty, weather: empty, airportConditions: empty, roadDisruption: empty };
+    const previousPlan = calculatePickupRecommendation({ ...engineInput, flight: first });
+    const updatedPlan = calculatePickupRecommendation({ ...engineInput, flight: next });
+    if (previousPlan.kind !== 'pickup' || updatedPlan.kind !== 'pickup') throw new Error('Expected pickup recommendations');
+    expect(updatedPlan.recommendedDeparture).toBeLessThan(previousPlan.recommendedDeparture);
+
+    expect((await snapshotFlightProvider.getFlightStatus(input)).value?.estimatedArrival).toBe(next.value?.estimatedArrival);
+  });
+  it.each([-120, 10])('rejects a %s minute position even when the file was published now', async offset => {
+    const now = Date.now();
+    seed(now, [inbound('RUK87AL', now + offset * 60_000)]);
+    const result = await snapshotFlightProvider.getFlightStatus({ flightNumber: 'RK1712', trackingCallsign: 'RUK87AL', airport: MANCHESTER, scheduledArrival: now + 30 * 60_000, scheduledDeparture: null });
+    expect(result.value?.estimatedArrivalSource).toBe('user-schedule');
+    expect(result.value?.position).toBeNull();
+    expect(result.message).toMatch(/invalid timestamp/);
+  });
+  it('still rejects a linked aircraft on a different day', async () => {
+    seed(Date.now(), [inbound('RUK87AL', Date.now())]);
+    const result = await snapshotFlightProvider.getFlightStatus({ flightNumber: 'RK1712', trackingCallsign: 'RUK87AL', airport: MANCHESTER, scheduledArrival: Date.now() + 24 * HOUR, scheduledDeparture: null });
+    expect(result.value?.position).toBeNull();
+    expect(result.message).toMatch(/different day/);
   });
 });

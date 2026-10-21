@@ -15,7 +15,7 @@ import { formatAge } from '../../domain/time';
 import { fetchJson } from '../http';
 import { haversineKm } from '../geo';
 import { estimateArrivalFromPosition, notArrivingReason, type NotArrivingReason } from './arrivalEstimate';
-import { candidateCallsigns, normaliseFlightNumber } from './callsigns';
+import { candidateCallsigns, normaliseFlightNumber, validatedTrackingCallsign } from './callsigns';
 import { findScheduled, loadSchedule, type ScheduledFlight } from './schedule';
 import type { FlightSnapshot, SnapshotAircraft } from './snapshotTypes';
 
@@ -141,7 +141,14 @@ export const snapshotFlightProvider: FlightProvider = {
     const tooOld =
       ageMinutes !== null && ageMinutes > FLIGHT_POSITIONS_UNUSABLE_AFTER_MINUTES;
 
-    const found = flightNumber && !tooOld ? findAircraft(snapshot, flightNumber) : null;
+    const linked = input.trackingCallsign ? validatedTrackingCallsign(input.trackingCallsign) : null;
+    const candidate = tooOld ? null : linked
+      ? snapshot.aircraft.find(item => item.callsign.trim().toUpperCase() === linked) ?? null
+      : flightNumber ? findAircraft(snapshot, flightNumber) : null;
+    const positionAge = candidate ? (now - candidate.lastContact * 1000) / 60_000 : null;
+    // A newly published file must not make an old or future-dated position fresh.
+    const positionUsable = positionAge !== null && Number.isFinite(positionAge) && positionAge >= -1 && positionAge <= FLIGHT_POSITIONS_UNUSABLE_AFTER_MINUTES;
+    const found = positionUsable ? candidate : null;
     const foundEstimate = found ? estimateArrivalFromPosition(found, input.airport) : null;
 
     // Same number, different day: an evening flight in the air tonight is not
@@ -219,7 +226,7 @@ export const snapshotFlightProvider: FlightProvider = {
     };
 
     return {
-      state: stale ? 'stale' : 'ok',
+      state: stale || (positionAge !== null && positionAge > FLIGHT_SNAPSHOT_STALE_AFTER_MINUTES) ? 'stale' : 'ok',
       value: status,
       fetchedAt,
       observedAt,
@@ -231,6 +238,8 @@ export const snapshotFlightProvider: FlightProvider = {
           ? `The aircraft is not in range yet, so this is the airline schedule's estimate. It will be timed from the aircraft's position once it is close.`
           : tooOld
         ? `The latest flight data is ${formatAge(ageMinutes ?? 0)} old — too old to say where the aircraft is now. Your scheduled time is being used instead.`
+        : candidate && !positionUsable
+          ? 'The matched aircraft position is too old or has an invalid timestamp. Your booking time is used instead.'
         : otherDay && found
           ? `An aircraft broadcasting ${found.callsign.trim()} is in the air, but it is due many hours from the scheduled time you entered, so it is most likely a different day's flight. Your scheduled time is being used instead.`
           : aircraft
@@ -238,7 +247,7 @@ export const snapshotFlightProvider: FlightProvider = {
               ? `An aircraft broadcasting ${aircraft.callsign.trim()} was found, but ${elsewhereReason(elsewhere, aircraft)}, so it does not look like it is arriving at ${input.airport.name}. Your scheduled time is being used instead.`
               : null
             : flightNumber
-              ? `No aircraft broadcasting ${flightNumber} was in the covered area when this snapshot was taken. Your scheduled time is being used instead.`
+              ? `No aircraft broadcasting ${linked ?? flightNumber} was in the covered area when this snapshot was taken. Your scheduled time is being used instead.`
               : 'No flight number was given, so your scheduled time is being used.',
     };
   },

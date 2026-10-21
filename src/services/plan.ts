@@ -98,6 +98,7 @@ export async function planJourney(
         {
           airport,
           flightNumber: input.flightNumber,
+          trackingCallsign: input.trackingCallsign,
           scheduledArrival: input.kind === 'pickup' ? input.scheduledTime : null,
           scheduledDeparture: input.kind === 'dropoff' ? input.scheduledTime : null,
           forceRefresh: options.forceRefresh === true,

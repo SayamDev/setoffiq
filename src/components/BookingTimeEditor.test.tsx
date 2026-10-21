@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { BookingTimeEditor } from './BookingTimeEditor';
-import { createJourney, loadJourneys, saveJourneys } from '../storage/journeys';
+import { createJourney, correctBookingTime, loadJourneys, saveJourneys } from '../storage/journeys';
 import { bookingTime } from '../services/bookingTime';
 import { clearAll } from '../services/storage';
 
@@ -69,4 +69,11 @@ it.each([false, true])('opens both native pickers across the full field; blocked
   } finally {
     Reflect.deleteProperty(HTMLInputElement.prototype, 'showPicker');
   }
+});
+
+it('keeps the linked callsign for a time correction but clears it for a different flight date', () => {
+  const original = journey();
+  original.input.trackingCallsign = 'RUK87AL';
+  expect(correctBookingTime(original, original.input.scheduledTime - 3600000, 'Europe/London', now).input.trackingCallsign).toBe('RUK87AL');
+  expect(correctBookingTime(original, original.input.scheduledTime + 86400000, 'Europe/London', now).input.trackingCallsign).toBeUndefined();
 });

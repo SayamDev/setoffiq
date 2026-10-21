@@ -21,6 +21,7 @@ const IATA_TO_ICAO: Record<string, string> = {
   EW: 'EWG',
   EY: 'ETD',
   FR: 'RYR',
+  RK: 'RUK',
   IB: 'IBE',
   KL: 'KLM',
   LH: 'DLH',
@@ -99,4 +100,10 @@ export function callsignToFlightNumber(callsign: string): string | null {
   if (!match) return null;
   const iata = ICAO_TO_IATA[match[1]!];
   return iata ? `${iata}${match[2]}` : null;
+}
+
+/** A broadcast designator, not a ticket flight number. No airline alias is guessed. */
+export function validatedTrackingCallsign(input: string): string | null {
+  const value = normaliseFlightNumber(input);
+  return /^[A-Z]{3}[A-Z0-9]{1,5}$/.test(value) ? value : null;
 }

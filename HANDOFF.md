@@ -239,3 +239,21 @@ Rollback remains a PR revert; no journey-schema migration was introduced.
   (subject to the £0 constraint), source-age visibility and more boundary tests.
 - Remaining limits: weekly schedules can be wrong for a specific date; browser
   records cannot be silently corrected globally from one booking screenshot.
+
+
+## 21 October 2026 — arrival-update trust
+
+- Explicit per-journey callsign links solve verified alphanumeric mismatches
+  without hardcoding RK1712/RUK87AL or replacing the booking number/date/time.
+- Arrival updates compare booking and available estimate, name its source,
+  observation age, coverage and refresh limits. No simulated global map.
+- Reject old/future position timestamps even inside freshly generated files.
+- Callsign changes abort/recheck; booking date changes clear the link.
+- Current adsb.lol docs deprecate the public API; feeder-only re-api cannot be
+  silently adopted under existing constraints. No data-source expansion.
+- Find Skills verified Vercel React Best Practices (824.2K installs, source
+  32.7K stars) and Web Design Guidelines (765.5K installs, same source), already
+  installed. Links: https://skills.sh/vercel-labs/agent-skills/vercel-react-best-practices
+  and https://skills.sh/vercel-labs/agent-skills/web-design-guidelines .
+  Commands if needed elsewhere: npx skills add vercel-labs/agent-skills --skill
+  vercel-react-best-practices; use --skill web-design-guidelines for the second.
