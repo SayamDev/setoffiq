@@ -195,6 +195,8 @@ export interface FlightStatus {
 }
 
 export interface FlightSearchInput {
+  /** User-confirmed broadcast callsign for this journey, never an inferred alias. */
+  trackingCallsign?: string;
   airport: AirportProfile;
   flightNumber: string | null;
   scheduledArrival: Instant | null;
@@ -439,6 +441,8 @@ export type RecommendationResult = Recommendation | RecommendationUnavailable;
 // ---------------------------------------------------------------------------
 
 export interface JourneyInput {
+  /** Optional broadcast callsign explicitly linked by the user for this flight/date. */
+  trackingCallsign?: string;
   kind: JourneyKind;
   airportIata: string;
   flightNumber: string | null;

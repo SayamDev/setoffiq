@@ -1,3 +1,4 @@
+import { FlightTracking } from '../components/FlightTracking';
 import { DEFAULT_AIRPORT } from '../domain/airports';
 import { formatClock, formatDate, formatRelative } from '../domain/time';
 import type { SavedJourney } from '../domain/types';
@@ -208,6 +209,7 @@ export function JourneyPage({
               <h2 className={styles.sectionTitle} id="tracker-heading">
                 The flight
               </h2>
+              {journey.input.kind === 'pickup' ? <FlightTracking key={`tracking-${journey.id}`} journey={journey} flight={monitor.plan?.flight ?? null} checking={monitor.status === 'checking' || monitor.status === 'idle'} now={now} onSave={onSave} /> : null}
               {route ? (
                 <FlightRouteSummary route={route} kind={journey.input.kind} timeZone={zone} now={now} />
               ) : null}

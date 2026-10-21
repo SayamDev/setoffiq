@@ -110,3 +110,9 @@ there is no hosted inference request, account or billing mechanism. Hosting stay
 on public GitHub Pages. The user pays no fee, but the download uses their ordinary
 connection/data allowance and synthesis consumes device memory/battery. The default
 device voice requires no model download. No paid voice service was added.
+
+
+Arrival-update/callsign improvements (21 October 2026) add no dependencies,
+providers, keys or upstream requests. Existing snapshot cadence and budgets
+are unchanged. The public adsb.lol API is now documented as deprecated; its
+feeder-only replacement is not adopted. See DATA-SOURCES.md for continuity limits.

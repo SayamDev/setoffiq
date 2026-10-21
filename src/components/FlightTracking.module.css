@@ -1,0 +1,12 @@
+.section { padding-block: var(--space-5); }
+.section h3 { font-size: var(--t-body); margin-bottom: var(--space-4); }
+.times { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); margin-bottom: var(--space-3); }
+.times dt { color: var(--ink-2); font-size: var(--t-sm); margin-bottom: var(--space-2); }
+.times dd { margin: 0; font-size: 1.5rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-3); }
+.form { display: grid; gap: var(--space-3); margin-top: var(--space-4); max-width: 38rem; }
+.form label { display: grid; gap: var(--space-2); }
+.section button, .form input { min-height: 48px; }
+@media (max-width: 480px) { .times { grid-template-columns: 1fr; gap: var(--space-3); } }
+.estimateDate { display: block; margin-top: var(--space-1); font-size: var(--t-sm); color: var(--ink-2); font-weight: 400; }
+.limits summary { cursor: pointer; padding-block: var(--space-3); min-height: 44px; color: var(--ink-2); }
