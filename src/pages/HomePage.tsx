@@ -9,14 +9,14 @@ export function HomePage(): React.JSX.Element {
 
         <h1 className={styles.tagline}>Know when to set off for Manchester Airport.</h1>
         <p className={styles.lede}>
-          Talk through the flight and your drive. Get a clear time to leave, and understand why.
+          Enter a flight, date and postcode. We’ll check what we can, ask only for missing details, and explain your time to leave.
         </p>
-        <a className={styles.voiceStart} href={hrefFor({ name: 'plan', kind: 'pickup' })}>Plan with voice <JourneyMotion /></a>
+        <a className={styles.voiceStart} href={`${hrefFor({ name: 'plan', kind: 'pickup' })}?mode=voice`}>Plan with voice <JourneyMotion /></a>
       </section>
 
       <section aria-labelledby="what-are-you-planning">
         <h2 className={styles.question} id="what-are-you-planning">
-          Or choose your journey
+          Choose your journey
         </h2>
         <div className={styles.choices}>
           <a className={styles.choice} href={hrefFor({ name: 'plan', kind: 'pickup' })}>

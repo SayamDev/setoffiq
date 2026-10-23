@@ -201,7 +201,7 @@ export const snapshotFlightProvider: FlightProvider = {
       scheduledArrival: input.scheduledArrival,
       scheduledDeparture: input.scheduledDeparture,
       estimatedArrival: estimate ? estimate.onStand : (scheduleEstimate ?? input.scheduledArrival),
-      estimatedArrivalSource: estimate ? 'live-position' : scheduleEstimate ? 'airline-schedule' : 'user-schedule',
+      estimatedArrivalSource: estimate ? 'live-position' : scheduleEstimate ? 'airline-schedule' : input.scheduledTimeSource === 'dated-schedule' ? 'published-schedule' : 'user-schedule',
       position: aircraft
         ? {
             latitude: aircraft.latitude,
@@ -220,7 +220,7 @@ export const snapshotFlightProvider: FlightProvider = {
         ? aircraft.lastContact * 1000
         : scheduleEstimate && schedule
           ? Date.parse(schedule.generatedAt)
-          : observedAt,
+          : input.scheduledTimeSource === 'dated-schedule' ? input.scheduledTimeObservedAt ?? observedAt : observedAt,
       landedAt: scheduleLanded ?? seenOnGround,
       landedAtSource: scheduleLanded !== null ? 'airline-schedule' : seenOnGround !== null ? 'seen-on-ground' : null,
     };
@@ -237,17 +237,17 @@ export const snapshotFlightProvider: FlightProvider = {
         : scheduleEstimate
           ? `The aircraft is not in range yet, so this is the airline schedule's estimate. It will be timed from the aircraft's position once it is close.`
           : tooOld
-        ? `The latest flight data is ${formatAge(ageMinutes ?? 0)} old — too old to say where the aircraft is now. Your scheduled time is being used instead.`
+        ? `The latest flight data is ${formatAge(ageMinutes ?? 0)} old — too old to say where the aircraft is now. ${input.scheduledTimeSource === 'dated-schedule' ? 'The published scheduled time' : 'Your scheduled time'} is being used instead.`
         : candidate && !positionUsable
-          ? 'The matched aircraft position is too old or has an invalid timestamp. Your booking time is used instead.'
+          ? 'The matched aircraft position is too old or has an invalid timestamp. The planned flight time is used instead.'
         : otherDay && found
-          ? `An aircraft broadcasting ${found.callsign.trim()} is in the air, but it is due many hours from the scheduled time you entered, so it is most likely a different day's flight. Your scheduled time is being used instead.`
+          ? `An aircraft broadcasting ${found.callsign.trim()} is in the air, but it is due many hours from the scheduled time you entered, so it is most likely a different day's flight. ${input.scheduledTimeSource === 'dated-schedule' ? 'The published scheduled time' : 'Your scheduled time'} is being used instead.`
           : aircraft
             ? elsewhere
-              ? `An aircraft broadcasting ${aircraft.callsign.trim()} was found, but ${elsewhereReason(elsewhere, aircraft)}, so it does not look like it is arriving at ${input.airport.name}. Your scheduled time is being used instead.`
+              ? `An aircraft broadcasting ${aircraft.callsign.trim()} was found, but ${elsewhereReason(elsewhere, aircraft)}, so it does not look like it is arriving at ${input.airport.name}. ${input.scheduledTimeSource === 'dated-schedule' ? 'The published scheduled time' : 'Your scheduled time'} is being used instead.`
               : null
             : flightNumber
-              ? `No aircraft broadcasting ${linked ?? flightNumber} was in the covered area when this snapshot was taken. Your scheduled time is being used instead.`
+              ? `No aircraft broadcasting ${linked ?? flightNumber} was in the covered area when this snapshot was taken. ${input.scheduledTimeSource === 'dated-schedule' ? 'The published scheduled time' : 'Your scheduled time'} is being used instead.`
               : 'No flight number was given, so your scheduled time is being used.',
     };
   },

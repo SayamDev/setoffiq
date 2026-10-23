@@ -168,7 +168,7 @@ export interface AircraftPosition {
 }
 
 /** Where an arrival or departure estimate came from. Never guessed. */
-export type TimeSource = 'user-schedule' | 'live-position' | 'airline-schedule' | 'scenario';
+export type TimeSource = 'user-schedule' | 'published-schedule' | 'live-position' | 'airline-schedule' | 'scenario';
 
 export interface FlightStatus {
   /** Flight number as the user typed it, e.g. "EK21". */
@@ -176,7 +176,7 @@ export interface FlightStatus {
   /** ICAO callsign as broadcast, e.g. "UAE21". Only set when observed. */
   callsign: string | null;
   phase: FlightPhase;
-  /** What the user's booking says. Always user-supplied. */
+  /** Planned time from the booking or an exact dated published schedule. */
   scheduledArrival: Instant | null;
   scheduledDeparture: Instant | null;
   /** Our best current estimate, which may equal the scheduled time. */
@@ -195,6 +195,8 @@ export interface FlightStatus {
 }
 
 export interface FlightSearchInput {
+  scheduledTimeSource?: 'booking' | 'dated-schedule';
+  scheduledTimeObservedAt?: Instant;
   /** User-confirmed broadcast callsign for this journey, never an inferred alias. */
   trackingCallsign?: string;
   airport: AirportProfile;
@@ -441,12 +443,15 @@ export type RecommendationResult = Recommendation | RecommendationUnavailable;
 // ---------------------------------------------------------------------------
 
 export interface JourneyInput {
+  /** Retains provenance when the quick planner fills a fresh, dated schedule. */
+  scheduledTimeSource?: 'booking' | 'dated-schedule';
+  scheduledTimeObservedAt?: Instant;
   /** Optional broadcast callsign explicitly linked by the user for this flight/date. */
   trackingCallsign?: string;
   kind: JourneyKind;
   airportIata: string;
   flightNumber: string | null;
-  /** Arrival for a pickup, departure for a drop-off. Always user-supplied. */
+  /** Arrival for a pickup, departure for a drop-off. See scheduledTimeSource. */
   scheduledTime: Instant;
   passengerRoute: PassengerRoute;
   terminalCode: string | null;

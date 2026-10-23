@@ -299,3 +299,20 @@ superseded requests and recomputes through `planJourney`. Changing the booking
 date clears the link. UI comparisons only format provider/engine times; the
 existing position estimator and deterministic prediction engine remain the
 numeric authorities. No new API calls or direct browser flight-data requests.
+
+### Quick planner and schedule provenance
+
+`QuickJourney` collects flight/date/postcode, resolves an exact dated match via
+`quickFlightMatches`, then looks up postcode and optional route metadata in
+parallel. It produces the same `JourneyInput` as the existing entry paths. The
+matcher rejects stale/future-invalid publication times, keeps directions separate
+and uses Manchester-local dates. It never consults the recurring timetable.
+Ambiguous records require a choice and absent records require an explicit booking
+clock interpreted by `bookingTime` (including DST ambiguity validation).
+
+Inputs retain `scheduledTimeSource` and the schedule publication time. The flight
+provider marks scheduled fallbacks `published-schedule`; the deterministic engine
+reports that as an assumption, including when flight updates are unavailable.
+Explicit booking correction replaces that provenance. Monitoring includes source
+changes in its request identity, preventing an old in-flight result overwriting a
+correction. No prediction arithmetic moved into the entry component.

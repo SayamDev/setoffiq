@@ -227,7 +227,7 @@ describe('planning and monitoring a pickup', () => {
 describe('utterance to the real planner', () => {
   it('plans from a sentence, accepts a correction, explains and starts monitoring without saving the transcript', async () => {
     const user = userEvent.setup();
-    window.location.hash = '#/pickup';
+    window.location.hash = '#/pickup?mode=voice';
     render(<App />);
     const instruction = await screen.findByLabelText('Or type an instruction');
     await user.type(instruction, 'landing tomorrow at 18:30, flight KL1038');
@@ -324,7 +324,7 @@ describe('utterance to the real planner', () => {
   }, 15000);
 
   it('shows the correct journey heading when voice switches a pickup page to drop-off', async () => {
-    const user = userEvent.setup(); window.location.hash = '#/pickup'; render(<App />);
+    const user = userEvent.setup(); window.location.hash = '#/pickup?mode=voice'; render(<App />);
     await user.type(await screen.findByLabelText('Or type an instruction'), 'drop off tomorrow at 19:00 postcode M1 4BT');
     await user.click(screen.getByRole('button', { name: 'Use instruction' }));
     await screen.findByRole('region', { name: /Set off at/ }, { timeout: 5000 });
@@ -334,7 +334,7 @@ describe('utterance to the real planner', () => {
 
   it('does not calculate an ambiguous pickup until AM/PM and landing basis are settled', async () => {
     const user = userEvent.setup();
-    window.location.hash = '#/pickup';
+    window.location.hash = '#/pickup?mode=voice';
     render(<App />);
     await user.type(await screen.findByLabelText('Or type an instruction'), 'I am picking someone up at 6:30 tomorrow, Ryanair from Rabat');
     await user.click(screen.getByRole('button', { name: 'Use instruction' }));
@@ -359,7 +359,7 @@ describe('voice flight choices from published data', () => {
   };
   it('requires a choice for multiple matches, then uses the chosen flight in the real planner', async () => {
     scheduledFlights = [fixture('FR123'), fixture('FR124')];
-    const user = userEvent.setup(); window.location.hash = '#/pickup'; render(<App />);
+    const user = userEvent.setup(); window.location.hash = '#/pickup?mode=voice'; render(<App />);
     await user.type(await screen.findByLabelText('Or type an instruction'), 'landing tomorrow at 18:30, Ryanair from Rabat');
     await user.click(screen.getByRole('button', { name: 'Use instruction' }));
     await screen.findByText(/I found 2 possible flights/);
@@ -373,7 +373,7 @@ describe('voice flight choices from published data', () => {
   }, 10000);
   it('does not recommend or monitor a matched cancelled flight', async () => {
     scheduledFlights = [fixture('FR123', 'cancelled')];
-    const user = userEvent.setup(); window.location.hash = '#/pickup'; render(<App />);
+    const user = userEvent.setup(); window.location.hash = '#/pickup?mode=voice'; render(<App />);
     await user.type(await screen.findByLabelText('Or type an instruction'), 'landing tomorrow at 18:30, Ryanair from Rabat, postcode M1 4BT');
     await user.click(screen.getByRole('button', { name: 'Use instruction' }));
     await screen.findAllByText(/This flight is showing as cancelled/, undefined, { timeout: 5000 });
@@ -387,7 +387,7 @@ describe('voice flight choices from published data', () => {
       { ...fixture('BA123'), callsign: 'BAW123', airline: 'BA', otherEnd: { icao: 'EGLL', iata: 'LHR', city: 'London', country: 'GB' }, terminal: '1' },
       fixture('FR456'),
     ];
-    const user = userEvent.setup(); window.location.hash = '#/pickup'; render(<App />);
+    const user = userEvent.setup(); window.location.hash = '#/pickup?mode=voice'; render(<App />);
     const instruction = await screen.findByLabelText('Or type an instruction');
     await user.type(instruction, 'landing tomorrow at 18:30 flight BA123 postcode M1 4BT');
     await user.click(screen.getByRole('button', { name: 'Use instruction' }));
@@ -400,6 +400,66 @@ describe('voice flight choices from published data', () => {
     expect(screen.getByLabelText('Route', { exact: true })).toHaveValue('international');
     expect(screen.getByLabelText('Terminal', { exact: true })).toHaveValue('T3');
     expect(screen.getByLabelText('Voice flight number')).toHaveValue('FR456');
+  }, 10000);
+
+});
+
+describe('quick planning through the real engine', () => {
+  async function enterQuick() {
+    const user = userEvent.setup();
+    window.location.hash = '#/pickup'; render(<App />);
+    const form = await screen.findByRole('form', { name: 'Quick journey planner' });
+    await user.type(within(form).getByLabelText('Flight number'), 'RK1712');
+    const date = todayInZone(Date.now() + 86400000, MANCHESTER.timeZone);
+    fireEvent.change(within(form).getByLabelText('Flight date at Manchester'), { target: { value: date } });
+    await user.type(within(form).getByLabelText('Starting postcode'), 'M1 4BT');
+    return { user, form, date };
+  }
+  it('asks only for a missing booking clock, calculates and monitors without requiring advanced settings', async () => {
+    const { user, form } = await enterQuick();
+    await user.click(within(form).getByRole('button', { name: 'Find when to leave' }));
+    const clock = await within(form).findByLabelText('Booking arrival time at Manchester');
+    expect(screen.queryByRole('region', { name: /Set off at/ })).not.toBeInTheDocument();
+    fireEvent.change(clock, { target: { value: '18:30' } });
+    await user.click(within(form).getByRole('button', { name: 'Use booking time and calculate' }));
+    await screen.findByRole('region', { name: /Set off at/ }, { timeout: 5000 });
+    expect(screen.getByText('Booking time: 18:30')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Start monitoring' }));
+    await screen.findByRole('button', { name: 'Pause monitoring' });
+    expect(listKeys().map(key => readRaw(key)).join(' ')).toContain('RK1712');
+  }, 10000);
+  it('uses an exact dated schedule and clearly identifies the source instead of claiming a booking or live arrival', async () => {
+    const { user, form, date } = await enterQuick();
+    scheduledFlights = [{ flight: 'RK1712', callsign: null, airline: 'RK', otherEnd: { icao: 'GMME', iata: 'RBA', city: 'Rabat', country: 'MA' }, scheduled: parseLocalDateTime(date, '14:25', MANCHESTER.timeZone)!, estimated: null, actual: null, status: 'scheduled', delayMinutes: null, terminal: '3', aliases: [] }];
+    await user.click(within(form).getByRole('button', { name: 'Find when to leave' }));
+    await screen.findByRole('region', { name: /Set off at/ }, { timeout: 5000 });
+    expect(screen.getByText('Published scheduled time: 14:25')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Booking arrival time at Manchester')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Start monitoring' }));
+    await screen.findByRole('button', { name: 'Pause monitoring' });
+    expect(listKeys().map(key => readRaw(key)).join(' ')).toContain('dated-schedule');
+  }, 10000);
+  it('keeps an explicit booking time ahead of a conflicting published schedule', async () => {
+    const { user, form, date } = await enterQuick();
+    scheduledFlights = [{ flight: 'RK1712', callsign: null, airline: 'RK', otherEnd: null, scheduled: parseLocalDateTime(date, '15:25', MANCHESTER.timeZone)!, estimated: null, actual: null, status: 'scheduled', delayMinutes: null, terminal: null, aliases: [] }];
+    await user.click(within(form).getByText('I already have the booking time'));
+    fireEvent.change(within(form).getByLabelText('Manchester time on your booking'), { target: { value: '14:25' } });
+    await user.click(within(form).getByRole('button', { name: 'Find when to leave' }));
+    await screen.findByRole('region', { name: /Set off at/ }, { timeout: 5000 });
+    expect(screen.getByText('Booking time: 14:25')).toBeInTheDocument();
+    expect(screen.queryByText('Published scheduled time: 15:25')).not.toBeInTheDocument();
+  }, 10000);
+  it('requires a choice when the same ticket number has two dated times', async () => {
+    const { user, form, date } = await enterQuick();
+    const at = parseLocalDateTime(date, '14:25', MANCHESTER.timeZone)!;
+    const base: ScheduledFlight = { flight: 'RK1712', callsign: null, airline: 'RK', otherEnd: null, scheduled: at, estimated: null, actual: null, status: 'scheduled', delayMinutes: null, terminal: null, aliases: [] };
+    scheduledFlights = [base, { ...base, scheduled: at + 3600000 }];
+    await user.click(within(form).getByRole('button', { name: 'Find when to leave' }));
+    const option = await within(form).findByRole('button', { name: /RK1712 · 14:25/ });
+    expect(screen.queryByRole('region', { name: /Set off at/ })).not.toBeInTheDocument();
+    await user.click(option);
+    await screen.findByRole('region', { name: /Set off at/ }, { timeout: 5000 });
+    expect(screen.getByText('Published scheduled time: 14:25')).toBeInTheDocument();
   }, 10000);
 
 });

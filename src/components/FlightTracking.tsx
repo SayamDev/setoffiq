@@ -25,13 +25,13 @@ export function FlightTracking({ journey, flight, now, onSave, checking = false 
   return <section className={styles.section} aria-labelledby="flight-timing-heading">
     <h3 id="flight-timing-heading">Arrival updates</h3>
     <dl className={styles.times}>
-      <div><dt>Booking arrival</dt><dd>{formatClock(journey.input.scheduledTime, zone)}</dd></div>
+      <div><dt>{journey.input.scheduledTimeSource === 'dated-schedule' ? 'Published scheduled arrival' : 'Booking arrival'}</dt><dd>{formatClock(journey.input.scheduledTime, zone)}</dd></div>
       <div><dt>{status?.estimatedArrivalSource === 'live-position' ? 'Estimated at stand · includes taxi' : 'Latest arrival estimate'}</dt><dd>{estimated && status?.estimatedArrival != null ? <>{formatClock(status.estimatedArrival, zone)}<span className={styles.estimateDate}>{formatDate(status.estimatedArrival, zone)}</span></> : 'Awaiting flight data'}</dd></div>
     </dl>
-    <p className={ui.hint}>Manchester local time · {formatDate(journey.input.scheduledTime, zone)}. Your booking time stays unchanged when an estimate updates.</p>
-    <p role="status">{!flight ? (checking ? 'Checking the latest shared snapshot…' : 'Flight data unavailable. Your saved booking time remains the fallback.') : estimated
+    <p className={ui.hint}>Manchester local time · {formatDate(journey.input.scheduledTime, zone)}. The planned flight time stays unchanged when an estimate updates.</p>
+    <p role="status">{!flight ? (checking ? 'Checking the latest shared snapshot…' : 'Flight data unavailable. Your saved flight time remains the fallback.') : estimated
       ? `${status?.estimatedArrivalSource === 'live-position' ? 'Calculated from the aircraft position' : status?.estimatedArrivalSource === 'scenario' ? 'Test scenario — simulated data' : 'Reported by the airline schedule'}${observation != null ? ` · observed ${formatClock(observation, zone)} (${formatRelative(observation, now)})` : ''}.${flight.state === 'stale' ? ' This observation is old; confidence is reduced.' : ''}`
-      : 'No usable aircraft estimate yet. Planning from your booking time; not seeing an aircraft does not mean it has not taken off.'}</p>
+      : 'No usable aircraft estimate yet. Planning from the saved flight time; not seeing an aircraft does not mean it has not taken off.'}</p>
     {status?.callsign ? <p>Observed callsign: <strong>{status.callsign}</strong></p> : null}
     {journey.input.trackingCallsign ? <p>Linked by you: <strong>{journey.input.trackingCallsign}</strong> for this journey.</p> : null}
     <details className={styles.limits}><summary>How often this updates and what it can see</summary><p className={ui.hint}>Shared positions usually refresh about every 15 minutes, with possible delays. Coverage is roughly 460 km around Manchester. Updates can move earlier or later; holding and runway changes are not known.</p></details>

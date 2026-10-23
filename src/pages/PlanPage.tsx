@@ -10,6 +10,8 @@ import { signalDetails } from '../components/signalDetails';
 import { hrefFor, navigate } from '../app/router';
 import { ExplanationPanel } from '../components/ExplanationPanel';
 import { VoiceJourney } from '../components/VoiceJourney';
+import { PlanBasis } from '../components/PlanBasis';
+import { QuickJourney } from '../components/QuickJourney';
 import { JourneyForm } from '../components/JourneyForm';
 import { JourneyTimeline } from '../components/JourneyTimeline';
 import { RecommendationCard } from '../components/RecommendationCard';
@@ -40,7 +42,7 @@ export function PlanPage({
 }): React.JSX.Element {
   const [editRequest, setEditRequest] = useState(0);
   const explanationRef = useRef<HTMLDetailsElement>(null);
-  const [entryMode, setEntryMode] = useState<'voice' | 'form'>('voice');
+  const [entryMode, setEntryMode] = useState<'quick' | 'voice' | 'form'>(() => window.location.hash.includes('mode=voice') ? 'voice' : 'quick');
   const airport = DEFAULT_AIRPORT;
   const now = useNow(30_000);
   const [input, setInput] = useState<JourneyInput | null>(null);
@@ -62,7 +64,7 @@ export function PlanPage({
     if (!next) {
       setFormSeed(input);
       setEntryMode('form');
-    } else setEntryMode('voice');
+    } else if (entryMode !== 'quick') setEntryMode('voice');
     window.scrollTo({ top: 0, behavior: scrollBehaviour() });
   };
 
@@ -113,6 +115,9 @@ export function PlanPage({
         aria-labelledby="entry-choice-label"
         aria-describedby="entry-choice-hint"
       >
+        <button type="button" className={styles.entryOption} aria-pressed={entryMode === 'quick'} onClick={() => { setInput(null); setEntryMode('quick'); }}>
+          Quick plan
+        </button>
         <button
           type="button"
           className={styles.entryOption}
@@ -137,7 +142,7 @@ export function PlanPage({
         </button>
       </div>
       <p id="entry-choice-hint" className={styles.entryHint}>
-        Switch between a conversation and the step-by-step form.
+        Start with three details, talk or type naturally, or use the full form.
       </p>
     </div>
   );
@@ -181,8 +186,8 @@ export function PlanPage({
           {status === 'ready'
             ? 'For Manchester Airport. All times are Manchester time.'
             : plannedKind === 'pickup'
-              ? 'Tell us the flight landing time. We’ll work out when to leave for Manchester Airport.'
-              : 'Tell us the flight departure time. We’ll work out when to leave for Manchester Airport.'}
+              ? 'Enter the flight, date and starting postcode. We’ll check the details and work out when to leave.'
+              : 'Enter the flight, date and starting postcode. We’ll work out when to leave for check-in.'}
         </p>
       </header>
 
@@ -217,7 +222,8 @@ export function PlanPage({
                   terminal: plan.terminal,
                 }}
               >
-                {plan.flight.message ? <p className={ui.hint} role="status">{plan.flight.message}</p> : null}
+                {input ? <PlanBasis input={input} plan={plan} /> : null}
+                {plan.flight.message ? <details><summary>Flight data and coverage</summary><p className={ui.hint}>{plan.flight.message}</p></details> : null}
                 <div className={styles.actions}>
                   <Button onClick={startMonitoring}>Start monitoring</Button>
                   <Button
@@ -391,7 +397,9 @@ export function PlanPage({
         ) : null}
       </div>
 
-      {status === 'ready' ? methodChoice : null}
+      {status === 'ready' && entryMode !== 'quick' ? methodChoice : null}
+      {status === 'ready' && entryMode === 'quick' ? <details className={styles.resultDetails}><summary>Change how you plan</summary>{methodChoice}</details> : null}
+      {entryMode === 'quick' && input === null ? <QuickJourney kind={kind} now={now} onSubmit={show} /> : null}
       <VoiceJourney
         suspended={entryMode !== 'voice'}
         editRequest={editRequest}

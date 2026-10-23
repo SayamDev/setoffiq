@@ -62,9 +62,11 @@ export function buildSignalReports(
       state:
         input.journeyKind === 'pickup'
           ? { kind: 'unavailable', reason: 'No live flight information could be retrieved.' }
-          : { kind: 'user-supplied' },
+          : input.scheduledTimeSource === 'dated-schedule' ? { kind: 'assumed' } : { kind: 'user-supplied' },
       summary:
-        input.journeyKind === 'pickup'
+        input.scheduledTimeSource === 'dated-schedule'
+          ? 'Flight updates unavailable. Using the published schedule for the selected date; check your booking.'
+          : input.journeyKind === 'pickup'
           ? 'Working from the scheduled time you entered.'
           : 'Working from the departure time on your booking.',
       impact: input.journeyKind === 'pickup' ? 'high' : 'none',
@@ -85,6 +87,8 @@ export function buildSignalReports(
       summary: "The airline schedule's estimate, until the aircraft is close enough to time from its position.",
       impact: 'none',
     });
+  } else if (flight.estimatedArrivalSource === 'published-schedule') {
+    reports.push({ id: 'flight', label: 'Flight', state: { kind: 'assumed' }, summary: 'Using the published schedule for the selected date, not a live aircraft estimate. Check it against your booking.', impact: input.journeyKind === 'pickup' ? 'moderate' : 'none' });
   } else if (flight.estimatedArrivalSource === 'scenario') {
     reports.push({
       id: 'flight',

@@ -7,7 +7,7 @@ import { DEFAULT_SETTINGS } from '../storage/settings';
 import { planJourney, type JourneyPlan } from '../services/plan';
 vi.mock('../services/plan', () => ({ planJourney: vi.fn() }));
 
-it.each(['booking', 'callsign'])('rechecks a corrected %s and discards the old in-flight request', async field => {
+it.each(['booking', 'callsign', 'source'])('rechecks a corrected %s and discards the old in-flight request', async field => {
   vi.mocked(planJourney).mockReset();
   const now = Date.now();
   const original = createJourney('RK1712', {
@@ -15,7 +15,7 @@ it.each(['booking', 'callsign'])('rechecks a corrected %s and discards the old i
     passengerRoute: 'international', terminalCode: 'T3', origin: { latitude: 53.48, longitude: -2.24, label: 'Manchester' },
     pickupMode: 'short-stay', dropoffMode: null, scenarioId: null,
   }, now);
-  const corrected = field === 'booking' ? correctBookingTime(original, original.input.scheduledTime - 3600000, 'Europe/London', now) : { ...original, input: { ...original.input, trackingCallsign: 'RUK87AL' } };
+  const corrected = field === 'source' ? { ...original, input: { ...original.input, scheduledTimeSource: 'dated-schedule' as const } } : field === 'booking' ? correctBookingTime(original, original.input.scheduledTime - 3600000, 'Europe/London', now) : { ...original, input: { ...original.input, trackingCallsign: 'RUK87AL' } };
   const empty = { state: 'unavailable' as const, value: null, fetchedAt: null, observedAt: null, provider: 'test', attribution: null, message: null };
   const plan: JourneyPlan = { computedAt: now, recommendation: { kind: 'unavailable', computedAt: now, headline: 'Test result', detail: 'Fixture' }, flight: empty, route: empty, weather: empty, airportConditions: empty, roadDisruption: empty, terminal: null, flightRoute: null };
   let finishOld!: (plan: JourneyPlan) => void;

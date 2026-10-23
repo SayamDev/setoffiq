@@ -31,7 +31,7 @@ export function BookingTimeEditor({ journey, onSave }: { journey: SavedJourney; 
           setDate(todayInZone(journey.input.scheduledTime, zone)); setClock(formatClock(journey.input.scheduledTime, zone)); setError(''); setOpen(true);
         }}>Correct flight time</Button>
       </div>
-      <p className={ui.hint}>This is the saved flight time, separate from when you should set off. If your airline booking differs, use its time. Refreshing the plan does not verify your booking.</p>
+      <p className={ui.hint}>{journey.input.scheduledTimeSource === 'dated-schedule' ? 'This time came from the published schedule for this date.' : 'This is the saved flight time.'} It is separate from when you should set off. If your airline booking differs, use its time. Refreshing the plan does not verify your booking.</p>
       {open ? <form className={styles.editor} onSubmit={event => {
         event.preventDefault();
         const at = bookingTime(journey.input.kind, date, clock, zone, Date.now());

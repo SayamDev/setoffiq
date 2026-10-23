@@ -99,7 +99,7 @@ export function setMonitoring(
 export function correctBookingTime(journey: SavedJourney, at: number, zone: string, now = Date.now()): SavedJourney {
   return appendEvent({
     ...journey,
-    input: { ...journey.input, scheduledTime: at, trackingCallsign: todayInZone(at, zone) === todayInZone(journey.input.scheduledTime, zone) ? journey.input.trackingCallsign : undefined },
+    input: { ...journey.input, scheduledTime: at, scheduledTimeSource: 'booking', scheduledTimeObservedAt: undefined, trackingCallsign: todayInZone(at, zone) === todayInZone(journey.input.scheduledTime, zone) ? journey.input.trackingCallsign : undefined },
     label: journey.label.replace(formatDate(journey.input.scheduledTime, zone), formatDate(at, zone)),
     lastCheckedAt: at === journey.input.scheduledTime ? journey.lastCheckedAt : null,
   }, 'flight-updated', `Booking flight time changed from ${formatClock(journey.input.scheduledTime, zone)} to ${formatClock(at, zone)} on ${formatDate(at, zone)} (Manchester time).`, now);
