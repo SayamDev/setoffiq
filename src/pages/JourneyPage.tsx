@@ -225,6 +225,7 @@ export function JourneyPage({
             </section>
           ) : null}
 
+          <details className={styles.resultDetails}><summary>Why this time? View journey details</summary>
           <section className={styles.section} aria-labelledby="timeline-heading">
             <h2 className={styles.sectionTitle} id="timeline-heading">
               Timeline
@@ -270,15 +271,17 @@ export function JourneyPage({
             </section>
           ) : null}
 
+          </details>
         </>
       ) : null}
 
+      <details className={styles.resultDetails}><summary>Journey history</summary>
       <section className={styles.section} aria-labelledby="activity-heading">
         <h2 className={styles.sectionTitle} id="activity-heading">
           Activity
         </h2>
         <ActivityLog events={journey.events} timeZone={zone} />
-      </section>
+      </section></details>
     </>
   );
 }

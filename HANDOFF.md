@@ -257,3 +257,11 @@ Rollback remains a PR revert; no journey-schema migration was introduced.
   and https://skills.sh/vercel-labs/agent-skills/web-design-guidelines .
   Commands if needed elsewhere: npx skills add vercel-labs/agent-skills --skill
   vercel-react-best-practices; use --skill web-design-guidelines for the second.
+
+### Quick planner simplification (24 October 2026)
+
+Default entry now asks flight/date/postcode and only follows up for a missing or
+ambiguous dated time. Voice remains directly accessible from Home; full form and
+conversation are selectable. Source provenance survives saving and explicit clock
+correction changes it back to booking. Detailed saved timeline/signals/readiness
+and history are expandable. No new data sources or background execution claims.

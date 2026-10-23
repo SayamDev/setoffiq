@@ -134,7 +134,7 @@ function buildFactors(
   const processing = processingFor(input);
   const factors: RecommendationFactor[] = [];
 
-  const source = flight?.estimatedArrivalSource ?? null;
+  const source = flight?.estimatedArrivalSource ?? (input.scheduledTimeSource === 'dated-schedule' ? 'published-schedule' : null);
 
   if (
     flight?.estimatedArrival &&
@@ -144,7 +144,7 @@ function buildFactors(
     const difference =
       delta === 0
         ? 'in line with your scheduled time'
-        : `${Math.abs(delta)} min ${delta > 0 ? 'later' : 'earlier'} than the time you entered`;
+        : `${Math.abs(delta)} min ${delta > 0 ? 'later' : 'earlier'} than the planned flight time`;
     factors.push({
       id: 'flight',
       label: 'Flight',
@@ -164,8 +164,8 @@ function buildFactors(
       label: 'Flight',
       value: `Scheduled landing ${formatClock(input.scheduledArrival, zone)}`,
       detail:
-        'No live position was available for this flight, so the scheduled time you entered is being used as-is.',
-      basis: 'user-supplied',
+        source === 'published-schedule' ? 'No live position was available. Using the published schedule for the selected date; check your booking.' : 'No live position was available for this flight, so the scheduled time you entered is being used as-is.',
+      basis: source === 'published-schedule' ? 'assumption' : 'user-supplied',
     });
   }
 

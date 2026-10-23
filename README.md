@@ -509,3 +509,26 @@ about every 15 minutes, but can be delayed; pressing Check now cannot create a
 new aircraft observation. Outside coverage or without a usable match, the app
 uses available schedule information or the booking time. This is not worldwide,
 second-by-second tracking, and there is no licensed Flightradar24 integration.
+
+### Quick planning
+
+Pickup and drop-off pages start with **Quick plan**: enter a **flight number**, its
+**date at Manchester** and your **starting postcode**, then choose **Find when to
+leave**. SetoffIQ looks up a fresh schedule for that exact local date and fills
+supported route and terminal details. If no dated time is available, it asks for
+the Manchester time on your booking. Multiple times require a choice; recurring
+weekly timetable times are never silently substituted. A booking time you enter
+always takes priority.
+
+The result identifies **Published scheduled time** separately from **Booking
+time**. A published schedule is not a live arrival estimate. The existing
+prediction engine calculates every departure time and confidence assessment.
+Quick pickup allows for bags and uses international processing unless a known
+route is domestic; drop-off includes check-in allowances. Choose **Edit journey**
+to change those assumptions. **Voice or text** and **Use the form** remain
+available. Detailed explanations and saved-journey history expand on request.
+
+Automatic lookup cannot guarantee an airline schedule exists for a future date,
+associate an unknown alphanumeric callsign with a ticket number, or check flights
+while the page is closed. Improving that coverage requires a reliable licensed
+schedule/flight association source; this change adds no providers, keys or costs.

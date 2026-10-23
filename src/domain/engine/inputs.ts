@@ -28,6 +28,7 @@ export interface ProviderInput<T> {
 }
 
 export interface JourneyEngineInput {
+  scheduledTimeSource?: 'booking' | 'dated-schedule';
   now: Instant;
   /**
    * Which side of the journey this is. It matters to confidence: a pickup
@@ -55,7 +56,7 @@ export interface JourneyEngineInput {
 }
 
 export interface PickupEngineInput extends JourneyEngineInput {
-  /** From the user's booking. The engine never invents a schedule. */
+  /** Explicit booking time or a dated published schedule; never invented. */
   scheduledArrival: Instant;
   mode: PickupMode;
 }
